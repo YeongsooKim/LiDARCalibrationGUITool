@@ -1,0 +1,1732 @@
+import fileinput
+import math
+import sys
+import os
+
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+from PyQt5.QtWidgets import *
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+import element
+from process import get_result
+from process import v1_step1_configuration
+from process import v1_step2_import_data
+from process import v1_step3_handeye
+from process import v1_step4_optimization
+from process import v1_step5_evaluation
+from widget import QThread
+from widget.QScrollarea import ScrollArea
+
+CONST_CONFIG = 0
+CONST_IMPORTDATA = 1
+CONST_HANDEYE = 2
+CONST_OPTIMIZATION = 3
+CONST_EVALUATION = 4
+
+CONST_DISPLAY_HANDEYE = 0
+CONST_DISPLAY_OPTIMIZATION = 1
+
+CONST_NEXT_BTN_HEIGHT = 80
+
+class ConfigurationTab(QWidget):
+    def __init__(self, ui):
+        super().__init__()
+        self.ui = ui
+
+        self.initUi()
+
+    def initUi(self):
+        self.InterfaceLayout_v_configuration()
+        self.MainLayout_h_interface()
+
+        self.setLayout(self.interface_h_box)
+
+    ## Layout
+
+    def MainLayout_h_interface(self):
+        self.interface_h_box = QHBoxLayout()
+        self.interface_h_box.addLayout(self.configuration_v_box)
+
+    def InterfaceLayout_v_configuration(self):
+        self.configuration_v_box = QVBoxLayout()
+
+        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
+        self.next_btn = QPushButton('Next step')
+        self.next_btn.clicked.connect(self.NextBtn)
+        self.configuration_v_box.addWidget(self.next_btn)
+
+    ## Groupbox
+
+    def Configuration_g_configuration(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        hbox = QHBoxLayout()
+        hbox.addLayout(self.Configuration_g_lidar())
+        hbox.addLayout(self.Configuration_g_pointcloud())
+        vbox.addLayout(hbox)
+
+        self.image_display_widget = element.ImageDisplay()
+        vbox.addWidget(self.image_display_widget)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Groupbox layout
+
+    def Configuration_g_lidar(self):
+        vbox = QVBoxLayout()
+        liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.lidar_num_label_layout = element.SpinBoxLabelLayout('LiDAR Num', self.ui)
+        vbox.addLayout(self.lidar_num_label_layout)
+
+        self.select_using_sensor_list_layout = element.CheckBoxListLayout('Select Using Sensor List', self.ui)
+        vbox.addLayout(self.select_using_sensor_list_layout)
+
+        return vbox
+
+    def Configuration_g_pointcloud(self):
+        vbox = QVBoxLayout()
+        pointcloud_configuration_label = QLabel('[ PointCloud Configuration ]', self)
+        vbox.addWidget(pointcloud_configuration_label)
+
+        self.minimum_threshold_distance_layout = element.DoubleSpinBoxLabelLayout("Minimum Threshold Distance [m]",
+                                                                                  self.ui)
+        vbox.addLayout(self.minimum_threshold_distance_layout)
+
+        self.maximum_threshold_istance_layout = element.DoubleSpinBoxLabelLayout("Maximum Threshold Distance [m]",
+                                                                                 self.ui)
+        vbox.addLayout(self.maximum_threshold_istance_layout)
+
+        self.minimum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Minimum Threshold X [m]", self.ui)
+        vbox.addLayout(self.minimum_threshold_layout_x)
+
+        self.maximum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Maximum Threshold X [m]", self.ui)
+        vbox.addLayout(self.maximum_threshold_layout_x)
+
+        self.minimum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Minimum Threshold Y [m]", self.ui)
+        vbox.addLayout(self.minimum_threshold_layout_y)
+
+        self.maximum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Maximum Threshold Y [m]", self.ui)
+        vbox.addLayout(self.maximum_threshold_layout_y)
+
+        self.minimum_threshold_layout_z = element.DoubleSpinBoxLabelLayout("Minimum Threshold Z [m]", self.ui)
+        vbox.addLayout(self.minimum_threshold_layout_z)
+
+        self.maximum_threshold_layout_z = element.DoubleSpinBoxLabelLayout("Maximum Threshold Z [m]", self.ui)
+        vbox.addLayout(self.maximum_threshold_layout_z)
+        return vbox
+
+    ## Callback Function
+
+    def btn_clicked(self):
+        self.btn_down = not self.btn_down
+        self.btn.setDown(self.btn_down)
+
+    def NextBtn(self):
+        if self.select_using_sensor_list_layout.listWidget.count() == 0:
+            self.ErrorPopUp('Please open a ini file')
+        else:
+            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+
+    def ErrorPopUp(self, error_message):
+        widget = QWidget()
+
+        qr = widget.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        widget.move(qr.topLeft())
+
+        QMessageBox.information(widget, 'Information', error_message)
+
+class ImportDataTab(QWidget):
+    def __init__(self, ui):
+        super().__init__()
+        self.ui = ui
+
+        self.initUi()
+
+    def initUi(self):
+        self.InterfaceLayout_v_setting()
+        self.MainLayout_h_interface()
+
+        self.setLayout(self.interface_h_box)
+
+    ## Layout
+
+    def MainLayout_h_interface(self):
+        self.interface_h_box = QHBoxLayout()
+
+        self.interface_h_box.addLayout(self.setting_v_box)
+
+    def InterfaceLayout_v_setting(self):
+        self.setting_v_box = QVBoxLayout()
+
+        self.setting_v_box.addWidget(self.Setting_g_logging_data())
+        self.setting_v_box.addStretch(1)
+        self.setting_v_box.addWidget(self.Setting_g_limit_time())
+
+        self.next_btn = QPushButton('Next step')
+        self.next_btn.clicked.connect(self.NextBtn)
+        self.setting_v_box.addWidget(self.next_btn)
+
+    ## Groupbox
+
+    def Setting_g_logging_data(self):
+        groupbox = QGroupBox('Import Logging Data')
+        self.logging_vbox = QVBoxLayout()
+
+        self.logging_file_path_layout = element.FileInputWithCheckBtnLayout('Select Logging File Path', self.ui)
+        self.logging_vbox.addLayout(self.logging_file_path_layout)
+
+        self.logging_file_text_edit = QTextEdit()
+        self.logging_vbox.addWidget(self.logging_file_text_edit)
+
+        groupbox.setLayout(self.logging_vbox)
+        return groupbox
+
+    def Setting_g_limit_time(self):
+        groupbox = QGroupBox('Limit Time Data')
+        vbox = QVBoxLayout()
+
+        self.limit_time_label = QLabel('[ Limit Time ]', self)
+        vbox.addWidget(self.limit_time_label)
+
+        self.start_time_layout = element.SlideLabelLayout('Start Time [s]:', self.ui)
+        vbox.addLayout(self.start_time_layout)
+        self.end_time_layout = element.SlideLabelLayout('End Time [s]:', self.ui)
+        vbox.addLayout(self.end_time_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def NextBtn(self):
+        # if self.calibration_parsing_label.label_edit.text() == '' or self.pointcloud_parsing_label.label_edit.text() == '':
+        #     self.ErrorPopUp('Please import logging file path')
+        # else:
+        self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
+        self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
+
+    def ErrorPopUp(self, error_message):
+        widget = QWidget()
+
+        qr = widget.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        widget.move(qr.topLeft())
+
+        QMessageBox.information(widget, 'Information', error_message)
+
+class CalibrationTab(QWidget):
+    def __init__(self, ui):
+        super().__init__()
+        self.ui = ui
+
+        self.initUi()
+
+    def initUi(self):
+        self.InterfaceLayout_v_result()
+        self.InterfaceLayout_v_configuration()
+        self.MainLayout_h_interface()
+
+        self.setLayout(self.interface_h_box)
+
+    ## Layout
+
+    def MainLayout_h_interface(self):
+        self.interface_h_box = QHBoxLayout()
+        self.interface_h_box.addLayout(self.configuration_v_box)
+        self.interface_h_box.addLayout(self.result_v_box)
+        self.interface_h_box.setStretchFactor(self.configuration_v_box, 2);
+        self.interface_h_box.setStretchFactor(self.result_v_box, 3);
+        
+    def InterfaceLayout_v_configuration(self):
+        pass
+
+    def InterfaceLayout_v_result(self):
+        self.result_v_box = QVBoxLayout()
+
+        self.result_v_box.addWidget(self.Result_g_result_data())
+        self.result_v_box.addWidget(self.Result_g_result_graph())
+
+    ## Groupbox
+
+    def Configuration_g_configuration(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_g_result_data(self):
+        groupbox = QGroupBox('Result Data')
+        vbox = QVBoxLayout()
+
+        self.result_data_pose_fig = plt.figure()
+        self.result_data_pose_canvas = FigureCanvas(self.result_data_pose_fig)
+        self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_canvas.draw()
+        vbox.addWidget(self.result_data_pose_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.View3)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_g_result_graph(self):
+        groupbox = QGroupBox('Result Graph')
+        vbox = QVBoxLayout()
+
+        self.result_graph_fig = plt.figure()
+        self.result_graph_canvas = FigureCanvas(self.result_graph_fig)
+        self.result_graph_ax = self.result_graph_fig.add_subplot(1, 1, 1)
+        self.result_graph_ax.grid()
+        self.result_graph_canvas.draw()
+        vbox.addWidget(self.result_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.View)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def StartCalibration(self):
+        pass
+
+    def View(self):
+        pass
+
+class HandEyeTab(CalibrationTab):
+    def __init__(self, ui):
+        super().__init__(ui)
+    ## Layout
+
+    def InterfaceLayout_v_configuration(self):
+        self.configuration_v_box = QVBoxLayout()
+
+        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
+
+        self.btn = QPushButton('Start Calibration')
+        self.btn.clicked.connect(self.StartCalibration)
+        self.configuration_v_box.addWidget(self.btn)
+
+        self.label = QLabel('[ HandEye Calibration Progress ]')
+        self.configuration_v_box.addWidget(self.label)
+
+        self.pbar = QProgressBar(self)
+        self.configuration_v_box.addWidget(self.pbar)
+
+        self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
+
+    ## Groupbox
+
+    def Configuration_g_configuration(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval', self.ui)
+        vbox.addLayout(self.sampling_interval_layout)
+
+        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration', self.ui)
+        vbox.addLayout(self.maximum_interation_layout)
+
+        self.tolerance_layout = element.DoubleSpinBoxLabelLayout('Tolerance', self.ui)
+        vbox.addLayout(self.tolerance_layout)
+
+        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout('Outlier Distance [m]', self.ui)
+        vbox.addLayout(self.outlier_distance_layout)
+
+        self.heading_threshold_layout = element.DoubleSpinBoxLabelLayout('Heading Threshold (filter)', self.ui)
+        vbox.addLayout(self.heading_threshold_layout)
+
+        self.distance_threshold_layout = element.DoubleSpinBoxLabelLayout('Distance Threshold (filter)', self.ui)
+        vbox.addLayout(self.distance_threshold_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Configuration_g_result_calibration_data(self):
+        groupbox = QGroupBox('Result Calibration Data')
+        vbox = QVBoxLayout(self)
+        area = QScrollArea(self)
+        area.setWidgetResizable(True)
+
+        scrollAreaWidgetContents = QWidget()
+        scrollAreaWidgetContents.setGeometry(0, 0, 300, 500)
+
+        self.sub_vbox = QHBoxLayout(scrollAreaWidgetContents)
+        self.result_calibration_data_layout = QVBoxLayout()
+        self.sub_vbox.addLayout(self.result_calibration_data_layout)
+        area.setWidget(scrollAreaWidgetContents)
+
+        vbox.addWidget(area)
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def StartCalibration(self):
+        self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
+
+        self.ui.thread.SetFunc(self.ui.handeye.Calibration)
+        self.ui.thread.change_value.disconnect()
+        self.ui.thread.end.disconnect()
+        self.ui.thread.change_value.connect(self.pbar.setValue)
+        self.ui.thread.end.connect(self.EndHandEyeCalibration)
+        self.ui.thread.start()
+
+    def View(self):
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.handeye.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        num = 0
+        fig = plt.figure(figsize=(20, 20))
+
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
+                                                                                           self.ui.importing,
+                                                                                           self.ui.handeye.df_info,
+                                                                                           self.ui.handeye.CalibrationParam)
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            ax = fig.add_subplot(plot_num)
+            plot_type = color_list[idxSensor] + ','
+            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory',color = 'gray')
+            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',',color = color_list[num-1], label=strColIndex)
+            ax.axis('equal')
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
+
+            canvas = FigureCanvas(fig)
+            canvas.draw()
+            canvas.show()
+            
+    def View3(self):
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.handeye.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        fig = plt.figure(figsize=(20, 20))
+        
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(i)
+            ax = fig.add_subplot(plot_num)
+            
+            ax.imshow(veh)
+            
+            x = int(self.ui.handeye.calib_x[num-1])*200 + 500
+            y = 1000 -1*int(self.ui.handeye.calib_y[num-1])*200 - 500
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none')
+            ax.arrow(x, y, 100*np.cos(self.ui.handeye.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.handeye.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1] ,'--')
+         
+            ax.set_xlim([-500,1500])
+            ax.set_ylim([1000,0])
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration - LiDAR'+ str(i))
+            ax.axes.xaxis.set_visible(False)
+            ax.axes.yaxis.set_visible(False)
+   
+        
+        #self.result_data_pose_ax.axis('off')
+
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        canvas.show()
+
+    def EndHandEyeCalibration(self):
+        self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+
+        self.result_data_pose_ax.clear()
+        
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.handeye.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1            
+            
+            self.result_data_pose_ax.imshow(veh)
+            
+            x = int(self.ui.handeye.calib_x[num-1])*200 + 500
+            y = 1000 -1*int(self.ui.handeye.calib_y[num-1])*200 - 500
+                        
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none')
+            self.result_data_pose_ax.arrow(x, y, 100*np.cos(self.ui.handeye.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.handeye.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1], '--')
+
+        self.result_data_pose_ax.set_xlim([-500,1500])
+        self.result_data_pose_ax.set_ylim([1000,0])
+        self.result_data_pose_ax.legend()
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_ax.set_title('Result of calibration')
+        self.result_data_pose_ax.axes.xaxis.set_visible(False)
+        self.result_data_pose_ax.axes.yaxis.set_visible(False)
+        self.result_data_pose_canvas.draw()
+
+        # plot result graph
+        # df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = self.ui.handeye.GetPlotParam()
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
+                                                                                           self.ui.importing,
+                                                                                           self.ui.handeye.df_info,
+                                                                                           self.ui.handeye.CalibrationParam)
+        self.result_graph_ax.clear()
+        self.result_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color = 'gray')
+        num = 0
+        for idxSensor in PARM_LIDAR:
+            num = num+1
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            self.result_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1]
+                                      ,label=strColIndex)
+
+        self.result_graph_ax.axis('equal')
+        self.result_graph_ax.legend()
+        self.result_graph_ax.grid()
+        self.result_graph_canvas.draw()
+
+        if self.ui.evaluation_tab.button_group.checkedId() == CONST_DISPLAY_HANDEYE:
+
+
+            self.ui.evaluation_tab.result_before_graph_ax.clear()
+            self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
+                                                               '.', color = 'gray', label='trajectory')
+            num = 0
+            for idxSensor in PARM_LIDAR:
+                num = num +1
+                strColIndex = 'PointCloud_' + str(idxSensor)
+                self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0],
+                                                                   accum_pointcloud_[idxSensor][:, 1], ',', color = color_list[num-1],
+                                                                   label=strColIndex)
+
+            self.ui.evaluation_tab.result_before_graph_ax.axis('equal')
+            self.ui.evaluation_tab.result_before_graph_ax.legend()
+            self.ui.evaluation_tab.result_before_graph_ax.grid()
+            self.ui.evaluation_tab.result_before_graph_canvas.draw()
+
+            self.ui.evaluation_tab.result_after_graph_ax.clear()
+            self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,'.', color = 'gray',
+                                                              label='trajectory')
+            num = 0
+            for idxSensor in PARM_LIDAR:
+                num = num+1
+                strColIndex = 'PointCloud_' + str(idxSensor)
+                self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0],
+                                                                  accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
+                                                                  label=strColIndex)
+
+            self.ui.evaluation_tab.result_after_graph_ax.axis('equal')
+            self.ui.evaluation_tab.result_after_graph_ax.legend()
+            self.ui.evaluation_tab.result_after_graph_ax.grid()
+            self.ui.evaluation_tab.result_after_graph_canvas.draw()
+
+
+            self.ui.evaluation_tab.result_data_pose_ax.clear()
+            color_list = []
+            color_list.append('salmon')
+            color_list.append('darkorange')
+            color_list.append('tan')
+            color_list.append('yellowgreen')
+            color_list.append('mediumseagreen')
+            color_list.append('cadetiblue')
+            color_list.append('lightskyblue')
+            color_list.append('slategray')
+            color_list.append('slateblue')
+            color_list.append('mediumpurple')
+            color_list.append('orchid')
+            color_list.append('palevioletred')
+       
+            veh_path = 'image/vehicle1.png'
+            veh = plt.imread(veh_path)
+        
+            num = 0
+            for i in self.ui.config.PARM_LIDAR['SensorList']:
+                num = num + 1            
+            
+                self.ui.evaluation_tab.result_data_pose_ax.imshow(veh)
+            
+                x = int(self.ui.handeye.calib_x[num-1])*200 + 500
+                y = 1000 -1*int(self.ui.handeye.calib_y[num-1])*200 - 500
+                            
+                car_length = 1.75
+                lidar_num = 'lidar'+str(i)
+            
+                self.ui.evaluation_tab.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none')
+                self.ui.evaluation_tab.result_data_pose_ax.arrow(x, y, 100*np.cos(self.ui.handeye.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.handeye.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+                self.ui.evaluation_tab.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1], '--')
+
+            
+            self.ui.evaluation_tab.result_data_pose_ax.set_xlim([-500,1500])
+            self.ui.evaluation_tab.result_data_pose_ax.set_ylim([1000,0])
+            self.ui.evaluation_tab.result_data_pose_ax.legend()
+            self.ui.evaluation_tab.result_data_pose_ax.grid()
+            self.ui.evaluation_tab.result_data_pose_ax.set_title('Result of calibration - HandEye')
+            self.ui.evaluation_tab.result_data_pose_ax.axes.xaxis.set_visible(False)
+            self.ui.evaluation_tab.result_data_pose_ax.axes.yaxis.set_visible(False)
+
+            self.ui.evaluation_tab.result_data_pose_canvas.draw()
+        ### Setting evaluation tab
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            self.ui.evaluation_tab.handeye_results[idxSensor].double_spin_box_x.setValue(self.ui.handeye.CalibrationParam[idxSensor][3])
+            self.ui.evaluation_tab.handeye_results[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
+            self.ui.evaluation_tab.handeye_results[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
+
+        ### Setting handeye tab
+        self.result_labels = {}
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            result_label = element.CalibrationResultLabel(idxSensor)
+            self.result_calibration_data_layout.addLayout(result_label)
+            self.result_labels[idxSensor] = result_label
+
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            self.result_labels[idxSensor].label_edit_x.setText(
+                str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 2)))
+            self.result_labels[idxSensor].label_edit_y.setText(
+                str(round(self.ui.handeye.CalibrationParam[idxSensor][4], 2)))
+            self.result_labels[idxSensor].label_edit_yaw.setText(
+                str(round(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+
+        ### Transfer
+        self.ui.optimization.initial_calibration_param = self.ui.handeye.CalibrationParam
+
+class OptimizationTab(CalibrationTab):
+    def __init__(self, ui):
+        super().__init__(ui)
+        self.handeye_results = {}
+        self.default_results = {}
+
+    ## Layout
+
+    def InterfaceLayout_v_configuration(self):
+        self.configuration_v_box = QVBoxLayout()
+        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
+        self.configuration_v_box.addWidget(self.Configuration_g_progress())
+        self.configuration_v_box.addStretch(1)
+        self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
+
+    ## Groupbox
+
+    def Configuration_g_configuration(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.select_principle_sensor_list_layout = element.CheckBoxListLayout('Select Principle Sensor List', self.ui)
+        vbox.addLayout(self.select_principle_sensor_list_layout)
+
+        liDAR_configuration_label = QLabel('[ Optimization Configuration ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.pose_sampling_ratio_layout = element.DoubleSpinBoxLabelLayout('Pose Sampling Ratio', self.ui)
+        vbox.addLayout(self.pose_sampling_ratio_layout)
+
+        self.point_sampling_ratio_layout = element.DoubleSpinBoxLabelLayout('Point Sampling Ratio', self.ui)
+        vbox.addLayout(self.point_sampling_ratio_layout)
+
+        self.num_points_plane_modeling_layout = element.SpinBoxLabelLayout('Num Points Plane Modeling', self.ui)
+        vbox.addLayout(self.num_points_plane_modeling_layout)
+
+        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout('Outlier Distance  [m]', self.ui)
+        vbox.addLayout(self.outlier_distance_layout)
+
+        optimization_initial_value_label = QLabel('[ Optimization Initial value ]', self)
+        vbox.addWidget(optimization_initial_value_label)
+
+        self.optimization_initial_value_tab = element.ResultTab(self.ui)
+        vbox.addLayout(self.optimization_initial_value_tab)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Configuration_g_result_calibration_data(self):
+        groupbox = QGroupBox('Result Calibration Data')
+        vbox = QVBoxLayout(self)
+
+        area = QScrollArea(self)
+        area.setWidgetResizable(True)
+        scrollAreaWidgetContents = QWidget()
+        scrollAreaWidgetContents.setGeometry(0, 0, 300, 500)
+        self.sub_vbox = QHBoxLayout(scrollAreaWidgetContents)
+        self.result_calibration_data_layout = QVBoxLayout()
+        self.sub_vbox.addLayout(self.result_calibration_data_layout)
+        area.setWidget(scrollAreaWidgetContents)
+        vbox.addWidget(area)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Configuration_g_progress(self):
+        groupbox = QGroupBox()
+        vbox = QVBoxLayout(self)
+
+        btn = QPushButton('Start Optimization')
+        btn.clicked.connect(self.StartCalibration)
+        vbox.addWidget(btn)
+
+        label = QLabel('[ Optimization Progress ]')
+        vbox.addWidget(label)
+
+        self.text_edit = QTextEdit()
+        vbox.addWidget(self.text_edit)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def StartCalibration(self):
+        self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
+
+        self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
+
+        self.ui.thread.SetFunc(self.ui.optimization.Calibration)
+        self.ui.thread.change_value.disconnect()
+        self.ui.thread.end.disconnect()
+
+        self.ui.thread.emit_string.connect(self.text_edit.append)
+        self.ui.thread.end.connect(self.EndOptimizationCalibration)
+        self.ui.thread.start()
+
+    def View(self):
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.optimization.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        num = 0
+        fig = plt.figure(figsize=(20, 20))
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
+                                                                                           self.ui.importing,
+                                                                                           self.ui.optimization.df_info,
+                                                                                           self.ui.optimization.CalibrationParam)
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            ax = fig.add_subplot(plot_num)
+            plot_type = color_list[idxSensor] + ','
+            ax.plot(df_info['east_m'].values, df_info['north_m'].values, color= 'gray', label='trajectory')
+            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',', color = color_list[num-1], label = strColIndex)
+            ax.axis('equal')
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
+
+            #canvas = FigureCanvas(fig)
+            #canvas.draw()
+            #canvas.show()
+    def View3(self):
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.optimization.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        fig = plt.figure(figsize=(20, 20))
+        
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(i)
+            ax = fig.add_subplot(plot_num)
+            
+            ax.imshow(veh)
+            
+            x = int(self.ui.optimization.calib_x[num-1])*200 + 500
+            y = 1000 -1*int(self.ui.optimization.calib_y[num-1])*200 - 500
+                        
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none')
+            ax.arrow(x, y, 100*np.cos(self.ui.optimization.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.optimization.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1], '--')
+
+   
+            ax.set_xlim([-500,1500])
+            ax.set_ylim([1000,0])
+            ax.legend()
+            ax.grid()
+            ax.set_title('Result of calibration - LiDAR'+ str(i))
+            ax.axes.xaxis.set_visible(False)
+            ax.axes.yaxis.set_visible(False)        
+        
+        #self.result_data_pose_ax.axis('off')
+
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        canvas.show()
+
+    def EndOptimizationCalibration(self):
+        self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+
+        self.result_data_pose_ax.clear()
+        
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.optimization.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+
+                        
+            self.result_data_pose_ax.imshow(veh)
+            
+            x = int(self.ui.optimization.calib_x[num-1])*200 + 500
+            y = 1000 -1*int(self.ui.optimization.calib_y[num-1])*200 - 500
+                        
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none')
+            self.result_data_pose_ax.arrow(x, y, 100*np.cos(self.ui.optimization.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.optimization.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1], '--')
+
+   
+        self.result_data_pose_ax.set_xlim([-500,1500])
+        self.result_data_pose_ax.set_ylim([1000,0])
+        self.result_data_pose_ax.legend()
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_ax.set_title('Result of calibration')
+        self.result_data_pose_ax.axes.xaxis.set_visible(False)
+        self.result_data_pose_ax.axes.yaxis.set_visible(False)
+
+        self.result_data_pose_canvas.draw()
+
+        # plot result graph
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
+                                                                                           self.ui.importing,
+                                                                                           self.ui.optimization.df_info,
+                                                                                           self.ui.optimization.CalibrationParam)
+        self.result_graph_ax.clear()
+        self.result_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.',color = 'gray', label='trajectory')
+        num = 0
+        for idxSensor in PARM_LIDAR:
+            num = num + 1
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            self.result_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
+                                      label=strColIndex)
+
+        self.result_graph_ax.axis('equal')
+        self.result_graph_ax.grid()
+        self.result_graph_ax.legend()
+        self.result_graph_canvas.draw()
+
+        if self.ui.evaluation_tab.button_group.checkedId() == CONST_DISPLAY_OPTIMIZATION:
+            self.ui.evaluation_tab.result_before_graph_ax.clear()
+            self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
+                                                               '.',color = 'gray',
+                                                               label='trajectory')
+            num = 0
+            for idxSensor in PARM_LIDAR:
+                num = num + 1
+                strColIndex = 'PointCloud_' + str(idxSensor)
+                self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0],
+                                                                   accum_pointcloud_[idxSensor][:, 1], color_list[num-1],',', label=strColIndex)
+
+            self.ui.evaluation_tab.result_before_graph_ax.grid()
+            self.ui.evaluation_tab.result_before_graph_ax.axis('equal')
+            self.ui.evaluation_tab.result_before_graph_ax.legend()
+            self.ui.evaluation_tab.result_before_graph_canvas.draw()
+
+            self.ui.evaluation_tab.result_after_graph_ax.clear()
+            self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
+                                                              '.',color = 'gray',
+                                                              label='trajectory')
+            num= 0
+            for idxSensor in PARM_LIDAR:
+                num = num + 1
+                strColIndex = 'PointCloud_' + str(idxSensor)
+                self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0],
+                                                                  accum_pointcloud[idxSensor][:, 1], color_list[num-1], ',',
+                                                                  label=strColIndex)
+
+            self.ui.evaluation_tab.result_after_graph_ax.grid()
+            self.ui.evaluation_tab.result_after_graph_ax.axis('equal')
+            self.ui.evaluation_tab.result_after_graph_ax.legend()
+            self.ui.evaluation_tab.result_after_graph_canvas.draw()
+
+        ### Setting evaluation tab
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            self.ui.evaluation_tab.opt_results[idxSensor].double_spin_box_x.setValue(
+                self.ui.optimization.CalibrationParam[idxSensor][3])
+            self.ui.evaluation_tab.opt_results[idxSensor].double_spin_box_y.setValue(
+                self.ui.optimization.CalibrationParam[idxSensor][4])
+            self.ui.evaluation_tab.opt_results[idxSensor].double_spin_box_yaw.setValue(
+                self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi)
+
+        ### Setting optimization tab
+        self.result_labels = {}
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            result_label = element.CalibrationResultLabel(idxSensor)
+            self.result_calibration_data_layout.addLayout(result_label)
+            self.result_labels[idxSensor] = result_label
+
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            self.result_labels[idxSensor].label_edit_x.setText(
+                str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+            self.result_labels[idxSensor].label_edit_y.setText(
+                str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+            self.result_labels[idxSensor].label_edit_yaw.setText(
+                str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+
+class EvaluationTab(QWidget):
+    def __init__(self, ui):
+        super().__init__()
+        self.ui = ui
+
+        self.handeye_results = {}
+        self.opt_results = {}
+
+        self.prev_checkID = 0
+
+        self.initUi()
+
+    def initUi(self):
+        self.InterfaceLayout_v_main()
+
+        self.setLayout(self.main_h_box)
+
+    ## Layout
+
+    def InterfaceLayout_v_main(self):
+        self.main_h_box = QHBoxLayout()
+
+        self.vbox1 = QVBoxLayout()
+        self.vbox1.addWidget(self.Main_g_select_method())
+        self.vbox1.addWidget(self.Main_g_before_apply_calibration_result())
+
+        self.main_h_box.addLayout(self.vbox1)
+        self.main_h_box.setStretchFactor(self.vbox1,2);
+
+        self.vbox2 = QVBoxLayout()
+        self.vbox2.addWidget(self.Main_g_result_of_calibration())
+        self.vbox2.addWidget(self.Main_g_apply_calibration_result())
+
+        self.main_h_box.addLayout(self.vbox2)
+        self.main_h_box.setStretchFactor(self.vbox2,2);
+    ## Groupbox
+
+    def Main_g_select_method(self):
+        groupbox = QGroupBox('Select The Method')
+        self.select_method_vbox = QVBoxLayout()
+
+        self.button_group = QButtonGroup()
+        method1_radio_btn = QRadioButton('Method1. HandEye')
+        method1_radio_btn.setChecked(True)
+        method1_radio_btn.clicked.connect(self.DisplayCalibrationGraph)
+        self.button_group.addButton(method1_radio_btn, 0)
+        self.select_method_vbox.addWidget(method1_radio_btn)
+
+        area = QScrollArea(self)
+        area.setWidgetResizable(True)
+        scrollAreaWidgetContents = QWidget()
+        scrollAreaWidgetContents.setGeometry(0, 0, 300, 500)
+        sub_vbox = QHBoxLayout(scrollAreaWidgetContents)
+        self.handeye_result_calibration_data_layout = QVBoxLayout()
+        sub_vbox.addLayout(self.handeye_result_calibration_data_layout)
+        area.setWidget(scrollAreaWidgetContents)
+        self.select_method_vbox.addWidget(area)
+
+        method2_radio_btn = QRadioButton('Mtehod2. Optimization')
+        method2_radio_btn.setChecked(False)
+        method2_radio_btn.clicked.connect(self.DisplayCalibrationGraph)
+        self.button_group.addButton(method2_radio_btn, 1)
+        self.select_method_vbox.addWidget(method2_radio_btn)
+
+        area = QScrollArea(self)
+        area.setWidgetResizable(True)
+        scrollAreaWidgetContents = QWidget()
+        scrollAreaWidgetContents.setGeometry(0, 0, 300, 500)
+        sub_vbox = QHBoxLayout(scrollAreaWidgetContents)
+        self.opt_result_calibration_data_layout = QVBoxLayout()
+        sub_vbox.addLayout(self.opt_result_calibration_data_layout)
+        area.setWidget(scrollAreaWidgetContents)
+        self.select_method_vbox.addWidget(area)
+
+        groupbox.setLayout(self.select_method_vbox)
+        return groupbox
+
+    def Main_g_result_of_calibration(self):
+        groupbox = QGroupBox('Result Of Calibration')
+        vbox = QVBoxLayout()
+
+        self.result_data_pose_fig = plt.figure()
+        self.result_data_pose_canvas = FigureCanvas(self.result_data_pose_fig)
+        self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_canvas.draw()
+        vbox.addWidget(self.result_data_pose_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.View1)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Main_g_before_apply_calibration_result(self):
+        groupbox = QGroupBox('Before Apply Calibration Result')
+        vbox = QVBoxLayout()
+
+        self.result_before_graph_fig = plt.figure()
+        self.result_before_graph_canvas = FigureCanvas(self.result_before_graph_fig)
+        self.result_before_graph_ax = self.result_before_graph_fig.add_subplot(1, 1, 1)
+        self.result_before_graph_ax.grid()
+        self.result_before_graph_canvas.draw()
+        vbox.addWidget(self.result_before_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.View2)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Main_g_apply_calibration_result(self):
+        groupbox = QGroupBox('After Apply Calibration Result')
+        vbox = QVBoxLayout()
+
+        self.result_after_graph_fig = plt.figure()
+        self.result_after_graph_canvas = FigureCanvas(self.result_after_graph_fig)
+        self.result_after_graph_ax = self.result_after_graph_fig.add_subplot(1, 1, 1)
+        self.result_after_graph_ax.grid()
+        self.result_after_graph_canvas.draw()
+        vbox.addWidget(self.result_after_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.View2)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    # Callback
+    def View1(self):
+        #status = self.ui.evaluation_tab.button_group.checkedId()
+        status = self.button_group.checkedId()
+        
+        if status == CONST_DISPLAY_HANDEYE:
+            calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
+
+        elif status == CONST_DISPLAY_OPTIMIZATION:
+            calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
+
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        num2 = len(self.ui.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        fig = plt.figure(figsize=(20, 20))
+        
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(i)
+            ax = fig.add_subplot(plot_num)
+            
+            ax.imshow(veh)
+            
+            x = int(calib_x[num-1])*200 + 500
+            y = 1000 -1*int(calib_y[num-1])*200 - 500
+                        
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none')
+            ax.arrow(x, y, 100*np.cos(calib_yaw[num-1]*np.pi/180), -100*np.sin(calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1],'--')
+
+           
+            ax.set_xlim([-500,1500])
+            ax.set_ylim([1000,0])
+            ax.legend()
+            ax.grid()
+            ax.set_title('Result of calibration - LiDAR'+ str(i))
+            ax.axes.xaxis.set_visible(False)
+            ax.axes.yaxis.set_visible(False)
+        
+        #self.result_data_pose_ax.axis('off')
+
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        canvas.show()
+
+    def View2(self):
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        status = self.button_group.checkedId()
+
+        if status == CONST_DISPLAY_HANDEYE:
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info, self.ui.handeye.CalibrationParam)
+
+        elif status == CONST_DISPLAY_OPTIMIZATION:
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.ui.optimization.CalibrationParam)
+
+        num2 = len(self.ui.config.PARM_LIDAR['SensorList'])
+        num3 = math.ceil(num2 / 2)
+        num = 0
+        fig = plt.figure(figsize=(20, 20))
+
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+            num_str = str(num)
+            num3_str = str(num3)
+            num4_str = '2' + num3_str
+            num4 = int(num4_str)
+            plot_num_str = num4_str + num_str
+            plot_num = int(plot_num_str)
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            ax = fig.add_subplot(plot_num)
+            plot_type = color_list[idxSensor] + ','
+            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory',color = 'gray')
+            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',',color = color_list[num-1], label=strColIndex)
+            ax.axis('equal')
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
+
+            canvas = FigureCanvas(fig)
+            canvas.draw()
+            canvas.show()
+
+    def DisplayCalibrationGraph(self):
+        
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+        
+        status = self.button_group.checkedId()
+        if status == CONST_DISPLAY_HANDEYE:
+            if not self.ui.handeye.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                return False
+        elif status == CONST_DISPLAY_OPTIMIZATION:
+            if not self.ui.optimization.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                return False
+
+        if status == CONST_DISPLAY_HANDEYE:
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info,self.ui.handeye.CalibrationParam)
+            calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
+            method = 'HandEye'
+        elif status == CONST_DISPLAY_OPTIMIZATION:
+            if self.ui.optimization.complete_calibration:
+                df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.ui.optimization.CalibrationParam)
+                calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
+                method = 'Optimization'
+            else:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+
+        self.result_before_graph_ax.clear()
+        self.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,'gray', '.', label='trajectory')
+        num = 0
+        for idxSensor in PARM_LIDAR:
+            num = num + 1
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            self.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0], accum_pointcloud_[idxSensor][:, 1], color_list[num-1], ',', label=strColIndex)
+
+        self.result_before_graph_ax.axis('equal')
+        self.result_before_graph_ax.grid()
+        self.result_before_graph_ax.legend()
+        # self.result_before_graph_canvas.draw()
+
+        #
+        color_list = []
+        color_list.append('salmon')
+        color_list.append('darkorange')
+        color_list.append('tan')
+        color_list.append('yellowgreen')
+        color_list.append('mediumseagreen')
+        color_list.append('cadetiblue')
+        color_list.append('lightskyblue')
+        color_list.append('slategray')
+        color_list.append('slateblue')
+        color_list.append('mediumpurple')
+        color_list.append('orchid')
+        color_list.append('palevioletred')
+
+        self.result_data_pose_ax.clear
+        veh_path = 'image/vehicle1.png'
+        veh = plt.imread(veh_path)
+        num = 0
+        for i in self.ui.config.PARM_LIDAR['SensorList']:
+            num = num + 1
+
+            self.result_data_pose_ax.imshow(veh)
+            
+            x = int(calib_x[num-1])*200 + 500
+            y = 1000 -1*int(calib_y[num-1])*200 - 500
+                        
+            car_length = 1.75
+            lidar_num = 'lidar'+str(i)
+            
+            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none')
+            self.result_data_pose_ax.arrow(x, y, 100*np.cos(calib_yaw[num-1]*np.pi/180), -100*np.sin(calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
+            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1], '--')
+
+        self.result_data_pose_ax.set_xlim([-500,1500])
+        self.result_data_pose_ax.set_ylim([1000,0])
+        self.result_data_pose_ax.legend()
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_ax.set_title('Result of calibration')
+        self.result_data_pose_ax.axes.xaxis.set_visible(False)
+        self.result_data_pose_ax.axes.yaxis.set_visible(False)
+
+        ###
+        self.result_after_graph_ax.clear()
+        self.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,'gray','.', label='trajectory')
+        num = 0
+        for idxSensor in PARM_LIDAR:
+            num = num + 1
+            strColIndex = 'PointCloud_' + str(idxSensor)
+            self.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], color_list[num-1], ',',label=strColIndex)
+
+        self.result_after_graph_ax.axis('equal')
+        self.result_after_graph_ax.grid()
+        self.result_after_graph_ax.legend()
+
+        self.prev_checkID = self.button_group.checkedId()
+        print('radio callback')
+
+    def AddResultLabel(self):
+        if not len(self.handeye_results) == 0:
+            for idxSensor in self.handeye_results.keys():
+                self.handeye_results[idxSensor].removeWidget(self.handeye_results[idxSensor].label)
+                self.handeye_results[idxSensor].label.deleteLater()
+                self.handeye_results[idxSensor].label = None
+                self.handeye_results[idxSensor].removeWidget(self.handeye_results[idxSensor].double_spin_box_x)
+                self.handeye_results[idxSensor].double_spin_box_x.deleteLater()
+                self.handeye_results[idxSensor].double_spin_box_x = None
+                self.handeye_results[idxSensor].removeWidget(self.handeye_results[idxSensor].double_spin_box_y)
+                self.handeye_results[idxSensor].double_spin_box_y.deleteLater()
+                self.handeye_results[idxSensor].double_spin_box_y = None
+                self.handeye_results[idxSensor].removeWidget(self.handeye_results[idxSensor].double_spin_box_yaw)
+                self.handeye_results[idxSensor].double_spin_box_yaw.deleteLater()
+                self.handeye_results[idxSensor].double_spin_box_yaw = None
+                self.handeye_results[idxSensor].removeWidget(self.handeye_results[idxSensor].change_btn)
+                self.handeye_results[idxSensor].change_btn.deleteLater()
+                self.handeye_results[idxSensor].change_btn = None
+
+        if not len(self.opt_results) == 0:
+            for idxSensor in self.handeye_results.keys():
+                self.opt_results[idxSensor].removeWidget(self.opt_results[idxSensor].label)
+                self.opt_results[idxSensor].label.deleteLater()
+                self.opt_results[idxSensor].label = None
+                self.opt_results[idxSensor].removeWidget(self.opt_results[idxSensor].double_spin_box_x)
+                self.opt_results[idxSensor].double_spin_box_x.deleteLater()
+                self.opt_results[idxSensor].double_spin_box_x = None
+                self.opt_results[idxSensor].removeWidget(self.opt_results[idxSensor].double_spin_box_y)
+                self.opt_results[idxSensor].double_spin_box_y.deleteLater()
+                self.opt_results[idxSensor].double_spin_box_y = None
+                self.opt_results[idxSensor].removeWidget(self.opt_results[idxSensor].double_spin_box_yaw)
+                self.opt_results[idxSensor].double_spin_box_yaw.deleteLater()
+                self.opt_results[idxSensor].double_spin_box_yaw = None
+                self.opt_results[idxSensor].removeWidget(self.opt_results[idxSensor].change_btn)
+                self.opt_results[idxSensor].change_btn.deleteLater()
+                self.opt_results[idxSensor].change_btn = None
+
+        self.handeye_results = {}
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            method1_result = element.CalibrationResultEditLabel(CONST_DISPLAY_HANDEYE, idxSensor, self.ui.handeye.CalibrationParam, self.ui)
+            self.handeye_result_calibration_data_layout.addLayout(method1_result)
+            self.handeye_results[idxSensor] = method1_result
+
+        self.opt_results = {}
+        for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+            method1_result = element.CalibrationResultEditLabel(CONST_DISPLAY_OPTIMIZATION, idxSensor, self.ui.optimization.CalibrationParam, self.ui)
+            self.opt_result_calibration_data_layout.addLayout(method1_result)
+            self.opt_results[idxSensor] = method1_result
+
+class MyApp(QMainWindow):
+    def __init__(self, parent=None):
+        super(MyApp, self).__init__(parent)
+        self.form_widget = FormWidget(self)
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.setCentralWidget(self.form_widget)
+
+        menubar = self.menuBar()
+        menubar.setNativeMenuBar(False)
+        filemenu = menubar.addMenu('&File')
+
+        new_action = QAction('New', self)
+        new_action.setShortcut('Ctrl+N')
+        new_action.setStatusTip('Open new ini file')
+        new_action.triggered.connect(self.OpenNewFile)
+        filemenu.addAction(new_action)
+
+        open_action = QAction('Open', self)
+        open_action.setShortcut('Ctrl+O')
+        open_action.setStatusTip('Open ini file')
+        open_action.triggered.connect(self.OpenExistFile)
+        filemenu.addAction(open_action)
+
+        save_action = QAction('Save', self)
+        save_action.setShortcut('Ctrl+S')
+        save_action.setStatusTip('Save ini file')
+        save_action.triggered.connect(self.SaveIniFile)
+        filemenu.addAction(save_action)
+
+        save_as_action = QAction('Save as', self)
+        save_as_action.setShortcut('Ctrl+Shift+S')
+        save_as_action.setStatusTip('Save as different ini file')
+        save_as_action.triggered.connect(self.SaveAsInitFile)
+        filemenu.addAction(save_as_action)
+
+        self.statusBar()
+
+        self.setWindowTitle('Calibration Tool')
+        self.resize(1000, 600)
+        self.center()
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
+
+    def OpenExistFile(self): # Ctrl+O
+        if self.form_widget.value_changed:
+            reply = QMessageBox.question(self, 'Open Exist File', 'Do you want to save?',
+                                         QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
+            if reply == QMessageBox.Save:
+                fname = self.SaveDialog()
+                if fname[0]:
+                    self.form_widget.config.configuration_file = fname[0]
+                    self.form_widget.config.WriteFile(fname[0])
+                    self.SaveIniFile()
+            elif reply == QMessageBox.Cancel:
+                return False
+
+        widget = QWidget()
+        fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['Configuration'], "Configuration file (*.ini)")
+
+        if fname[0]:
+            self.form_widget.config.configuration_file = fname[0]
+            # try:
+            self.form_widget.config.InitConfiguration()
+            self.form_widget.SetConfiguration()
+            # except:
+            #     self.ErrorPopUp("Fail Open Configuration File")
+
+    def OpenNewFile(self): # Ctrl+N
+        if self.form_widget.value_changed:
+            reply = QMessageBox.question(self, 'Open New File', 'Do you want to save?',
+                                         QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
+            if reply == QMessageBox.Save:
+                fname = self.SaveDialog()
+                if fname[0]:
+                    self.form_widget.config.configuration_file = fname[0]
+                    self.form_widget.config.WriteFile(fname[0])
+                    self.SaveIniFile()
+            elif reply == QMessageBox.Cancel:
+                return False
+
+        self.form_widget.config.WriteDefaultFile()
+        self.form_widget.config.InitConfiguration()
+        self.form_widget.SetConfiguration()
+
+    def SaveIniFile(self):
+        sensor_list = ''
+        for sensor_index in self.form_widget.config.PARM_LIDAR['SensorList']:
+            if sensor_list == '':
+                sensor_list = str(sensor_index)
+            else:
+                sensor_list = sensor_list + ' ' + str(sensor_index)
+
+        for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
+            if 'SensorList' in line:
+                line = line.replace(line, 'SensorList = ' + str(sensor_list) + '\n')
+            elif 'MinThresholdDist_m' in line:
+                line = line.replace(line, 'MinThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdDist_m']) + '\n')
+            elif 'MaxThresholdDist_m' in line:
+                line = line.replace(line, 'MaxThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdDist_m']) + '\n')
+            elif 'MinThresholdX_m' in line:
+                line = line.replace(line, 'MinThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdX_m']) + '\n')
+            elif 'MaxThresholdX_m' in line:
+                line = line.replace(line, 'MaxThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdX_m']) + '\n')
+            elif 'MinThresholdY_m' in line:
+                line = line.replace(line, 'MinThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdY_m']) + '\n')
+            elif 'MaxThresholdY_m' in line:
+                line = line.replace(line, 'MaxThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdY_m']) + '\n')
+            elif 'MinThresholdZ_m' in line:
+                line = line.replace(line, 'MinThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdZ_m']) + '\n')
+            elif 'MaxThresholdZ_m' in line:
+                line = line.replace(line, 'MaxThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdZ_m']) + '\n')
+
+            elif 'SamplingInterval' in line:
+                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_HE['SamplingInterval']) + '\n')
+            elif 'MaximumIteration' in line:
+                line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_HE['MaximumIteration']) + '\n')
+            elif 'Tolerance' in line:
+                line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_HE['Tolerance']) + '\n')
+            elif 'OutlierDistance_m' in line:
+                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_HE['OutlierDistance_m']) + '\n')
+            elif 'filter_HeadingThreshold' in line:
+                line = line.replace(line, 'filter_HeadingThreshold = ' + str(self.form_widget.config.PARM_HE['filter_HeadingThreshold']) + '\n')
+            elif 'filter_DistanceThreshold' in line:
+                line = line.replace(line, 'filter_DistanceThreshold = ' + str(self.form_widget.config.PARM_HE['filter_DistanceThreshold']) + '\n')
+
+            elif 'PoseSamplingRatio' in line:
+                line = line.replace(line, 'PoseSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PoseSamplingRatio']) + '\n')
+            elif 'PointSamplingRatio' in line:
+                line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PointSamplingRatio']) + '\n')
+            elif 'NumPointsPlaneModeling' in line:
+                line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
+            elif 'OutlierDistance_m' in line:
+                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
+            sys.stdout.write(line)
+        self.form_widget.value_changed = False
+
+        print('Save ' + str(self.form_widget.config.configuration_file))
+
+    def SaveAsInitFile(self):
+        text, ok = QInputDialog.getText(self, 'Input Dialog', 'Save as ini file:')
+        if ok:
+            text_str = str(text)
+            if not self.CheckExtension(text_str, 'ini'):
+                return False
+            self.form_widget.config.configuration_file = './configuration/' + text_str
+            self.form_widget.config.WriteFile(self.form_widget.config.configuration_file)
+            self.SaveIniFile()
+        self.form_widget.value_changed = False
+
+    def closeEvent(self, e):
+        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
+                                     QMessageBox.Save | QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            print('Window closed')
+            e.accept()
+        elif reply == QMessageBox.Save:
+            fname = self.SaveDialog()
+
+            if fname[0]:
+                self.form_widget.config.configuration_file = fname[0]
+                self.form_widget.config.WriteFile(fname[0])
+                self.SaveIniFile()
+                e.accept()
+            else:
+                e.ignore()
+        elif reply == QMessageBox.No:
+            e.ignore()
+
+    def CheckExtension(self, file_path_string, check_string):
+        words = file_path_string.split('.')
+        if not words[-1] == check_string:
+            error_message = 'Please input \'' + check_string + '\' extension file'
+            widget = QWidget()
+
+            qr = widget.frameGeometry()
+            cp = QDesktopWidget().availableGeometry().center()
+            qr.moveCenter(cp)
+            widget.move(qr.topLeft())
+
+            QMessageBox.information(widget, 'Information', error_message)
+            return False
+        return True
+
+    def GetPath(self, file):
+        words = file.split('/')
+
+        del words[-1]
+        path = ''
+        for word in words:
+            if path == '':
+                path = word
+            else:
+                path = path + '/' + word
+
+        return path
+
+    def SaveDialog(self):
+        words = self.form_widget.config.configuration_file.split('/')
+        file = words[-1]
+        directory = self.form_widget.config.PATH['Configuration']
+        default_file = directory + '/' + file
+        widget = QWidget()
+        fname = QFileDialog().getSaveFileName(widget, caption='Save File', directory=default_file, filter="Configuration file (*.ini)")
+        return fname
+
+class FormWidget(QWidget):
+    def __init__(self, parent):
+        super(FormWidget, self).__init__(parent)
+        self.thread = QThread.Thread()
+
+        self.config = v1_step1_configuration.Configuration()
+        self.importing = v1_step2_import_data.Import(self.config)
+        self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
+        self.optimization = v1_step4_optimization.Optimization(self.config, self.importing)
+        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing, self.handeye, self.optimization)
+
+        self.InitUi()
+
+        self.config.WriteDefaultFile()
+        self.config.InitConfiguration()
+        self.SetConfiguration()
+        self.value_changed = False
+
+    def InitUi(self):
+
+        self.hbox = QHBoxLayout(self)
+        self.tabs = QTabWidget(self)
+
+
+        self.config_tab = ConfigurationTab(self)
+        self.importing_tab = ImportDataTab(self)
+        self.handeye_tab = HandEyeTab(self)
+        self.optimization_tab = OptimizationTab(self)
+        self.evaluation_tab = EvaluationTab(self)
+
+        self.tabs.addTab(self.config_tab, 'Step1. Configuration')
+        self.tabs.setTabEnabled(CONST_CONFIG, True)
+
+        self.tabs.addTab(self.importing_tab, 'Step2. Import Data')
+        self.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+
+        self.tabs.addTab(self.handeye_tab, 'Step3. HandEye')
+        self.tabs.setTabEnabled(CONST_HANDEYE, True)
+
+        self.tabs.addTab(self.optimization_tab, 'Step4. Optimization')
+        self.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+
+        self.tabs.addTab(self.evaluation_tab, 'Evaluation')
+        self.tabs.setTabEnabled(CONST_EVALUATION, True)
+
+        self.hbox.addWidget(self.tabs)
+        self.setLayout(self.hbox)
+        self.setGeometry(300, 100, 1000, 600)
+
+    def SetConfiguration(self):
+        ### Setting configuration tab
+        self.config_tab.lidar_num_label_layout.spin_box.setValue(len(self.config.PARM_LIDAR['SensorList']))
+
+        ### Setting import tab
+        self.importing_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['Logging_file_path'])
+        self.importing_tab.logging_file_path_layout.path_file_str = self.config.PATH['Logging_file_path']
+
+        ### Setting evaluation tab
+        PARM_LIDAR = self.config.PARM_LIDAR
+        self.config_tab.select_using_sensor_list_layout.AddWidgetItem(PARM_LIDAR['SensorList'])
+
+        PARM_PC = self.config.PARM_PC
+        self.config_tab.minimum_threshold_distance_layout.double_spin_box.setValue(PARM_PC['MinThresholdDist_m'])
+        self.config_tab.maximum_threshold_istance_layout.double_spin_box.setValue(PARM_PC['MaxThresholdDist_m'])
+        self.config_tab.minimum_threshold_layout_x.double_spin_box.setValue(PARM_PC['MinThresholdX_m'])
+        self.config_tab.maximum_threshold_layout_x.double_spin_box.setValue(PARM_PC['MaxThresholdX_m'])
+        self.config_tab.minimum_threshold_layout_y.double_spin_box.setValue(PARM_PC['MinThresholdY_m'])
+        self.config_tab.maximum_threshold_layout_y.double_spin_box.setValue(PARM_PC['MaxThresholdY_m'])
+        self.config_tab.minimum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MinThresholdZ_m'])
+        self.config_tab.maximum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MaxThresholdZ_m'])
+
+        PARM_HE = self.config.PARM_HE
+        self.handeye_tab.sampling_interval_layout.spin_box.setValue(PARM_HE['SamplingInterval'])
+        self.handeye_tab.maximum_interation_layout.spin_box.setValue(PARM_HE['MaximumIteration'])
+        self.handeye_tab.tolerance_layout.double_spin_box.setValue(PARM_HE['Tolerance'])
+        self.handeye_tab.outlier_distance_layout.double_spin_box.setValue(PARM_HE['OutlierDistance_m'])
+        self.handeye_tab.heading_threshold_layout.double_spin_box.setValue(PARM_HE['filter_HeadingThreshold'])
+        self.handeye_tab.distance_threshold_layout.double_spin_box.setValue(PARM_HE['filter_DistanceThreshold'])
+
+        PARM_MO = self.config.PARM_MO
+        self.optimization_tab.pose_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PoseSamplingRatio'])
+        self.optimization_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
+        self.optimization_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
+        self.optimization_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
+        self.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(PARM_LIDAR['SensorList'])
+
+        self.evaluation_tab.AddResultLabel()
+
+        print('Set all tab\'s configuration')
+
+    def resizeEvent(self, e):
+        width = self.geometry().width()
+        self.config_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
+        self.importing_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    w = MyApp()
+    w.show()
+    sys.exit(app.exec_())
