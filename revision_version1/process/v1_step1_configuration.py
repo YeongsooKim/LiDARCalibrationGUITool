@@ -49,8 +49,9 @@ class Configuration:
         config_param.read(self.configuration_file)
 
         # LIDAR
-        self.PARM_LIDAR['SensorList'] = list(map(int, config_param['LIDAR']['SensorList'].split()))
         self.PARM_LIDAR['PrincipalSensor'] = int(config_param['LIDAR']['PrincipalSensor'])
+        self.PARM_LIDAR['CheckedSensorList'] = list(map(int, config_param['LIDAR']['CheckedSensorList'].split()))
+        self.PARM_LIDAR['SensorList'] = list(map(int, config_param['LIDAR']['SensorList'].split()))
 
         # PointCloud
         self.PARM_PC['MinThresholdDist_m'] = float(config_param['PointCloud']['MinThresholdDist_m'])
@@ -91,6 +92,7 @@ class Configuration:
         f = open(file, 'w', encoding=None)
         f.write('[LIDAR]\n')
         f.write('PrincipalSensor = 0\n')
+        f.write('CheckedSensorList = 0\n')
         f.write('SensorList = 0\n')
         f.write('\n')
         f.write('[PointCloud]\n')

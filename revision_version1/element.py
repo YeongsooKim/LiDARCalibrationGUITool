@@ -1,12 +1,13 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import QDate, QSize, Qt
-from PyQt5.QtGui import QPixmap
-from widget import DoubleSlider
-from widget import QThread
-from PyQt5.QtCore import pyqtSignal
-from process import get_result
-import matplotlib.pyplot as plt
+import os
 import numpy as np
+import matplotlib.pyplot as plt
+
+from widget.DoubleSlider import DoubleSlider
+from widget.QButton import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
+from process import get_result
 
 CONST_DISPLAY_HANDEYE = 0
 CONST_DISPLAY_OPTIMIZATION = 1
@@ -16,6 +17,12 @@ CONST_DISPLAY_OPTIMIZATION = 1
 # Check extension
 # Check label is empty
 ##
+
+CONST_GREEN = 0
+CONST_RED = 1
+CONST_LIDAR = 0
+CONST_GNSS = 1
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     def __init__(self, label_str, ui):
         super().__init__()
@@ -61,17 +68,19 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.label_edit.setText(self.path_file_str)
 
     def ImportFile(self):
-        try:
-            self.ParseGnss()
+        has_file = self.CheckGnssFile()
+        if has_file:
+            self.ui.importing.ParseGnss()
+            self.gnss_button.setText('Gnss.csv 100%')
             self.label_edit.setText(self.path_file_str)
-        except:
-            self.ErrorPopUp('Fail Open Gnss.csv File')
 
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
-        self.ui.thread.change_value.connect(self.pbar.setValue)
-        self.ui.thread.end.connect(self.ParsePointCloud)
-        self.ui.thread.start()
+        has_file = self.CheckPointCloudFile()
+        if has_file:
+            self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
+            self.ui.thread.change_value.connect(self.pbar.setValue)
+            self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
+            self.ui.thread.end.connect(self.ParsePointCloud)
+            self.ui.thread.start()
 
     def CheckFile(self):
         if self.path_file_str:
@@ -123,48 +132,78 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
         QMessageBox.information(widget, 'Information', error_message)
 
-    def ParseGnss(self):
+    def CheckGnssFile(self):
         self.ui.importing.gnss_logging_file = self.path_file_str
-        self.ui.importing.ParseGnss()
+        self.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
+            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS)
+            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            return True
+        else:
+            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS)
+            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            return False
 
-    def ParsePointCloud(self):
+    def CheckPointCloudFile(self):
+        self.ui.importing.point_cloud_logging_path = self.path_file_str
+        self.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+        self.exist_arr = []
+        self.lidar_buttons = {}
+        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+            if os.path.isfile(self.ui.importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
+                ## Add button
+                btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR)
+                self.lidar_buttons[idxSensor] = btn
+                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+
+                ## Error check
+                self.exist_arr.append(1)
+            else:
+                ## Add button
+                btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR)
+                self.lidar_buttons[idxSensor] = btn
+                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+
+                ## Error check
+                self.ErrorPopUp('There are no PointCloud' + str(idxSensor) + '.bin file')
+                self.exist_arr.append(0)
+
         non_error = True
-        for i in self.ui.importing.exist_arr:
+        for i in self.exist_arr:
             non_error = non_error * i
 
-        if non_error:
-            self.ui.importing_tab.logging_file_text_edit.clear()
+        return non_error
 
-            self.ui.importing_tab.logging_file_text_edit.append('[ Gnss File List ]')
-            self.ui.importing_tab.logging_file_text_edit.append('Gnss.csv')
-            self.ui.importing_tab.logging_file_text_edit.append('\n')
-            self.ui.importing_tab.logging_file_text_edit.append('[ PointCloud File List ]')
-            for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
-                self.ui.importing_tab.logging_file_text_edit.append('PointCloud_' + str(idxSensor) + '.bin')
+    def RemoveLayout(self, target):
+        while target.count():
+            item = target.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                self.RemoveLayout(item)
 
-            parsed_pandas_dataframe = self.ui.importing.text_pointcloud
-            self.parsed_bin = parsed_pandas_dataframe.to_string()
+        layout = target.itemAt(0)
+        target.removeItem(layout)
 
-            default_start_time = self.ui.importing.DefaultStartTime
-            default_end_time = self.ui.importing.DefaultEndTime
+    def ParsePointCloud(self):
+        parsed_pandas_dataframe = self.ui.importing.text_pointcloud
+        self.parsed_bin = parsed_pandas_dataframe.to_string()
 
-            # set slider default time
-            self.ui.importing_tab.start_time_layout.slider.setMinimum(default_start_time)
-            self.ui.importing_tab.start_time_layout.slider.setMaximum(default_end_time)
-            self.ui.importing_tab.end_time_layout.slider.setMinimum(default_start_time)
-            self.ui.importing_tab.end_time_layout.slider.setMaximum(default_end_time)
+        default_start_time = self.ui.importing.DefaultStartTime
+        default_end_time = self.ui.importing.DefaultEndTime
 
-            # set slider and double_spin_box value
-            self.ui.importing_tab.end_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.maximum())
-            self.ui.importing_tab.end_time_layout.double_spin_box.setValue(default_end_time)
-            self.ui.importing_tab.start_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.minimum())
-            self.ui.importing_tab.start_time_layout.double_spin_box.setValue(default_start_time)
-        else:
-            index = 0
-            for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
-                if self.ui.importing.exist_arr[index] == 0:
-                    self.ErrorPopUp('There are no PointCloud' + str(idxSensor) + '.bin file')
-                index = index + 1
+        # set slider default time
+        self.ui.importing_tab.start_time_layout.slider.setMaximum(default_end_time)
+        self.ui.importing_tab.start_time_layout.slider.setMinimum(default_start_time)
+        self.ui.importing_tab.end_time_layout.slider.setMaximum(default_end_time)
+        self.ui.importing_tab.end_time_layout.slider.setMinimum(default_start_time)
+
+        # set slider and double_spin_box value
+        self.ui.importing_tab.end_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.maximum())
+        self.ui.importing_tab.end_time_layout.double_spin_box.setValue(default_end_time)
+        self.ui.importing_tab.start_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.minimum())
+        self.ui.importing_tab.start_time_layout.double_spin_box.setValue(default_start_time)
 
 class CheckBoxListLayout(QHBoxLayout):
     def __init__(self, label_str, ui):
@@ -184,7 +223,7 @@ class CheckBoxListLayout(QHBoxLayout):
         self.listWidget.itemChanged.connect(self.ItemChanged)
         self.addWidget(self.listWidget)
 
-    def AddWidgetItem(self, PARM_LIDAR):
+    def AddWidgetItem(self, PARM_LIDAR_SENSOR_LIST, PARM_LIDAR_CHECKED_SENSOR_LIST):
         self.LiDAR_list.clear()
         listItems = self.listWidget.count()
         if not listItems == 0:
@@ -194,13 +233,17 @@ class CheckBoxListLayout(QHBoxLayout):
 
         self.button_group = QButtonGroup()
         is_first = True
-        for sensor_index in PARM_LIDAR:
-            if self.label_str == 'Select Using Sensor List':
+        if self.label_str == 'Select Using Sensor List':
+            for sensor_index in PARM_LIDAR_SENSOR_LIST:
                 item = QListWidgetItem('LiDAR %i' % sensor_index)
-                item.setCheckState(Qt.Checked)
+                if sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
+                    item.setCheckState(Qt.Checked)
+                else:
+                    item.setCheckState(Qt.Unchecked)
                 self.listWidget.addItem(item)
                 self.LiDAR_list.append(item)
-            if self.label_str == 'Select Principle Sensor List':
+        elif self.label_str == 'Select Principle Sensor List':
+            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
                 item = QListWidgetItem()
                 item.setFlags(Qt.ItemIsEnabled)
                 self.listWidget.addItem(item)
@@ -222,7 +265,10 @@ class CheckBoxListLayout(QHBoxLayout):
             if not item.checkState() == 0:
                 items.append(int(words[1]))
         if self.label_str == 'Select Using Sensor List':
-            self.ui.config.PARM_LIDAR['SensorList'] = items
+            self.ui.config.PARM_LIDAR['CheckedSensorList'] = items
+            self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.ResetResultsLabels()
+
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
@@ -256,6 +302,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
     def SpinBoxChanged(self):
         self.ui.value_changed = True
         if self.label_str == 'LiDAR Num':
+            ## Check PARM_LIDAR is empty
             if self.ui.config.PARM_LIDAR.get('SensorList') == None:
                 return False
             if len(self.ui.config.PARM_LIDAR['SensorList']) <= 0:
@@ -274,16 +321,23 @@ class SpinBoxLabelLayout(QVBoxLayout):
             if not is_minus:
                 for i in range(add_lidar_num):
                     self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
+                    self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
                     last_lidar_num = last_lidar_num + 1
             else:
                 for i in range(add_lidar_num):
                     if len(self.ui.config.PARM_LIDAR['SensorList']) <= 1:
                         self.spin_box.setValue(1)
                         return False
+
+                    sensor_index = self.ui.config.PARM_LIDAR['SensorList'][-1]
+                    if sensor_index in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                        list_index = self.ui.config.PARM_LIDAR['CheckedSensorList'].index(sensor_index)
+                        del self.ui.config.PARM_LIDAR['CheckedSensorList'][list_index]
                     del self.ui.config.PARM_LIDAR['SensorList'][-1]
 
-            self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'])
-            self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'])
+            self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.ResetResultsLabels()
 
         elif self.label_str == 'Sampling Interval':
             self.ui.config.PARM_HE['SamplingInterval'] = self.spin_box.value()
@@ -291,8 +345,6 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.ui.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
         elif self.label_str == 'Num Points Plane Modeling':
             self.ui.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
-
-        self.ui.evaluation_tab.AddResultLabel()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
     def __init__(self, string, ui):
@@ -362,16 +414,12 @@ class SlideLabelLayout(QGridLayout):
         super().__init__()
         self.label_str = label_str
         self.ui = ui
-        self.is_first_end_time_change = True
-        self.slider_call_count = 0
-        self.double_call_count = 0
-        self.start_que = [0, 0]
-        self.end_que = [0, 0]
-
+        self.end_editing_finished = False
+        self.start_editing_finished = False
         self.InitUi()
 
     def InitUi(self):
-        self.slider = DoubleSlider.DoubleSlider(Qt.Horizontal)
+        self.slider = DoubleSlider(Qt.Horizontal)
         self.slider.valueChanged.connect(self.SetLabelEdit)
         self.addWidget(self.slider, 0, 0)
 
@@ -387,66 +435,55 @@ class SlideLabelLayout(QGridLayout):
         self.addWidget(self.double_spin_box, 1, 1)
 
     def SetLabelEdit(self):
-        self.slider_call_count = self.slider_call_count + 1
-        print('--label edit--')
-
         if self.label_str == 'Start Time [s]:':
-            self.start_que[1] = self.start_que[0]
-            self.start_que[0] = 0
-
-            end_time = self.ui.importing_tab.end_time_layout.double_spin_box.value()
-            if self.slider.value() > end_time:
-                self.double_spin_box.setValue(end_time)
-                self.slider.setValue(end_time)
-                print('start up')
+            if self.start_editing_finished:
+                self.start_editing_finished = False
             else:
-                self.double_spin_box.setValue(self.slider.value())
-                print('start down')
+                end_time = self.ui.importing_tab.end_time_layout.double_spin_box.value()
+                if self.slider.value() > end_time:
+                    self.double_spin_box.setValue(end_time)
+                    self.slider.setValue(end_time)
+                else:
+                    self.double_spin_box.setValue(self.slider.value())
 
             self.ui.importing.start_time = self.double_spin_box.value()
 
         elif self.label_str == 'End Time [s]:':
-            start_time = self.ui.importing_tab.start_time_layout.double_spin_box.value()
-            if self.slider.value() < start_time:
-                self.double_spin_box.setValue(start_time)
-                self.slider.setValue(start_time)
-                print('end up')
+            if self.end_editing_finished:
+                self.end_editing_finished = False
             else:
-                self.double_spin_box.setValue(self.slider.value())
-                print('end down')
+                start_time = self.ui.importing_tab.start_time_layout.double_spin_box.value()
+                if self.slider.value() < start_time:
+                    self.double_spin_box.setValue(start_time)
+                    self.slider.setValue(start_time)
+                else:
+                    self.double_spin_box.setValue(self.slider.value())
 
             self.ui.importing.end_time = self.double_spin_box.value()
 
     def DoubleSpinBoxChanged(self):
-        self.double_call_count = self.double_call_count + 1
-        print('--double--')
-
         if self.label_str == 'Start Time [s]:':
-            self.start_que[1] = self.start_que[0]
-            self.start_que[0] = 1
+            self.start_editing_finished = True
+
             end_time = self.ui.importing_tab.end_time_layout.double_spin_box.value()
             if self.double_spin_box.value() > end_time:
                 self.double_spin_box.setValue(end_time)
                 self.slider.setValue(end_time)
-                print('start up 22')
                 self.ErrorPopUp('Start time cannot be higher than end time')
             else:
                 self.slider.setValue(self.double_spin_box.value())
-                print('start down 22')
-
             self.ui.importing.start_time = self.double_spin_box.value()
 
         elif self.label_str == 'End Time [s]:':
+            self.end_editing_finished = True
+
             start_time = self.ui.importing_tab.start_time_layout.double_spin_box.value()
             if self.double_spin_box.value() < start_time:
                 self.double_spin_box.setValue(start_time)
                 self.slider.setValue(start_time)
-                print('end up 22')
                 self.ErrorPopUp('End time cannot be lower than start time')
             else:
                 self.slider.setValue(self.double_spin_box.value())
-                print('end down 22')
-
             self.ui.importing.end_time = self.double_spin_box.value()
 
     def ErrorPopUp(self, error_message):
@@ -460,17 +497,17 @@ class SlideLabelLayout(QGridLayout):
         QMessageBox.information(widget, 'Information', error_message)
 
 class CalibrationResultEditLabel(QVBoxLayout):
-    def __init__(self, id, pointcloud_num, calibration_param, ui):
+    def __init__(self, id, idxSensor, calibration_param, ui):
         super().__init__()
         self.id = id
-        self.pointcloud_num = pointcloud_num
+        self.idxSensor = idxSensor
         self.calibration_param = calibration_param
         self.ui = ui
 
         self.InitUi()
 
     def InitUi(self):
-        self.label = QLabel('LiDAR {}'.format(self.pointcloud_num))
+        self.label = QLabel('LiDAR {}'.format(self.idxSensor))
         self.addWidget(self.label)
 
         self.hbox = QHBoxLayout()
@@ -535,9 +572,9 @@ class CalibrationResultEditLabel(QVBoxLayout):
         color_list.append('orchid')
         color_list.append('palevioletred')
 
-        self.calibration_param[self.pointcloud_num][3] = self.double_spin_box_x.value()
-        self.calibration_param[self.pointcloud_num][4] = self.double_spin_box_y.value()
-        self.calibration_param[self.pointcloud_num][2] = self.double_spin_box_yaw.value()
+        self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value()
+        self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value()
+        self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value()
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.handeye.df_info,
@@ -590,7 +627,7 @@ class CalibrationResultEditLabel(QVBoxLayout):
         veh = plt.imread(veh_path)
         self.ui.evaluation_tab.result_data_pose_ax.clear()
         num = 0
-        for i in self.ui.config.PARM_LIDAR['SensorList']:
+        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             num = num + 1
 
             self.ui.evaluation_tab.result_data_pose_ax.imshow(veh)
@@ -620,30 +657,33 @@ class CalibrationResultEditLabel(QVBoxLayout):
         print('change btn')
 
 class CalibrationResultLabel(QVBoxLayout):
-    def __init__(self, pointcloud_num):
+    def __init__(self, idxSensor):
         super().__init__()
-        self.pointcloud_num = pointcloud_num
+        self.idxSensor = idxSensor
 
         self.InitUi()
 
     def InitUi(self):
-        self.label = QLabel('LiDAR {}'.format(self.pointcloud_num))
+        self.label = QLabel('LiDAR {}'.format(self.idxSensor))
         self.addWidget(self.label)
 
         self.hbox = QHBoxLayout()
         self.label_x = QLabel('x [m]')
         self.hbox.addWidget(self.label_x)
         self.label_edit_x = QLineEdit()
+        self.label_edit_x.setText('0.0')
         self.hbox.addWidget(self.label_edit_x)
 
         self.label_y = QLabel('y [m]')
         self.hbox.addWidget(self.label_y)
         self.label_edit_y = QLineEdit()
+        self.label_edit_y.setText('0.0')
         self.hbox.addWidget(self.label_edit_y)
 
         self.label_yaw = QLabel('yaw [deg]')
         self.hbox.addWidget(self.label_yaw)
         self.label_edit_yaw = QLineEdit()
+        self.label_edit_yaw.setText('0.0')
         self.hbox.addWidget(self.label_edit_yaw)
 
         self.addLayout(self.hbox)

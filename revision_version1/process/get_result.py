@@ -25,7 +25,7 @@ def GetPlotParam(config, Import, df_info, calibration_param):
     accum_pointcloud = {}
     accum_pointcloud_ = {}
     calib_param_ = [0, 0, 0, 0, 0, 0]
-    for idxSensor in config.PARM_LIDAR['SensorList']:
+    for idxSensor in config.PARM_LIDAR['CheckedSensorList']:
         calib_param = calibration_param[idxSensor]
 
         ##################
@@ -67,7 +67,7 @@ def GetPlotParam(config, Import, df_info, calibration_param):
         accum_pointcloud[idxSensor] = accum_point_enup
         accum_pointcloud_[idxSensor] = accum_point_enup_
 
-    return df_info, config.PARM_LIDAR['SensorList'], accum_pointcloud, accum_pointcloud_
+    return df_info, config.PARM_LIDAR['CheckedSensorList'], accum_pointcloud, accum_pointcloud_
 
     # ##############################################################################################################################
     # # %% 5. Save results

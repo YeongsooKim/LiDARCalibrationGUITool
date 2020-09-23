@@ -56,9 +56,9 @@ class HandEye:
         # -----------------------------------------------------------------------------------------------------------------------------
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
-        lidar_len = len(self.config.PARM_LIDAR['SensorList'])
+        lidar_len = len(self.config.PARM_LIDAR['CheckedSensorList'])
         p_index = 0.0
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
 
@@ -85,7 +85,7 @@ class HandEye:
                 # Display progress
                 iteration_ratio = (float(index + 1) / float(iteration_size)) / lidar_len
                 percentage = (iteration_ratio + p_index / float(lidar_len)) * 100
-                if percentage >= 99.5:
+                if percentage >= 99.8:
                     percentage = 100.0
                 thread.change_value.emit(int(percentage))
 
@@ -163,7 +163,7 @@ class HandEye:
 
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
-
+            thread.change_value.emit(int(percentage))
             p_index = p_index + 1.0
 
         thread.mutex.unlock()
@@ -177,7 +177,7 @@ class HandEye:
         self.calib_x = []
         self.calib_y = []
         self.calib_yaw = []
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
 
             diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]

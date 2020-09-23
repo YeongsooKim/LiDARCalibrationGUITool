@@ -70,7 +70,7 @@ class Optimization:
         # Get calibration data
         idxSensor = self.config.PARM_LIDAR['PrincipalSensor']
         calib_param = self.initial_calibration_param[idxSensor]
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # self.CalibrationParam = self.initial_calibration_param
@@ -125,7 +125,7 @@ class Optimization:
         # 3-2.  Optimization
         # -----------------------------------------------------------------------------------------------------------------------------
 
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             # Exclude the principal sensor
             thread.mutex.lock()
             if idxSensor == self.config.PARM_LIDAR['PrincipalSensor']:
@@ -169,7 +169,7 @@ class Optimization:
 
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
 
@@ -277,7 +277,7 @@ class Optimization:
         self.calib_x = []
         self.calib_y = []
         self.calib_yaw = []
-        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
             diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]
             diff_gnss_xyzdh = diff_gnss_xyzdh_dict[idxSensor]

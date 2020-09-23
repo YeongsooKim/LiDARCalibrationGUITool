@@ -11,6 +11,7 @@ from PyQt5.QtCore import pyqtSlot
 class Thread(QThread):
     emit_string = pyqtSignal(str)
     change_value = pyqtSignal(int)
+    interation_percentage = pyqtSignal(dict)
     end = pyqtSignal()
 
     def __init__(self):
