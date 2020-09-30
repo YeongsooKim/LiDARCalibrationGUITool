@@ -3,8 +3,8 @@
 block_cipher = None
 
 
-a = Analysis(['D:\\git_ws\\calibrationtool\\revision_version1\\GUI_tool.py'],
-             pathex=['D:\\git_ws\\calibrationtool\\revision_version1'],
+a = Analysis(['D:\\git_ws\\calibration_guitool\\revision_version1\\GUI_tool.py'],
+             pathex=['D:\\git_ws\\calibration_guitool\\revision_version1'],
              binaries=[],
              datas=[],
              hiddenimports=['sklearn.neighbors.typedefs','sklearn.utils._cython_blas'],
