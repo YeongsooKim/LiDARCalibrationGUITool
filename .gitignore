@@ -2,3 +2,7 @@
 .idea/
 
 *.bin
+
+revision_version1/build/
+
+revision_version1/dist/

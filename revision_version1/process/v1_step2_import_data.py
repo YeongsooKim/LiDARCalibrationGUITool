@@ -13,22 +13,11 @@
 import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import open3d as o3d
-
-import pickle
-import random
-from sklearn.neighbors import NearestNeighbors
-from scipy.optimize import minimize
-import configparser
-
 # Additional modules
 from tqdm import tqdm
 
 # User defined modules
-from process import utils_icp
 from process import utils_file
-from process import utils_pointcloud
 from process import utils_pose
 
 
@@ -45,6 +34,7 @@ class Import:
         self.end_time = 0.0
         self.DefaultStartTime = 0.0
         self.DefaultEndTime = 0.0
+        self.PointCloudSensorList = {}
 
         # Progress display
         self.progress = 0.0
@@ -102,8 +92,8 @@ class Import:
 
                 if epoch_percentage >= 99.8:
                     epoch_percentage = 100.0
-                thread.change_value.emit(int(epoch_percentage))
                 thread.interation_percentage.emit({idxSensor : iteration_percentage})
+                thread.change_value.emit(int(epoch_percentage))
 
                 # pbar.set_description('PointCloud_' + str(idxSensor) + '.bin')
 

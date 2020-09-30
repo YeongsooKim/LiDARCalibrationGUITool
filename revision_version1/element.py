@@ -1,8 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+@author: kimkys768@gmail.com, yondoo20@gmail.com
+@date: 2020-09-22
+@version: 0.0.2
+"""
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 from widget.DoubleSlider import DoubleSlider
+from widget.QScrollarea import *
 from widget.QButton import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
@@ -11,12 +20,6 @@ from process import get_result
 
 CONST_DISPLAY_HANDEYE = 0
 CONST_DISPLAY_OPTIMIZATION = 1
-## A widget which has a edit label need the common function
-# Get text
-# Set Text
-# Check extension
-# Check label is empty
-##
 
 CONST_GREEN = 0
 CONST_RED = 1
@@ -77,6 +80,23 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         has_file = self.CheckPointCloudFile()
         if has_file:
             self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
+            try:
+                self.ui.thread.change_value.disconnect()
+            except:
+                pass
+            try:
+                self.ui.thread.interation_percentage.disconnect()
+            except:
+                pass
+            try:
+                self.ui.thread.end.disconnect()
+            except:
+                pass
+            try:
+                self.ui.thread.emit_string.disconnect()
+            except:
+                pass
+
             self.ui.thread.change_value.connect(self.pbar.setValue)
             self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
             self.ui.thread.end.connect(self.ParsePointCloud)
@@ -136,11 +156,11 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.ui.importing.gnss_logging_file = self.path_file_str
         self.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
-            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS)
+            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
             self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
             return True
         else:
-            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS)
+            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
             self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
             return False
 
@@ -152,7 +172,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             if os.path.isfile(self.ui.importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
                 ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR)
+                btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
                 self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
 
@@ -160,7 +180,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                 self.exist_arr.append(1)
             else:
                 ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR)
+                btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR, self.ui.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
                 self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
 
@@ -219,7 +239,9 @@ class CheckBoxListLayout(QHBoxLayout):
         self.addWidget(self.label)
 
         self.listWidget = QListWidget()
-        self.listWidget.resize(20,20)
+        #TODO resize listWidget
+        # if self.label_str is 'Select Principle Sensor List':
+        #     self.listWidget.setMinimumWidth(self.listWidget.sizeHintForColumn(0))
         self.listWidget.itemChanged.connect(self.ItemChanged)
         self.addWidget(self.listWidget)
 
@@ -233,6 +255,8 @@ class CheckBoxListLayout(QHBoxLayout):
 
         self.button_group = QButtonGroup()
         is_first = True
+
+        ## Adding configuration tab sensor list
         if self.label_str == 'Select Using Sensor List':
             for sensor_index in PARM_LIDAR_SENSOR_LIST:
                 item = QListWidgetItem('LiDAR %i' % sensor_index)
@@ -242,6 +266,8 @@ class CheckBoxListLayout(QHBoxLayout):
                     item.setCheckState(Qt.Unchecked)
                 self.listWidget.addItem(item)
                 self.LiDAR_list.append(item)
+
+        ## Adding optimization tab sensor list
         elif self.label_str == 'Select Principle Sensor List':
             for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
                 item = QListWidgetItem()
@@ -268,7 +294,6 @@ class CheckBoxListLayout(QHBoxLayout):
             self.ui.config.PARM_LIDAR['CheckedSensorList'] = items
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.ResetResultsLabels()
-
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
@@ -314,6 +339,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
             PARM_LIDAR_num = len(self.ui.config.PARM_LIDAR['SensorList'])
             add_lidar_num = spin_box_value - PARM_LIDAR_num
 
+            ## Determine adding or delete lidar list
             if add_lidar_num < 0:
                 is_minus = True
                 add_lidar_num = add_lidar_num * -1
@@ -335,8 +361,16 @@ class SpinBoxLabelLayout(QVBoxLayout):
                         del self.ui.config.PARM_LIDAR['CheckedSensorList'][list_index]
                     del self.ui.config.PARM_LIDAR['SensorList'][-1]
 
+            for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
+                if self.ui.config.CalibrationParam.get(idxSensor):
+                    continue
+                calib = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                self.ui.config.CalibrationParam[idxSensor] = calib
+
+            ## Add widget item of lidar list in configuration tab and optimization tab
             self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            ## Add Reset result label in handeye tab, optimization tab and evaulation tab
             self.ui.ResetResultsLabels()
 
         elif self.label_str == 'Sampling Interval':
@@ -559,18 +593,12 @@ class CalibrationResultEditLabel(QVBoxLayout):
 
 
         color_list = []
-        color_list.append('salmon')
-        color_list.append('darkorange')
-        color_list.append('tan')
-        color_list.append('yellowgreen')
-        color_list.append('mediumseagreen')
-        color_list.append('cadetiblue')
-        color_list.append('lightskyblue')
-        color_list.append('slategray')
-        color_list.append('slateblue')
-        color_list.append('mediumpurple')
-        color_list.append('orchid')
-        color_list.append('palevioletred')
+        color_list.append('r')
+        color_list.append('b')
+        color_list.append('g')
+        color_list.append('c')
+        color_list.append('m')
+        color_list.append('y')
 
         self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value()
         self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value()
@@ -580,50 +608,41 @@ class CalibrationResultEditLabel(QVBoxLayout):
                                                                                            self.ui.handeye.df_info,
                                                                                            self.calibration_param)
         self.ui.evaluation_tab.result_before_graph_ax.clear()
-        '''
-        self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', '.', label='trajectory')
+        self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'k.', label='trajectory')
         num = 0
         for idxSensor in PARM_LIDAR:
             num = num + 1
             strColIndex = 'PointCloud_' + str(idxSensor)
-            self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0], accum_pointcloud_[idxSensor][:, 1],color_list[num-1],',',label=strColIndex)
+            self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0], accum_pointcloud_[idxSensor][:, 1],
+                                             ',', color = color_list[num-1],
+                                             label=strColIndex)
 
         self.ui.evaluation_tab.result_before_graph_ax.axis('equal')
         self.ui.evaluation_tab.result_before_graph_ax.legend()
         self.ui.evaluation_tab.result_before_graph_ax.grid()
         self.ui.evaluation_tab.result_before_graph_canvas.draw()
-        '''
 
         self.ui.evaluation_tab.result_after_graph_ax.clear()
-        '''
-        self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray','.', label='trajectory')
+        self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'k.', label='trajectory')
         num = 0
         for idxSensor in PARM_LIDAR:
             num = num + 1
             strColIndex = 'PointCloud_' + str(idxSensor)
-            self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], color_list[num-1],',', label=strColIndex)
+            self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
+                                            label=strColIndex)
 
         self.ui.evaluation_tab.result_after_graph_ax.axis('equal')
         self.ui.evaluation_tab.result_after_graph_ax.legend()
         self.ui.evaluation_tab.result_after_graph_ax.grid()
         self.ui.evaluation_tab.result_after_graph_canvas.draw()
-        '''
-        
-        ###
         color_list = []
-        color_list.append('salmon')
-        color_list.append('darkorange')
-        color_list.append('tan')
-        color_list.append('yellowgreen')
-        color_list.append('mediumseagreen')
-        color_list.append('cadetiblue')
-        color_list.append('lightskyblue')
-        color_list.append('slategray')
-        color_list.append('slateblue')
-        color_list.append('mediumpurple')
-        color_list.append('orchid')
-        color_list.append('palevioletred')
-        veh_path = 'image/vehicle1.png'
+        color_list.append('r')
+        color_list.append('b')
+        color_list.append('g')
+        color_list.append('c')
+        color_list.append('m')
+        color_list.append('y')
+        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
         veh = plt.imread(veh_path)
         self.ui.evaluation_tab.result_data_pose_ax.clear()
         num = 0
@@ -631,18 +650,17 @@ class CalibrationResultEditLabel(QVBoxLayout):
             num = num + 1
 
             self.ui.evaluation_tab.result_data_pose_ax.imshow(veh)
-            
+
             x = int(calib_x[num-1])*200 + 500
             y = 1000 -1*int(calib_y[num-1])*200 - 500
-                        
+
             car_length = 1.75
             lidar_num = 'lidar'+str(i)
             
-            self.ui.evaluation_tab.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none')
+            self.ui.evaluation_tab.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none', alpha = 0.5)
             self.ui.evaluation_tab.result_data_pose_ax.arrow(x, y, 100*np.cos(calib_yaw[num-1]*np.pi/180), -100*np.sin(calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            self.ui.evaluation_tab.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100),color_list[num-1], '--')
+            self.ui.evaluation_tab.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1]+'--')
 
-         
             #ax.axes.xaxis.set_visible(False)
             #ax.axes.yaxis.set_visible(False)
         self.ui.evaluation_tab.result_data_pose_ax.axes.xaxis.set_visible(False)
@@ -651,8 +669,8 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.ui.evaluation_tab.result_data_pose_ax.set_xlim([-500,1500])
         self.ui.evaluation_tab.result_data_pose_ax.set_ylim([1000,0])
         self.ui.evaluation_tab.result_data_pose_ax.legend()
-        self.ui.evaluation_tab.result_data_pose_ax.set_title('Result of calibration - '+method)
         self.ui.evaluation_tab.result_data_pose_canvas.draw()
+        self.ui.evaluation_tab.result_data_pose_ax.set_title('Result of calibration - '+method)
 
         print('change btn')
 
@@ -688,39 +706,164 @@ class CalibrationResultLabel(QVBoxLayout):
 
         self.addLayout(self.hbox)
 
+class CalibrationResultEditLabel2(QVBoxLayout):
+    def __init__(self, idxSensor, calibration_param, ui):
+        super().__init__()
+        self.idxSensor = idxSensor
+        self.calibration_param = calibration_param
+        self.ui = ui
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.addLayout(self.layer1())
+        self.addLayout(self.layer2())
+        self.addLayout(self.layer3())
+
+    def layer1(self):
+        hbox = QHBoxLayout()
+
+        label = QLabel('LiDAR {}'.format(self.idxSensor))
+        hbox.addWidget(label)
+
+        self.button = QPushButton('Apply')
+        self.button.clicked.connect(self.SetCaliPARM)
+        hbox.addWidget(self.button)
+
+        return hbox
+
+    def layer2(self):
+        hbox = QHBoxLayout()
+        label = QLabel('Roll [deg]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_roll = QDoubleSpinBox()
+        self.double_spin_box_roll.setSingleStep(0.01)
+        self.double_spin_box_roll.setMaximum(10000.0)
+        self.double_spin_box_roll.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_roll)
+
+        label = QLabel('Pitch [deg]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_pitch = QDoubleSpinBox()
+        self.double_spin_box_pitch.setSingleStep(0.01)
+        self.double_spin_box_pitch.setMaximum(10000.0)
+        self.double_spin_box_pitch.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_pitch)
+
+        label = QLabel('Yaw [deg]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_yaw = QDoubleSpinBox()
+        self.double_spin_box_yaw.setSingleStep(0.01)
+        self.double_spin_box_yaw.setMaximum(10000.0)
+        self.double_spin_box_yaw.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_yaw)
+
+        return hbox
+
+    def layer3(self):
+        hbox = QHBoxLayout()
+        label = QLabel('X [m]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_x = QDoubleSpinBox()
+        self.double_spin_box_x.setSingleStep(0.01)
+        self.double_spin_box_x.setMaximum(10000.0)
+        self.double_spin_box_x.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_x)
+
+        label = QLabel('Y [m]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_y = QDoubleSpinBox()
+        self.double_spin_box_y.setSingleStep(0.01)
+        self.double_spin_box_y.setMaximum(10000.0)
+        self.double_spin_box_y.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_y)
+
+        label = QLabel('Z [m]')
+        hbox.addWidget(label)
+
+        self.double_spin_box_z = QDoubleSpinBox()
+        self.double_spin_box_z.setSingleStep(0.01)
+        self.double_spin_box_z.setMaximum(10000.0)
+        self.double_spin_box_z.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_z)
+        return hbox
+
+    def SetCaliPARM(self):
+        if self.calibration_param.get(self.idxSensor) == None:
+            return False
+
+        roll_deg = self.double_spin_box_roll.value()
+        pitch_deg = self.double_spin_box_pitch.value()
+        yaw_deg = self.double_spin_box_yaw.value()
+        x = self.double_spin_box_x.value()
+        y = self.double_spin_box_y.value()
+        z = self.double_spin_box_z.value()
+        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180
+        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180
+        self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180
+        self.calibration_param[self.idxSensor][3] = x
+        self.calibration_param[self.idxSensor][4] = y
+        self.calibration_param[self.idxSensor][5] = z
+
+        self.ui.optimization.initial_calibration_param[self.idxSensor] = self.calibration_param[self.idxSensor]
+
+        lidar = 'Set Lidar {} initial value\n'.format(self.idxSensor)
+        roll_pitch_yaw = 'Roll: ' + str(round(roll_deg, 2)) + ' [Deg], Pitch: ' + str(round(pitch_deg, 2)) + ' [Deg], Yaw: ' + str(round(yaw_deg, 2)) + ' [Deg]\n'
+        x_y_z = 'X: ' + str(round(x, 2)) + ' [m], Y: ' + str(round(y, 2)) + ' [m], Z: ' + str(round(z, 2)) + ' [m]\n'
+        message = lidar + roll_pitch_yaw + x_y_z
+
+        self.PopUp(message)
+
+    def PopUp(self, message):
+        widget = QWidget()
+
+        qr = widget.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        widget.move(qr.topLeft())
+
+        QMessageBox.information(widget, 'Information', message)
+
 class ResultTab(QVBoxLayout):
     def __init__(self, ui):
         super().__init__()
         self.ui = ui
-        # print(self.ui.config.PARM_LIDAR)
-    #
-    #     self.initUI()
-    #
-    # def initUI(self):
-    #     self.default_init_value = self.DefaultInit()
-    #     self.handeye_init_value = QWidget()
-    #     self.DefaultInit()
-    #
-    #     tabs = QTabWidget()
-    #     tabs.addTab(self.default_init_value, 'Default')
-    #     tabs.addTab(self.handeye_init_value, 'Handeye')
-    #     self.addWidget(tabs)
-    #
-    def DefaultInit(self):
-        self.widget = QWidget()
-        self.scrollarea = QScrollArea(self.widget)
-        self.scrollarea.setWidgetResizable(True)
 
-        widget = QWidget()
-        self.scrollarea.setWidget(widget)
-        self.layout_SArea = QVBoxLayout(widget)
+        self.initUI()
+
+    def initUI(self):
+        self.handeye_init_value = self.HandEyeInit()
+        self.user_define_init_value = self.UserDefineInit()
+
+        tabs = QTabWidget()
+        tabs.addTab(self.handeye_init_value, 'Handeye')
+        tabs.addTab(self.user_define_init_value, 'User Define')
+        self.addWidget(tabs)
+
+    def UserDefineInit(self):
+        self.user_define_scroll_box = ScrollAreaV()
+
+        return self.user_define_scroll_box
+
+    def HandEyeInit(self):
+        self.handeye_scroll_box = ScrollAreaV()
+
+        return self.handeye_scroll_box
 
 class ImageDisplay(QWidget):
-    def __init__(self):
+    def __init__(self, path):
         super().__init__()
+        self.path = path
+
         self.InitUi()
+
     def InitUi(self):
-        self.im = QPixmap('image/config.png')
+        self.im = QPixmap(self.path + 'config.png')
         self.label = QLabel()
         self.label.setPixmap(self.im)
 

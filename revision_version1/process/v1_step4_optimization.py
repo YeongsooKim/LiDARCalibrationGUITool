@@ -10,24 +10,16 @@
 ##############################################################################################################################
 
 # Basic modules in Anaconda
-import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import pickle
-import random
 from sklearn.neighbors import NearestNeighbors
 from scipy.optimize import minimize
-import configparser
 
 # Additional modules
 from tqdm import tqdm
 
 # User defined modules
 from process import utils_icp
-from process import utils_file
 from process import utils_pointcloud
-from process import utils_pose
 from process import utils_cost_func
 
 class Optimization:
@@ -154,11 +146,10 @@ class Optimization:
             ##### cost function for optimization
             utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
             utils_cost_func.nFeval = 0
-            # err, self.progress = utils_cost_func.compute_multi_err()
             res = minimize(utils_cost_func.compute_multi_err,
                            calib_param[2],
                            args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
-                                 self.config.PARM_MO),
+                                 self.config.PARM_MO, thread),
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
             thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
