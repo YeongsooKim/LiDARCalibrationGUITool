@@ -490,8 +490,9 @@ class HandEyeTab(CalibrationTab):
         self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
 
         ## Transfer
-        self.ui.optimization_tab.edit_handeye_calibration_parm = copy.deepcopy(self.ui.handeye.CalibrationParam)
-        self.ui.evaluation_tab.edit_handeye_calibration_parm = copy.deepcopy(self.ui.handeye.CalibrationParam)
+        self.CopyList(self.ui.handeye.CalibrationParam, self.ui.optimization_tab.edit_handeye_calibration_parm)
+        self.CopyList(self.ui.handeye.CalibrationParam, self.ui.evaluation_tab.edit_handeye_calibration_parm)
+
 
         # Optimization tab
 
@@ -529,7 +530,6 @@ class HandEyeTab(CalibrationTab):
             self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
             self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
 
-
     def PopUp(self, message):
         widget = QWidget()
 
@@ -539,6 +539,13 @@ class HandEyeTab(CalibrationTab):
         widget.move(qr.topLeft())
 
         QMessageBox.information(widget, 'Information', message)
+
+    def CopyList(self, source, target):
+        keys = list(source.keys())
+        values = list(source.values())
+
+        for i in range(len(keys)):
+            target[keys[i]] = values[i].copy()
 
 class OptimizationTab(CalibrationTab):
     def __init__(self, ui):
@@ -688,7 +695,7 @@ class OptimizationTab(CalibrationTab):
         self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
 
         ## Transfer
-        self.ui.evaluation_tab.edit_optimization_calibration_parm = copy.deepcopy(self.ui.optimization.CalibrationParam)
+        self.CopyList(self.ui.optimization.CalibrationParam, self.ui.evaluation_tab.edit_optimization_calibration_parm)
 
         # Evaluation tab
 
@@ -724,6 +731,13 @@ class OptimizationTab(CalibrationTab):
         widget.move(qr.topLeft())
 
         QMessageBox.information(widget, 'Information', message)
+
+    def CopyList(self, source, target):
+        keys = list(source.keys())
+        values = list(source.values())
+
+        for i in range(len(keys)):
+            target[keys[i]] = values[i].copy()
 
 class EvaluationTab(QWidget):
     def __init__(self, ui):
