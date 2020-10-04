@@ -8,6 +8,7 @@
 import fileinput
 import math
 import sys
+import copy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -139,11 +140,16 @@ class ConfigurationTab(QWidget):
         self.btn.setDown(self.btn_down)
 
     def NextBtn(self):
-        if self.select_using_sensor_list_layout.listWidget.count() == 0:
-            self.ErrorPopUp('Please open a ini file')
-        else:
-            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
-            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+        # if self.select_using_sensor_list_layout.listWidget.count() == 0:
+        #     self.ErrorPopUp('Please open a ini file')
+        # else:
+        #     self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+        #     self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+        print('self.ui.optimization_tab.edit_handeye_calibration_parm: ')
+        print(self.ui.optimization_tab.edit_handeye_calibration_parm)
+
+        print('self.ui.optimization_tab.handeye_result_labels[0].calibration_param: ')
+        print(self.ui.optimization_tab.handeye_result_labels[0].calibration_param)
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -319,7 +325,7 @@ class CalibrationTab(QWidget):
         vbox.addWidget(self.result_data_pose_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.View3)
+        btn.clicked.connect(self.ViewLiDAR)
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
@@ -337,7 +343,7 @@ class CalibrationTab(QWidget):
         vbox.addWidget(self.result_graph_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.View)
+        btn.clicked.connect(self.ViewPointCloud)
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
@@ -348,7 +354,10 @@ class CalibrationTab(QWidget):
     def StartCalibration(self):
         pass
 
-    def View(self):
+    def ViewLiDAR(self):
+        pass
+
+    def ViewPointCloud(self):
         pass
 
 class HandEyeTab(CalibrationTab):
@@ -447,241 +456,46 @@ class HandEyeTab(CalibrationTab):
         self.ui.thread.end.connect(self.EndHandEyeCalibration)
         self.ui.thread.start()
 
-    def View(self):
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
+    def ViewLiDAR(self):
+        self.ui.ViewLiDAR(self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw)
 
-        num2 = len(self.ui.handeye.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        num = 0
-        fig = plt.figure(figsize=(20, 20))
+    def ViewPointCloud(self):
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.handeye.df_info,
                                                                                            self.ui.handeye.CalibrationParam)
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            ax = fig.add_subplot(plot_num)
-            plot_type = color_list[idxSensor] + ','
-            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory',color = 'gray')
-            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',',color = color_list[num-1], label=strColIndex)
-            ax.axis('equal')
-            ax.grid()
-            ax.legend()
-            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
-
-            canvas = FigureCanvas(fig)
-            canvas.draw()
-            canvas.show()
-            
-    def View3(self):
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-
-        num2 = len(self.ui.handeye.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        fig = plt.figure(figsize=(20, 20))
-
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-        
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(i)
-            ax = fig.add_subplot(plot_num)
-            
-            ax.imshow(veh)
-            
-            x = int(self.ui.handeye.calib_x[num-1])*200 + 500
-            y = 1000 -1*int(self.ui.handeye.calib_y[num-1])*200 - 500
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none', alpha = 0.5)
-            ax.arrow(x, y, 100*np.cos(self.ui.handeye.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.handeye.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1] + '--')
-         
-            ax.set_xlim([-500,1500])
-            ax.set_ylim([1000,0])
-            ax.grid()
-            ax.legend()
-            ax.set_title('Result of calibration - LiDAR'+ str(i))
-            ax.axes.xaxis.set_visible(False)
-            ax.axes.yaxis.set_visible(False)
-   
-        
-        #self.result_data_pose_ax.axis('off')
-
-        canvas = FigureCanvas(fig)
-        canvas.draw()
-        canvas.show()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def EndHandEyeCalibration(self):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
-        self.result_data_pose_ax.clear()
-        
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-
-        num2 = len(self.ui.handeye.config.PARM_LIDAR['SensorList'])
-        num3 = math.ceil(num2 / 2)
-        
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-        
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['SensorList']:
-            num = num + 1
-            self.result_data_pose_ax.imshow(veh)
-            
-            x = int(self.ui.handeye.calib_x[num-1])*200 + 500
-            y = 1000 -1*int(self.ui.handeye.calib_y[num-1])*200 - 500
-                        
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            
-            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none', alpha = 0.5)
-            self.result_data_pose_ax.arrow(x, y, 100*np.cos(self.ui.handeye.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.handeye.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100),color_list[num-1] +'--')
-
-        self.result_data_pose_ax.set_xlim([-500,1500])
-        self.result_data_pose_ax.set_ylim([1000,0])
-        self.result_data_pose_ax.legend()
-        self.result_data_pose_ax.grid()
-        self.result_data_pose_ax.set_title('Result of calibration')
-        self.result_data_pose_ax.axes.xaxis.set_visible(False)
-        self.result_data_pose_ax.axes.yaxis.set_visible(False)
-
-        self.result_data_pose_canvas.draw()
-        
-        # plot result graph
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.handeye.df_info,
                                                                                            self.ui.handeye.CalibrationParam)
-        self.result_graph_ax.clear()
-        self.result_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', label='trajectory')
-        num = 0
-        for idxSensor in PARM_LIDAR:
-            num = num + 1
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            self.result_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',', color = color_list[num-1],
-                                      label=strColIndex)
+        # Handeye tab
 
-        self.result_graph_ax.axis('equal')
-        self.result_graph_ax.grid()
-        self.result_graph_ax.legend()
-        self.result_graph_canvas.draw()
-
-        if self.ui.evaluation_tab.button_group.checkedId() == CONST_DISPLAY_HANDEYE:
-            self.ui.evaluation_tab.result_before_graph_ax.clear()
-            self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
-                                                               'gray',
-                                                               label='trajectory')
-            num = 0
-            for idxSensor in PARM_LIDAR:
-                num = num + 1
-                strColIndex = 'PointCloud_' + str(idxSensor)
-                self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0],
-                                                                   accum_pointcloud_[idxSensor][:, 1], ',', color = color_list[num-1],
-                                                                   label=strColIndex)
-
-            self.ui.evaluation_tab.result_before_graph_ax.grid()
-            self.ui.evaluation_tab.result_before_graph_ax.axis('equal')
-            self.ui.evaluation_tab.result_before_graph_ax.legend()
-            self.ui.evaluation_tab.result_before_graph_canvas.draw()
-
-            self.ui.evaluation_tab.result_after_graph_ax.clear()
-            self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
-                                                              'gray',
-                                                              label='trajectory')
-            num = 0
-            for idxSensor in PARM_LIDAR:
-                num = num + 1
-                strColIndex = 'PointCloud_' + str(idxSensor)
-                self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0],
-                                                                  accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
-                                                                  label=strColIndex)
-
-            self.ui.evaluation_tab.result_after_graph_ax.grid()
-            self.ui.evaluation_tab.result_after_graph_ax.axis('equal')
-            self.ui.evaluation_tab.result_after_graph_ax.legend()
-            self.ui.evaluation_tab.result_after_graph_canvas.draw()
-
-            veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-            veh = plt.imread(veh_path)
-
-            num = 0
-            for i in self.ui.config.PARM_LIDAR['SensorList']:
-                num = num + 1
-                self.ui.evaluation_tab.result_data_pose_ax.imshow(veh)
-
-                x = int(self.ui.handeye.calib_x[num - 1]) * 200 + 500
-                y = 1000 - 1 * int(self.ui.handeye.calib_y[num - 1]) * 200 - 500
-
-                car_length = 1.75
-                lidar_num = 'lidar' + str(i)
-
-                self.ui.evaluation_tab.result_data_pose_ax.scatter(x, y, s=300, label=lidar_num, color=color_list[num - 1], edgecolor='none',
-                                                 alpha=0.5)
-                self.ui.evaluation_tab.result_data_pose_ax.arrow(x, y, 100 * np.cos(self.ui.handeye.calib_yaw[num - 1] * np.pi / 180),
-                                               -100 * np.sin(self.ui.handeye.calib_yaw[num - 1] * np.pi / 180),
-                                               head_width=10, head_length=10, fc='k', ec='k')
-                self.ui.evaluation_tab.result_data_pose_ax.plot(np.linspace(500, x, 100), np.linspace(500, y, 100),
-                                              color_list[num - 1] + '--')
-
-            self.ui.evaluation_tab.result_data_pose_ax.set_xlim([-500, 1500])
-            self.ui.evaluation_tab.result_data_pose_ax.set_ylim([1000, 0])
-            self.ui.evaluation_tab.result_data_pose_ax.legend()
-            self.ui.evaluation_tab.result_data_pose_ax.grid()
-            self.ui.evaluation_tab.result_data_pose_ax.set_title('Result of calibration')
-            self.ui.evaluation_tab.result_data_pose_ax.axes.xaxis.set_visible(False)
-            self.ui.evaluation_tab.result_data_pose_ax.axes.yaxis.set_visible(False)
-
-            self.ui.evaluation_tab.result_data_pose_canvas.draw()
-
-        ### Setting evaluation tab
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_x.setValue(self.ui.handeye.CalibrationParam[idxSensor][3])
-            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
-            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
-
-        ### Setting handeye tab
+        ## Set 'Result Calibration Data'
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 2)))
             self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][4], 2)))
             self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
 
-        ### Setting handeye tab
+        ## Plot 'Result Data'
+        self.result_data_pose_ax.clear()
+        self.ui.ViewLiDAR(self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw, self.result_data_pose_ax, self.result_data_pose_canvas)
+
+        ## Plot 'Result Graph''
+        self.result_graph_ax.clear()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
+
+        ## Transfer
+        self.CopyList(self.ui.handeye.CalibrationParam, self.ui.optimization_tab.edit_handeye_calibration_parm)
+        self.CopyList(self.ui.handeye.CalibrationParam, self.ui.evaluation_tab.edit_handeye_calibration_parm)
+
+        # Optimization tab
+
+        ## Set 'Optimization Initial Value'
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_roll.setValue(self.ui.handeye.CalibrationParam[idxSensor][0] * 180 / math.pi)
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_pitch.setValue(self.ui.handeye.CalibrationParam[idxSensor][1] * 180 / math.pi)
@@ -690,8 +504,30 @@ class HandEyeTab(CalibrationTab):
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_z.setValue(self.ui.handeye.CalibrationParam[idxSensor][5])
 
-        ### Transfer
-        self.ui.optimization.initial_calibration_param = self.ui.handeye.CalibrationParam
+        ## Transfer
+        self.ui.optimization.initial_calibration_param = copy.deepcopy(self.ui.handeye.CalibrationParam)
+
+
+        # Evaluation tab
+
+        if self.ui.evaluation_tab.button_group.checkedId() == CONST_DISPLAY_HANDEYE:
+            ## Plot 'Result of Calibration'
+            self.ui.evaluation_tab.result_data_pose_ax.clear()
+            self.ui.ViewLiDAR(self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw, self.ui.evaluation_tab.result_data_pose_ax, self.ui.evaluation_tab.result_data_pose_canvas)
+
+            ## Plot 'Before Aplly Calibration Result'
+            self.ui.evaluation_tab.result_before_graph_ax.clear()
+            self.ui.ViewPointCloud(df_info, accum_pointcloud, self.ui.evaluation_tab.result_before_graph_ax, self.ui.evaluation_tab.result_before_graph_canvas)
+
+            ## Plot 'After Aplly Calibration Result'
+            self.ui.evaluation_tab.result_after_graph_ax.clear()
+            self.ui.ViewPointCloud(df_info, accum_pointcloud_, self.ui.evaluation_tab.result_after_graph_ax, self.ui.evaluation_tab.result_after_graph_canvas)
+
+        ## Set 'Select The Method'
+        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_x.setValue(self.ui.handeye.CalibrationParam[idxSensor][3])
+            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
+            self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
 
     def PopUp(self, message):
         widget = QWidget()
@@ -703,9 +539,17 @@ class HandEyeTab(CalibrationTab):
 
         QMessageBox.information(widget, 'Information', message)
 
+    def CopyList(self, source, target):
+        keys = list(source.keys())
+        values = list(source.values())
+
+        for i in range(len(keys)):
+            target[keys[i]] = values[i].copy()
+
 class OptimizationTab(CalibrationTab):
     def __init__(self, ui):
         super().__init__(ui)
+        self.edit_handeye_calibration_parm = {}
         self.user_define_initial_labels = {}
         self.handeye_result_labels = {}
     ## Layout
@@ -816,252 +660,83 @@ class OptimizationTab(CalibrationTab):
         self.ui.thread.end.connect(self.EndOptimizationCalibration)
         self.ui.thread.start()
 
-    def View(self):   # optimization
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
+    def ViewLiDAR(self):
+        self.ui.ViewLiDAR(self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw)
 
-        num2 = len(self.ui.optimization.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        num = 0
-        fig = plt.figure(figsize=(20, 20))
+    def ViewPointCloud(self):
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.optimization.df_info,
                                                                                            self.ui.optimization.CalibrationParam)
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            ax = fig.add_subplot(plot_num)
-            plot_type = color_list[idxSensor] + ','
-            ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', label='trajectory')
-            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
-                    label=strColIndex)
-            ax.axis('equal')
-            ax.grid()
-            ax.legend()
-            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
-
-            canvas = FigureCanvas(fig)
-            canvas.draw()
-            canvas.show()
-
-    def View3(self):
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-
-        num2 = len(self.ui.optimization.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        fig = plt.figure(figsize=(20, 20))
-        
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-        
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(i)
-            ax = fig.add_subplot(plot_num)
-            
-            ax.imshow(veh)
-            
-            x = int(self.ui.optimization.calib_x[num-1])*200 + 500
-            y = 1000 -1*int(self.ui.optimization.calib_y[num-1])*200 - 500
-                        
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1], edgecolor = 'none', alpha = 0.5)
-            ax.arrow(x, y, 100*np.cos(self.ui.optimization.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.optimization.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1] + '--')
-
-   
-            ax.set_xlim([-500,1500])
-            ax.set_ylim([1000,0])
-            ax.grid()
-            ax.legend()
-            ax.set_title('Result of calibration - LiDAR'+ str(i))
-            ax.axes.xaxis.set_visible(False)
-            ax.axes.yaxis.set_visible(False)
-        
-        #self.result_data_pose_ax.axis('off')
-
-        canvas = FigureCanvas(fig)
-        canvas.draw()
-        canvas.show()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def EndOptimizationCalibration(self):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
-        self.result_data_pose_ax.clear()
-        
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-
-        num2 = len(self.ui.optimization.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-
-                        
-            self.result_data_pose_ax.imshow(veh)
-            
-            x = int(self.ui.optimization.calib_x[num-1])*200 + 500
-            y = 1000 -1*int(self.ui.optimization.calib_y[num-1])*200 - 500
-                        
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            
-            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none', alpha = 0.5)
-            self.result_data_pose_ax.arrow(x, y, 100*np.cos(self.ui.optimization.calib_yaw[num-1]*np.pi/180), -100*np.sin(self.ui.optimization.calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100),color_list[num-1] +'--')
-
-   
-        self.result_data_pose_ax.set_xlim([-500,1500])
-        self.result_data_pose_ax.set_ylim([1000,0])
-        self.result_data_pose_ax.legend()
-        self.result_data_pose_ax.grid()
-        self.result_data_pose_ax.set_title('Result of calibration')
-        self.result_data_pose_ax.axes.xaxis.set_visible(False)
-        self.result_data_pose_ax.axes.yaxis.set_visible(False)
-
-        self.result_data_pose_canvas.draw()
-
-        # plot result graph
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.optimization.df_info,
                                                                                            self.ui.optimization.CalibrationParam)
-        self.result_graph_ax.clear()
-        self.result_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', label='trajectory')
-        num = 0
-        for idxSensor in PARM_LIDAR:
-            num = num + 1
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            self.result_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1],',', color = color_list[num-1],
-                                      label=strColIndex)
+        # Optimization tab
 
-        self.result_graph_ax.axis('equal')
-        self.result_graph_ax.grid()
-        self.result_graph_ax.legend()
-        self.result_graph_canvas.draw()
+        ## Set 'Result Calibration Data'
+        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+            self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+            self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+            self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+
+        ## Plot 'Result Data'
+        self.result_data_pose_ax.clear()
+        self.ui.ViewLiDAR(self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw, self.result_data_pose_ax, self.result_data_pose_canvas)
+
+        ## Plot 'Result Graph''
+        self.result_graph_ax.clear()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
+
+        ## Transfer
+        self.CopyList(self.ui.optimization.CalibrationParam, self.ui.evaluation_tab.edit_optimization_calibration_parm)
+
+        # Evaluation tab
 
         if self.ui.evaluation_tab.button_group.checkedId() == CONST_DISPLAY_OPTIMIZATION:
+            ## Plot 'Result of Calibration'
+            self.ui.evaluation_tab.result_data_pose_ax.clear()
+            self.ui.ViewLiDAR(self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw,
+                              self.ui.evaluation_tab.result_data_pose_ax,
+                              self.ui.evaluation_tab.result_data_pose_canvas)
+
+            ## Plot 'Before Aplly Calibration Result'
             self.ui.evaluation_tab.result_before_graph_ax.clear()
-            self.ui.evaluation_tab.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
-                                                               'gray',
-                                                               label='trajectory')
-            num = 0
-            for idxSensor in PARM_LIDAR:
-                num = num + 1
-                strColIndex = 'PointCloud_' + str(idxSensor)
-                self.ui.evaluation_tab.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0],
-                                                                   accum_pointcloud_[idxSensor][:, 1], ',', color = color_list[num-1],
-                                                                   label=strColIndex)
+            self.ui.ViewPointCloud(df_info, accum_pointcloud, self.ui.evaluation_tab.result_before_graph_ax,
+                                   self.ui.evaluation_tab.result_before_graph_canvas)
 
-            self.ui.evaluation_tab.result_before_graph_ax.grid()
-            self.ui.evaluation_tab.result_before_graph_ax.axis('equal')
-            self.ui.evaluation_tab.result_before_graph_ax.legend()
-            self.ui.evaluation_tab.result_before_graph_canvas.draw()
-
+            ## Plot 'After Aplly Calibration Result'
             self.ui.evaluation_tab.result_after_graph_ax.clear()
-            self.ui.evaluation_tab.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,
-                                                              'gray',
-                                                              label='trajectory')
-            num = 0
-            for idxSensor in PARM_LIDAR:
-                num = num + 1
-                strColIndex = 'PointCloud_' + str(idxSensor)
-                self.ui.evaluation_tab.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0],
-                                                                  accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
-                                                                  label=strColIndex)
+            self.ui.ViewPointCloud(df_info, accum_pointcloud_, self.ui.evaluation_tab.result_after_graph_ax,
+                                   self.ui.evaluation_tab.result_after_graph_canvas)
 
-            self.ui.evaluation_tab.result_after_graph_ax.grid()
-            self.ui.evaluation_tab.result_after_graph_ax.axis('equal')
-            self.ui.evaluation_tab.result_after_graph_ax.legend()
-            self.ui.evaluation_tab.result_after_graph_canvas.draw()
-
-            veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-            veh = plt.imread(veh_path)
-
-            num = 0
-            for i in self.ui.config.PARM_LIDAR['SensorList']:
-                num = num + 1
-                self.ui.evaluation_tab.result_data_pose_ax.imshow(veh)
-
-                x = int(self.ui.optimization.calib_x[num - 1]) * 200 + 500
-                y = 1000 - 1 * int(self.ui.optimization.calib_y[num - 1]) * 200 - 500
-
-                car_length = 1.75
-                lidar_num = 'lidar' + str(i)
-
-                self.ui.evaluation_tab.result_data_pose_ax.scatter(x, y, s=300, label=lidar_num,
-                                                                   color=color_list[num - 1], edgecolor='none',
-                                                                   alpha=0.5)
-                self.ui.evaluation_tab.result_data_pose_ax.arrow(x, y, 100 * np.cos(
-                    self.ui.optimization.calib_yaw[num - 1] * np.pi / 180),
-                                                                 -100 * np.sin(
-                                                                     self.ui.optimization.calib_yaw[num - 1] * np.pi / 180),
-                                                                 head_width=10, head_length=10, fc='k', ec='k')
-                self.ui.evaluation_tab.result_data_pose_ax.plot(np.linspace(500, x, 100), np.linspace(500, y, 100),
-                                                                color_list[num - 1] + '--')
-
-            self.ui.evaluation_tab.result_data_pose_ax.set_xlim([-500, 1500])
-            self.ui.evaluation_tab.result_data_pose_ax.set_ylim([1000, 0])
-            self.ui.evaluation_tab.result_data_pose_ax.legend()
-            self.ui.evaluation_tab.result_data_pose_ax.grid()
-            self.ui.evaluation_tab.result_data_pose_ax.set_title('Result of calibration')
-            self.ui.evaluation_tab.result_data_pose_ax.axes.xaxis.set_visible(False)
-            self.ui.evaluation_tab.result_data_pose_ax.axes.yaxis.set_visible(False)
-
-            self.ui.evaluation_tab.result_data_pose_canvas.draw()
-
-        ### Setting evaluation tab
+        ## Set 'Select The Method'
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_x.setValue(
-                self.ui.optimization.CalibrationParam[idxSensor][3])
-            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_y.setValue(
-                self.ui.optimization.CalibrationParam[idxSensor][4])
-            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_yaw.setValue(
-                self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi)
+            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_x.setValue(self.ui.optimization.CalibrationParam[idxSensor][3])
+            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.optimization.CalibrationParam[idxSensor][4])
+            self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi)
 
-        ### Setting optimization tab
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(
-                str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
-            self.result_labels[idxSensor].label_edit_y.setText(
-                str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
-            self.result_labels[idxSensor].label_edit_yaw.setText(
-                str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+    def PopUp(self, message):
+        widget = QWidget()
+
+        qr = widget.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        widget.move(qr.topLeft())
+
+        QMessageBox.information(widget, 'Information', message)
+
+    def CopyList(self, source, target):
+        keys = list(source.keys())
+        values = list(source.values())
+
+        for i in range(len(keys)):
+            target[keys[i]] = values[i].copy()
 
     def PopUp(self, message):
         widget = QWidget()
@@ -1080,6 +755,8 @@ class EvaluationTab(QWidget):
         self.prev_checkID = 0
         self.opt_result_labels = {}
         self.handeye_result_labels = {}
+        self.edit_handeye_calibration_parm = {}
+        self.edit_optimization_calibration_parm = {}
 
         self.initUi()
 
@@ -1102,7 +779,7 @@ class EvaluationTab(QWidget):
 
         self.vbox2 = QVBoxLayout()
         self.vbox2.addWidget(self.Main_g_result_of_calibration())
-        self.vbox2.addWidget(self.Main_g_apply_calibration_result())
+        self.vbox2.addWidget(self.Main_g_after_apply_calibration_result())
 
         self.main_h_box.addLayout(self.vbox2)
         self.main_h_box.setStretchFactor(self.vbox2,2)
@@ -1146,7 +823,7 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.result_data_pose_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.View1)
+        btn.clicked.connect(self.ViewLiDAR)
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
@@ -1164,13 +841,13 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.result_before_graph_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.View2)
+        btn.clicked.connect(self.ViewPointCloud)
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
         return groupbox
 
-    def Main_g_apply_calibration_result(self):
+    def Main_g_after_apply_calibration_result(self):
         groupbox = QGroupBox('After Apply Calibration Result')
         vbox = QVBoxLayout()
 
@@ -1182,137 +859,34 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.result_after_graph_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.View2)
+        btn.clicked.connect(self.ViewPointCloud)
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
         return groupbox
 
     # Callback
-    def View1(self):
-        #status = self.ui.evaluation_tab.button_group.checkedId()
+    def ViewLiDAR(self):
         status = self.button_group.checkedId()
-        
         if status == CONST_DISPLAY_HANDEYE:
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
 
         elif status == CONST_DISPLAY_OPTIMIZATION:
             calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
+        self.ui.ViewLiDAR(calib_x, calib_y, calib_yaw)
 
-        num2 = len(self.ui.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        fig = plt.figure(figsize=(20, 20))
-        
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-        
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(i)
-            ax = fig.add_subplot(plot_num)
-            
-            ax.imshow(veh)
-            
-            x = int(calib_x[num-1])*200 + 500
-            y = 1000 -1*int(calib_y[num-1])*200 - 500
-                        
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            
-            ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none', alpha = 0.5)
-            ax.arrow(x, y, 100*np.cos(calib_yaw[num-1]*np.pi/180), -100*np.sin(calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1] + '--')
-
-           
-            ax.set_xlim([-500,1500])
-            ax.set_ylim([1000,0])
-            ax.legend()
-            ax.grid()
-            ax.set_title('Result of calibration - LiDAR'+ str(i))
-            ax.axes.xaxis.set_visible(False)
-            ax.axes.yaxis.set_visible(False)
-        
-        #self.result_data_pose_ax.axis('off')
-
-        canvas = FigureCanvas(fig)
-        canvas.draw()
-        canvas.show()
-
-    def View2(self):
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-        
-        num2 = len(self.ui.config.PARM_LIDAR['SensorList'])
-        num3 = math.ceil(num2 / 2)
-        num = 0
-        fig = plt.figure(figsize=(20, 20))
-
+    def ViewPointCloud(self):
         status = self.button_group.checkedId()
-
         if status == CONST_DISPLAY_HANDEYE:
             df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info, self.ui.handeye.CalibrationParam)
 
         elif status == CONST_DISPLAY_OPTIMIZATION:
             df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.ui.optimization.CalibrationParam)
 
-        num2 = len(self.ui.config.PARM_LIDAR['CheckedSensorList'])
-        num3 = math.ceil(num2 / 2)
-        num = 0
-        fig = plt.figure(figsize=(20, 20))
-
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
-            num_str = str(num)
-            num3_str = str(num3)
-            num4_str = '2' + num3_str
-            num4 = int(num4_str)
-            plot_num_str = num4_str + num_str
-            plot_num = int(plot_num_str)
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            ax = fig.add_subplot(plot_num)
-            plot_type = color_list[idxSensor] + ','
-            ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', label='trajectory')
-            ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], ',', color = color_list[num-1],
-                    label=strColIndex)
-            ax.axis('equal')
-            ax.grid()
-            ax.legend()
-            ax.set_title('Result of calibration - LiDAR'+ str(idxSensor))
-
-            canvas = FigureCanvas(fig)
-            canvas.draw()
-            canvas.show()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def DisplayCalibrationGraph(self):
-
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-
         status = self.button_group.checkedId()
         if status == CONST_DISPLAY_HANDEYE:
             if not self.ui.handeye.complete_calibration:
@@ -1324,101 +898,19 @@ class EvaluationTab(QWidget):
                 return False
 
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info,self.ui.handeye.CalibrationParam)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info,self.edit_handeye_calibration_parm)
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
-            method = 'HandEye'
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            if self.ui.optimization.complete_calibration:
-                df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.ui.optimization.CalibrationParam)
-                calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
-                method = 'Optimization'
-            else:
-                self.button_group.button(self.prev_checkID).setChecked(True)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.edit_optimization_calibration_parm)
+            calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
-        self.result_before_graph_ax.clear()
-        self.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,'gray', '.', label='trajectory')
-        num = 0
-        for idxSensor in PARM_LIDAR:
-            num = num + 1
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            self.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0], accum_pointcloud_[idxSensor][:, 1], color_list[num-1], ',', label=strColIndex)
-
-        self.result_before_graph_ax.axis('equal')
-        self.result_before_graph_ax.grid()
-        self.result_before_graph_ax.legend()
-        # self.result_before_graph_canvas.draw()
-
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-        self.result_before_graph_ax.clear()
-        self.result_before_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values, 'gray', label='trajectory')
-        num = 0
-        for idxSensor in PARM_LIDAR:
-            num = num+1
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            self.result_before_graph_ax.plot(accum_pointcloud_[idxSensor][:, 0], accum_pointcloud_[idxSensor][:, 1], ',', color = color_list[num-1],
-                                             label=strColIndex)
-
-        self.result_before_graph_ax.axis('equal')
-        self.result_before_graph_ax.grid()
-        self.result_before_graph_ax.legend()
-        self.result_before_graph_canvas.draw()
-
-        #
-        color_list = []
-        color_list.append('r')
-        color_list.append('b')
-        color_list.append('c')
-        color_list.append('m')
-        color_list.append('g')
-        color_list.append('y')
-        
-
-        veh_path = self.ui.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
+        ## Plot 'Result of Calibration'
         self.result_data_pose_ax.clear()
-        num = 0
-        for i in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            num = num + 1
+        self.ui.ViewLiDAR(calib_x, calib_y, calib_yaw, self.result_data_pose_ax, self.result_data_pose_canvas)
 
-            self.result_data_pose_ax.imshow(veh)
-            
-            x = int(calib_x[num-1])*200 + 500
-            y = 1000 -1*int(calib_y[num-1])*200 - 500
-                        
-            car_length = 1.75
-            lidar_num = 'lidar'+str(i)
-            
-            self.result_data_pose_ax.scatter(x, y, s = 300, label = lidar_num, color = color_list[num-1],edgecolor = 'none', alpha = 0.5)
-            self.result_data_pose_ax.arrow(x, y, 100*np.cos(calib_yaw[num-1]*np.pi/180), -100*np.sin(calib_yaw[num-1]*np.pi/180), head_width=10, head_length=10, fc='k', ec='k')
-            self.result_data_pose_ax.plot(np.linspace(500,x,100), np.linspace(500,y,100), color_list[num-1]+ '--')
-
-        self.result_data_pose_ax.set_xlim([-500,1500])
-        self.result_data_pose_ax.set_ylim([1000,0])
-        self.result_data_pose_ax.legend()
-        self.result_data_pose_ax.grid()
-        self.result_data_pose_ax.set_title('Result of calibration - '+method)
-        self.result_data_pose_ax.axes.xaxis.set_visible(False)
-        self.result_data_pose_ax.axes.yaxis.set_visible(False)
-        self.result_data_pose_canvas.draw()        
-
-        ###
+        ## Plot 'After Apply Calibration Result'
         self.result_after_graph_ax.clear()
-        self.result_after_graph_ax.plot(df_info['east_m'].values, df_info['north_m'].values,'gray','.', label='trajectory')
-        num = 0
-        for idxSensor in PARM_LIDAR:
-            num = num + 1
-            strColIndex = 'PointCloud_' + str(idxSensor)
-            self.result_after_graph_ax.plot(accum_pointcloud[idxSensor][:, 0], accum_pointcloud[idxSensor][:, 1], color_list[num-1], ',',label=strColIndex)
-
-        self.result_after_graph_ax.axis('equal')
-        self.result_after_graph_ax.grid()
-        self.result_after_graph_ax.legend()
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_after_graph_ax, self.result_after_graph_canvas)
 
         self.prev_checkID = self.button_group.checkedId()
 
@@ -1670,6 +1162,8 @@ class FormWidget(QWidget):
         self.SetConfiguration()
         self.value_changed = False
 
+        self.color_list = ['r', 'b', 'c', 'm', 'g', 'y']
+
     def InitUi(self):
         self.hbox = QHBoxLayout(self)
         self.tabs = QTabWidget(self)
@@ -1741,19 +1235,22 @@ class FormWidget(QWidget):
                                self.handeye.CalibrationParam)
         self.ResetResultsLabel(CONST_UNEDITABLE_LABEL, self.optimization_tab.scroll_box.layout, self.optimization_tab.result_labels,
                                self.optimization.CalibrationParam)
+
         self.ResetResultsLabel(CONST_EDITABLE_LABEL, self.evaluation_tab.handeye_result_scroll_box.layout,
                                self.evaluation_tab.handeye_result_labels,
-                               self.handeye.CalibrationParam, CONST_DISPLAY_HANDEYE)
+                               self.evaluation_tab.edit_handeye_calibration_parm,
+                               CONST_DISPLAY_HANDEYE)
         self.ResetResultsLabel(CONST_EDITABLE_LABEL, self.evaluation_tab.opt_result_scroll_box.layout,
                                self.evaluation_tab.opt_result_labels,
-                               self.optimization.CalibrationParam, CONST_DISPLAY_OPTIMIZATION)
+                               self.evaluation_tab.edit_optimization_calibration_parm,
+                               CONST_DISPLAY_OPTIMIZATION)
+
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, self.optimization_tab.optimization_initial_value_tab.user_define_scroll_box.layout,
                                self.optimization_tab.user_define_initial_labels,
                                self.config.CalibrationParam)
-        self.ResetResultsLabel(CONST_EDITABLE_LABEL2,
-                               self.optimization_tab.optimization_initial_value_tab.handeye_scroll_box.layout,
+        self.ResetResultsLabel(CONST_EDITABLE_LABEL2, self.optimization_tab.optimization_initial_value_tab.handeye_scroll_box.layout,
                                self.optimization_tab.handeye_result_labels,
-                               self.handeye.CalibrationParam)
+                               self.optimization_tab.edit_handeye_calibration_parm)
 
     def ResetResultsLabel(self, label_type, layout, labels, calibration_param, display_type=0):
         self.RemoveLayout(layout)
@@ -1801,6 +1298,102 @@ class FormWidget(QWidget):
 
         layout = target.itemAt(0)
         target.removeItem(layout)
+
+    def ViewLiDAR(self, calib_x, calib_y, calib_yaw, ax=None, canvas=None):
+        if len(calib_x) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
+            print('The length of calibration x does not match the checked sensor list')
+            return 0
+        if len(calib_y) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
+            print('The length of calibration y does not match the checked sensor list')
+            return 0
+        if len(calib_yaw) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
+            print('The length of calibration yaw does not match the checked sensor list')
+            return 0
+
+        lidar_num = len(self.handeye.config.PARM_LIDAR['CheckedSensorList'])
+        column = '2'
+        row = str(math.ceil(lidar_num / 2))
+        fig = plt.figure(figsize=(20, 20))
+
+        veh_path = self.config.PATH['Image_path'] + 'vehicle1.png'
+        veh = plt.imread(veh_path)
+
+        for i in range(len(self.config.PARM_LIDAR['CheckedSensorList'])):
+            idxSensor = list(self.config.PARM_LIDAR['CheckedSensorList'])
+            if canvas is None:
+                plot_num_str = column + row + str(i + 1)
+                ax = fig.add_subplot(int(plot_num_str))
+
+            x = int(calib_x[idxSensor[i]]) * 200 + 500
+            y = 1000 - 1 * int(calib_y[idxSensor[i]]) * 200 - 500
+            # car_length = 1.75
+            lidar_num = 'lidar' + str(idxSensor[i])
+            ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i])%len(self.color_list)], edgecolor='none', alpha=0.5)
+            ax.arrow(x, y, 100 * np.cos(calib_yaw[idxSensor[i]] * np.pi / 180),
+                     -100 * np.sin(calib_yaw[idxSensor[i]] * np.pi / 180), head_width=10,
+                     head_length=10,
+                     fc='k', ec='k')
+            ax.plot(np.linspace(500, x, 100), np.linspace(500, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
+
+            if canvas is None:
+                ax.imshow(veh)
+                ax.set_xlim([-500, 1500])
+                ax.set_ylim([1000, 0])
+                ax.grid()
+                ax.legend()
+                ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
+                ax.axes.xaxis.set_visible(False)
+                ax.axes.yaxis.set_visible(False)
+
+        if canvas is not None:
+            ax.imshow(veh)
+            ax.set_xlim([-500, 1500])
+            ax.set_ylim([1000, 0])
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration')
+            ax.axes.xaxis.set_visible(False)
+            ax.axes.yaxis.set_visible(False)
+
+        if canvas is None:
+            canvas = FigureCanvas(fig)
+        canvas.draw()
+        canvas.show()
+
+    def ViewPointCloud(self, df_info, accum_pointcloud, ax=None, canvas=None):
+        lidar_num = len(self.handeye.config.PARM_LIDAR['CheckedSensorList'])
+        column = '2'
+        row = str(math.ceil(lidar_num / 2))
+        fig = plt.figure(figsize=(20, 20))
+
+        for i in range(len(self.config.PARM_LIDAR['CheckedSensorList'])):
+            idxSensor = list(self.config.PARM_LIDAR['CheckedSensorList'])
+            if canvas is None:
+                plot_num_str = column + row + str(i + 1)
+                ax = fig.add_subplot(int(plot_num_str))
+
+            strColIndex = 'PointCloud_' + str(idxSensor[i])
+
+            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
+            ax.plot(accum_pointcloud[idxSensor[i]][:, 0], accum_pointcloud[idxSensor[i]][:, 1], ',',
+                    color=self.color_list[(idxSensor[i])%len(self.color_list)], label=strColIndex)
+
+            if canvas is None:
+                ax.axis('equal')
+                ax.grid()
+                ax.legend()
+                ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
+
+        if canvas is not None:
+            ax.axis('equal')
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration')
+
+        if canvas is None:
+            canvas = FigureCanvas(fig)
+        canvas.draw()
+        canvas.show()
 
     def resizeEvent(self, e):
         width = self.geometry().width()

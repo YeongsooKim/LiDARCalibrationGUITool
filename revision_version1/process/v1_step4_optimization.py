@@ -62,6 +62,7 @@ class Optimization:
         # Get calibration data
         idxSensor = self.config.PARM_LIDAR['PrincipalSensor']
         calib_param = self.initial_calibration_param[idxSensor]
+        print(self.initial_calibration_param)
         for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
