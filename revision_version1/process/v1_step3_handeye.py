@@ -11,18 +11,12 @@
 
 # Basic modules in Anaconda
 import numpy as np
-import matplotlib.pyplot as plt
-
-import configparser
 
 # Additional modules
 from tqdm import tqdm
 
 # User defined modules
 from process import utils_icp
-from process import utils_file
-from process import utils_pointcloud
-from process import utils_pose
 
 class HandEye:
     def __init__(self, config, Import):
@@ -35,8 +29,6 @@ class HandEye:
         self.result_calibration_config_file = ''
 
         # Parameter
-        self.progress = 0.0
-
         self.CalibrationParam = {}
 
     ##############################################################################################################################
@@ -79,15 +71,18 @@ class HandEye:
             # Compute ICP
             pbar = tqdm(idx_pair)
             iteration_size = len(idx_pair)
-            self.progress = 0.0
             index = 0
             for i, j in pbar:
                 # Display progress
-                iteration_ratio = (float(index + 1) / float(iteration_size)) / lidar_len
-                percentage = (iteration_ratio + p_index / float(lidar_len)) * 100
-                if percentage >= 99.8:
-                    percentage = 100.0
-                thread.change_value.emit(int(percentage))
+                iteration_ratio = float(index + 1) / float(iteration_size)
+                iteration_percentage = iteration_ratio * 100
+
+                epoch_ratio = (iteration_ratio + p_index)/float(lidar_len)
+                epoch_percentage = epoch_ratio*100
+
+                if epoch_percentage >= 99.8:
+                    epoch_percentage = 100.0
+                thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("PointCloud_" + str(idxSensor))
                 # Get point clouds
@@ -163,7 +158,6 @@ class HandEye:
 
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
-            thread.change_value.emit(int(percentage))
             p_index = p_index + 1.0
 
         thread.mutex.unlock()

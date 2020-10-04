@@ -11,27 +11,14 @@
 
 # Basic modules in Anaconda
 import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import open3d as o3d
-
-import pickle
-import random
-from sklearn.neighbors import NearestNeighbors
-from scipy.optimize import minimize
 import configparser
 
-# Additional modules
-from tqdm import tqdm
-
-# User defined modules
-from process import utils_icp
-from process import utils_file
-from process import utils_pointcloud
-from process import utils_pose
-
 class Configuration:
+    path = os.getcwd().replace('\\', '/')
+    configuration_path = 'common/configuration/'
+    logging_data_path = 'common/logging_data/'
+    image_path = 'common/image/'
+
     def __init__(self):
         # Path and file
         self.configuration_file = ''
@@ -40,6 +27,7 @@ class Configuration:
         self.PARM_MO = {}
         self.PARM_HE = {}
         self.PATH = {}
+        self.CalibrationParam = {}
 
     ##############################################################################################################################
     # %% 1. Set configuration
@@ -80,11 +68,12 @@ class Configuration:
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
         self.PATH['Logging_file_path'] = config_param['Path']['Logging_file_path']
+        self.PATH['Image_path'] = config_param['Path']['Image_path']
 
-        print('Initialize configation parameter')
+        print('Initialize configuration parameter')
 
     def WriteDefaultFile(self):
-        file = 'configuration/default.ini'
+        file = self.path + '/' + self.configuration_path + 'default.ini'
         self.WriteFile(file)
         self.configuration_file = file
 
@@ -120,11 +109,9 @@ class Configuration:
         f.write('OutlierDistance_m = 5.\n')
         f.write('\n')
         f.write('[Path]\n')
-        path = os.getcwd().replace('\\', '/')
-        configuration_path = 'Configuration = ' + path + '/configuration\n'
-        logging_data_path = 'Logging_file_path = ' + path + '/logging_data\n'
-        f.write(configuration_path)
-        f.write(logging_data_path)
+        f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
+        f.write('Logging_file_path = ' + self.path + '/' + self.logging_data_path + '\n')
+        f.write('Image_path = ' + self.path + '/' + self.image_path + '\n')
         f.close()
 
         print('Write default configuration parameter in ' + file)

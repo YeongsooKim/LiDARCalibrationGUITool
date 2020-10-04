@@ -1,6 +1,8 @@
 
 .idea/
 
-revision_version1/__pycache__/
-
 *.bin
+
+revision_version1/build/
+
+revision_version1/dist/
