@@ -25,6 +25,10 @@ from widget.QButton import *
 from widget import QThread
 from widget.QScrollarea import *
 
+import tkinter as Tk
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
 CONST_CONFIG = 0
 CONST_IMPORTDATA = 1
 CONST_HANDEYE = 2
@@ -1303,6 +1307,11 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
+    def _onPick(self,event):
+        thisline = event.artist
+        thisline.set_linewidth(5)
+        fig.canvas.draw()
+
     def ViewLiDAR(self, calib_x, calib_y, calib_yaw, ax=None, canvas=None):
         if len(calib_x) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
             print('The length of calibration x does not match the checked sensor list')
@@ -1313,7 +1322,7 @@ class FormWidget(QWidget):
         if len(calib_yaw) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
             print('The length of calibration yaw does not match the checked sensor list')
             return 0
-
+        
         lidar_num = len(self.handeye.config.PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
@@ -1328,7 +1337,7 @@ class FormWidget(QWidget):
                 plot_num_str = column + row + str(i + 1)
                 ax = fig.add_subplot(int(plot_num_str))
 
-            x = int(calib_x[idxSensor[i]]) * 200 + 500
+            x = int(calib_x[idxSensor[i]]) * 200 + 520
             y = 1000 - 1 * int(calib_y[idxSensor[i]]) * 200 - 500
             # car_length = 1.75
             lidar_num = 'lidar' + str(idxSensor[i])
@@ -1337,7 +1346,7 @@ class FormWidget(QWidget):
                      -100 * np.sin(calib_yaw[idxSensor[i]] * np.pi / 180), head_width=10,
                      head_length=10,
                      fc='k', ec='k')
-            ax.plot(np.linspace(500, x, 100), np.linspace(500, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
+            ax.plot(np.linspace(520, x, 100), np.linspace(500, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
 
             if canvas is None:
                 ax.imshow(veh)
@@ -1360,11 +1369,19 @@ class FormWidget(QWidget):
             ax.axes.yaxis.set_visible(False)
 
         if canvas is None:
-            canvas = FigureCanvas(fig)
+            root = Tk.Tk()
+            canvas = FigureCanvasTkAgg(fig, master=root)
+            nav = NavigationToolbar2Tk(canvas, root)
+            canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+            canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+            fig.canvas.callbacks.connect('pick_event', self._onPick)
+            root.mainloop()
         canvas.draw()
         canvas.show()
 
     def ViewPointCloud(self, df_info, accum_pointcloud, ax=None, canvas=None):
+        root = Tk.Tk()
         lidar_num = len(self.handeye.config.PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
@@ -1395,16 +1412,27 @@ class FormWidget(QWidget):
             ax.set_title('Result of calibration')
 
         if canvas is None:
-            canvas = FigureCanvas(fig)
+            root = Tk.Tk()
+            canvas = FigureCanvasTkAgg(fig, master=root)
+            nav = NavigationToolbar2Tk(canvas, root)
+            canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+            canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+            fig.canvas.callbacks.connect('pick_event', self._onPick)
+            root.mainloop()
+
         canvas.draw()
         canvas.show()
-
+        
     def resizeEvent(self, e):
         width = self.geometry().width()
         self.config_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
         self.importing_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
         self.importing_tab.lidar_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
         self.importing_tab.gnss_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
+        
+        
+        
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
