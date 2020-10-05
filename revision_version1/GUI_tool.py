@@ -140,16 +140,11 @@ class ConfigurationTab(QWidget):
         self.btn.setDown(self.btn_down)
 
     def NextBtn(self):
-        # if self.select_using_sensor_list_layout.listWidget.count() == 0:
-        #     self.ErrorPopUp('Please open a ini file')
-        # else:
-        #     self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
-        #     self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
-        print('self.ui.optimization_tab.edit_handeye_calibration_parm: ')
-        print(self.ui.optimization_tab.edit_handeye_calibration_parm)
-
-        print('self.ui.optimization_tab.handeye_result_labels[0].calibration_param: ')
-        print(self.ui.optimization_tab.handeye_result_labels[0].calibration_param)
+        if self.select_using_sensor_list_layout.listWidget.count() == 0:
+            self.ErrorPopUp('Please open a ini file')
+        else:
+            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -610,9 +605,15 @@ class OptimizationTab(CalibrationTab):
         groupbox = QGroupBox()
         vbox = QVBoxLayout(self)
 
-        btn = QPushButton('Start Optimization')
+        hbox = QHBoxLayout(self)
+        btn = QPushButton('Start')
         btn.clicked.connect(self.StartCalibration)
-        vbox.addWidget(btn)
+        hbox.addWidget(btn)
+
+        btn = QPushButton('Pause')
+        btn.clicked.connect(self.PauseCalibration)
+        hbox.addWidget(btn)
+        vbox.addLayout(hbox)
 
         label = QLabel('[ Optimization Progress ]')
         vbox.addWidget(label)
@@ -659,6 +660,9 @@ class OptimizationTab(CalibrationTab):
         self.ui.thread.emit_string.connect(self.text_edit.append)
         self.ui.thread.end.connect(self.EndOptimizationCalibration)
         self.ui.thread.start()
+
+    def PauseCalibration(self):
+        self.ui.thread.toggle_status()
 
     def ViewLiDAR(self):
         self.ui.ViewLiDAR(self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw)

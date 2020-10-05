@@ -31,6 +31,11 @@ class Thread(QThread):
     def SetFunc(self, target):
         self.target = target
 
+    def toggle_status(self):
+        self._status = not self._status
+        if self._status:
+            self.cond.wakeAll()
+
     @property
     def status(self):
         return self._status
