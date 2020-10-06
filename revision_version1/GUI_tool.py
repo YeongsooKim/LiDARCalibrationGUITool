@@ -46,6 +46,12 @@ CONST_UNEDITABLE_LABEL = 0
 CONST_EDITABLE_LABEL = 1
 CONST_EDITABLE_LABEL2 = 2
 
+## optimization-calibration status
+CONST_STOP = 0
+CONST_PLAY = 1
+CONST_PAUSE = 2
+
+
 class ConfigurationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
@@ -248,11 +254,11 @@ class ImportDataTab(QWidget):
     ## Callback func
 
     def NextBtn(self):
-        # if self.calibration_parsing_label.label_edit.text() == '' or self.pointcloud_parsing_label.label_edit.text() == '':
-        #     self.ErrorPopUp('Please import logging file path')
-        # else:
-        self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
-        self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
+        if self.logging_file_path_layout.pbar.value() is not 100:
+            self.ErrorPopUp('Please import logging file path')
+        else:
+            self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
+            self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -274,6 +280,7 @@ class ImportDataTab(QWidget):
 class CalibrationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
+        self.calibration_status = CONST_STOP
         self.result_labels = {}
         self.ui = ui
         self.initUi()
@@ -614,9 +621,9 @@ class OptimizationTab(CalibrationTab):
         btn.clicked.connect(self.StartCalibration)
         hbox.addWidget(btn)
 
-        btn = QPushButton('Pause')
-        btn.clicked.connect(self.PauseCalibration)
-        hbox.addWidget(btn)
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.PauseCalibration)
+        hbox.addWidget(self.pause_btn)
         vbox.addLayout(hbox)
 
         label = QLabel('[ Optimization Progress ]')
@@ -631,6 +638,10 @@ class OptimizationTab(CalibrationTab):
     ## Callback func
 
     def StartCalibration(self):
+        if self.calibration_status is not CONST_STOP:
+            return False
+        self.calibration_status = CONST_PLAY
+
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
@@ -668,10 +679,30 @@ class OptimizationTab(CalibrationTab):
     def PauseCalibration(self):
         self.ui.thread.toggle_status()
 
+        if self.calibration_status is CONST_PLAY:
+            self.pause_btn.setText("Replay")
+            self.calibration_status = CONST_PAUSE
+
+            ## Set 'Result Calibration Data'
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                self.result_labels[idxSensor].label_edit_x.setText(
+                    str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+                self.result_labels[idxSensor].label_edit_y.setText(
+                    str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+                self.result_labels[idxSensor].label_edit_yaw.setText(
+                    str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+        else:
+            self.pause_btn.setText("Pause")
+            self.calibration_status = CONST_PLAY
+
     def ViewLiDAR(self):
+        if self.calibration_status is not CONST_STOP:
+            return False
         self.ui.ViewLiDAR(self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw)
 
     def ViewPointCloud(self):
+        if self.calibration_status is not CONST_STOP:
+            return False
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.optimization.df_info,
@@ -679,6 +710,7 @@ class OptimizationTab(CalibrationTab):
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def EndOptimizationCalibration(self):
+        self.calibration_status = CONST_STOP
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
@@ -1186,16 +1218,16 @@ class FormWidget(QWidget):
         self.tabs.setTabEnabled(CONST_CONFIG, True)
 
         self.tabs.addTab(self.importing_tab, 'Step2. Import Data')
-        self.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+        self.tabs.setTabEnabled(CONST_IMPORTDATA, False)
 
         self.tabs.addTab(self.handeye_tab, 'Step3. HandEye')
-        self.tabs.setTabEnabled(CONST_HANDEYE, True)
+        self.tabs.setTabEnabled(CONST_HANDEYE, False)
 
         self.tabs.addTab(self.optimization_tab, 'Step4. Optimization')
-        self.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.tabs.setTabEnabled(CONST_OPTIMIZATION, False)
 
         self.tabs.addTab(self.evaluation_tab, 'Evaluation')
-        self.tabs.setTabEnabled(CONST_EVALUATION, True)
+        self.tabs.setTabEnabled(CONST_EVALUATION, False)
 
         self.hbox.addWidget(self.tabs)
         self.setLayout(self.hbox)
@@ -1307,10 +1339,10 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def _onPick(self,event):
-        thisline = event.artist
-        thisline.set_linewidth(5)
-        fig.canvas.draw()
+    # def _onPick(self,event):
+    #     thisline = event.artist
+    #     thisline.set_linewidth(5)
+    #     fig.canvas.draw()
 
     def ViewLiDAR(self, calib_x, calib_y, calib_yaw, ax=None, canvas=None):
         if len(calib_x) is not len(self.config.PARM_LIDAR['CheckedSensorList']):
@@ -1337,13 +1369,13 @@ class FormWidget(QWidget):
                 plot_num_str = column + row + str(i + 1)
                 ax = fig.add_subplot(int(plot_num_str))
 
-            x = int(calib_x[idxSensor[i]]) * 200 + 520
-            y = 1000 - 1 * int(calib_y[idxSensor[i]]) * 200 - 500
+            x = int(calib_x[i]) * 200 + 520
+            y = 1000 - 1 * int(calib_y[i]) * 200 - 500
             # car_length = 1.75
             lidar_num = 'lidar' + str(idxSensor[i])
             ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i])%len(self.color_list)], edgecolor='none', alpha=0.5)
-            ax.arrow(x, y, 100 * np.cos(calib_yaw[idxSensor[i]] * np.pi / 180),
-                     -100 * np.sin(calib_yaw[idxSensor[i]] * np.pi / 180), head_width=10,
+            ax.arrow(x, y, 100 * np.cos(calib_yaw[i] * np.pi / 180),
+                     -100 * np.sin(calib_yaw[i] * np.pi / 180), head_width=10,
                      head_length=10,
                      fc='k', ec='k')
             ax.plot(np.linspace(520, x, 100), np.linspace(500, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
@@ -1367,6 +1399,7 @@ class FormWidget(QWidget):
             ax.set_title('Result of calibration')
             ax.axes.xaxis.set_visible(False)
             ax.axes.yaxis.set_visible(False)
+            canvas.draw()
 
         if canvas is None:
             root = Tk.Tk()
@@ -1375,10 +1408,9 @@ class FormWidget(QWidget):
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
-            fig.canvas.callbacks.connect('pick_event', self._onPick)
+            # fig.canvas.callbacks.connect('pick_event', self._onPick)
             root.mainloop()
-        canvas.draw()
-        canvas.show()
+        # canvas.show()
 
     def ViewPointCloud(self, df_info, accum_pointcloud, ax=None, canvas=None):
         root = Tk.Tk()
@@ -1410,6 +1442,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend()
             ax.set_title('Result of calibration')
+            canvas.draw()
 
         if canvas is None:
             root = Tk.Tk()
@@ -1418,11 +1451,11 @@ class FormWidget(QWidget):
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
-            fig.canvas.callbacks.connect('pick_event', self._onPick)
+            # fig.canvas.callbacks.connect('pick_event', self._onPick)
             root.mainloop()
 
-        canvas.draw()
-        canvas.show()
+        # canvas.draw()
+        # canvas.show()
         
     def resizeEvent(self, e):
         width = self.geometry().width()
@@ -1430,9 +1463,6 @@ class FormWidget(QWidget):
         self.importing_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
         self.importing_tab.lidar_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
         self.importing_tab.gnss_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
-        
-        
-        
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

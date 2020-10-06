@@ -55,9 +55,6 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.import_btn = QPushButton('Import')
         self.import_btn.clicked.connect(self.ImportFile)
         hbox2.addWidget(self.import_btn)
-        # self.check_btn = QPushButton('Check')
-        # self.check_btn.clicked.connect(self.CheckFile)
-        # hbox2.addWidget(self.check_btn)
         self.addLayout(hbox2)
 
         self.pbar = QProgressBar()

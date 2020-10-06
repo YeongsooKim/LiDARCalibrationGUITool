@@ -150,7 +150,7 @@ class Optimization:
             res = minimize(utils_cost_func.compute_multi_err,
                            calib_param[2],
                            args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
-                                 self.config.PARM_MO, thread),
+                                 self.config.PARM_MO, thread, self.CalibrationParam, idxSensor),
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
             thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))

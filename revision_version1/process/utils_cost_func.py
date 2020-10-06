@@ -117,7 +117,7 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM):
     # return error
     return err
 
-def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_point_ref, nearest_neighbor, PARM, thread):
+def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_point_ref, nearest_neighbor, PARM, thread, CalibrationParam, idxSensor):
     ##################
     #Global variables
     global strFile
@@ -202,10 +202,12 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
     err = np.mean(np.array(point_err))
     # result_str = '{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err)
     # print
+
+    thread.emit_string.emit('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
+
     if not thread._status:
         thread.cond.wait(thread.mutex)
 
-    thread.emit_string.emit('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
     print('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
 
     return err
