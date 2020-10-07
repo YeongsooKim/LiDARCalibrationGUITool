@@ -45,11 +45,11 @@ class Optimization:
     def Calibration(self, thread):
         start_time = self.Import.start_time
         end_time = self.Import.end_time
-        self.df_info = self.Import.df_info
+        df_info = self.Import.df_info
 
         # Limit time
-        self.df_info = self.df_info.drop(
-            self.df_info[(self.df_info.index < start_time) | (self.df_info.index > end_time)].index)
+        df_info = df_info.drop(
+            df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
         ##############################################################################################################################
         # %% 3. Multiple optimization
         ##############################################################################################################################
@@ -71,8 +71,8 @@ class Optimization:
         ##################
         # Remove rows by other sensors
         strColIndex = 'PointCloud_' + str(idxSensor)
-        df_one_info = self.df_info[['east_m', 'north_m', 'heading', strColIndex]]
-        df_one_info = df_one_info.drop(self.df_info[(df_one_info[strColIndex].values == 0)].index)
+        df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+        df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
         ##################
         ##### Arguments
@@ -131,8 +131,8 @@ class Optimization:
 
             # Remove rows by other sensors
             strColIndex = 'PointCloud_' + str(idxSensor)
-            df_one_info = self.df_info[['east_m', 'north_m', 'heading', strColIndex]]
-            df_one_info = df_one_info.drop(self.df_info[(df_one_info[strColIndex].values == 0)].index)
+            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+            df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             ##### Arguments
             # Get position
@@ -167,8 +167,8 @@ class Optimization:
 
             # Remove rows by other sensors
             strColIndex = 'PointCloud_' + str(idxSensor)
-            df_one_info = self.df_info[['east_m', 'north_m', 'heading', strColIndex]]
-            df_one_info = df_one_info.drop(self.df_info[(df_one_info[strColIndex].values == 0)].index)
+            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+            df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             # Sampling based on interval
             df_sampled_info = df_one_info.iloc[::self.config.PARM_HE['SamplingInterval'], :]
@@ -321,4 +321,4 @@ class Optimization:
             self.calib_y.append(Trans_veh2sen[1])
 
         self.complete_calibration = True
-        print("Complete optimizaition calibration")
+        print("Complete optimization calibration")

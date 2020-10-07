@@ -145,10 +145,6 @@ class ConfigurationTab(QWidget):
 
     ## Callback Function
 
-    def btn_clicked(self):
-        self.btn_down = not self.btn_down
-        self.btn.setDown(self.btn_down)
-
     def NextBtn(self):
         if self.select_using_sensor_list_layout.listWidget.count() == 0:
             self.ErrorPopUp('Please open a ini file')
@@ -468,7 +464,6 @@ class HandEyeTab(CalibrationTab):
     def ViewPointCloud(self):
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.handeye.df_info,
                                                                                            self.ui.handeye.CalibrationParam)
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
@@ -477,7 +472,6 @@ class HandEyeTab(CalibrationTab):
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.handeye.df_info,
                                                                                            self.ui.handeye.CalibrationParam)
         # Handeye tab
 
@@ -498,6 +492,7 @@ class HandEyeTab(CalibrationTab):
         ## Transfer
         self.CopyList(self.ui.handeye.CalibrationParam, self.ui.optimization_tab.edit_handeye_calibration_parm)
         self.CopyList(self.ui.handeye.CalibrationParam, self.ui.evaluation_tab.edit_handeye_calibration_parm)
+
 
         # Optimization tab
 
@@ -705,7 +700,6 @@ class OptimizationTab(CalibrationTab):
             return False
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.optimization.df_info,
                                                                                            self.ui.optimization.CalibrationParam)
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
@@ -715,7 +709,6 @@ class OptimizationTab(CalibrationTab):
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.optimization.df_info,
                                                                                            self.ui.optimization.CalibrationParam)
         # Optimization tab
 
@@ -919,10 +912,10 @@ class EvaluationTab(QWidget):
     def ViewPointCloud(self):
         status = self.button_group.checkedId()
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info, self.ui.handeye.CalibrationParam)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.CalibrationParam)
 
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.ui.optimization.CalibrationParam)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.CalibrationParam)
 
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
@@ -938,10 +931,10 @@ class EvaluationTab(QWidget):
                 return False
 
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info,self.edit_handeye_calibration_parm)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing,self.edit_handeye_calibration_parm)
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.edit_optimization_calibration_parm)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.edit_optimization_calibration_parm)
             calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
         ## Plot 'Result of Calibration'
@@ -1218,16 +1211,16 @@ class FormWidget(QWidget):
         self.tabs.setTabEnabled(CONST_CONFIG, True)
 
         self.tabs.addTab(self.importing_tab, 'Step2. Import Data')
-        self.tabs.setTabEnabled(CONST_IMPORTDATA, False)
+        self.tabs.setTabEnabled(CONST_IMPORTDATA, True)
 
         self.tabs.addTab(self.handeye_tab, 'Step3. HandEye')
-        self.tabs.setTabEnabled(CONST_HANDEYE, False)
+        self.tabs.setTabEnabled(CONST_HANDEYE, True)
 
         self.tabs.addTab(self.optimization_tab, 'Step4. Optimization')
-        self.tabs.setTabEnabled(CONST_OPTIMIZATION, False)
+        self.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
         self.tabs.addTab(self.evaluation_tab, 'Evaluation')
-        self.tabs.setTabEnabled(CONST_EVALUATION, False)
+        self.tabs.setTabEnabled(CONST_EVALUATION, True)
 
         self.hbox.addWidget(self.tabs)
         self.setLayout(self.hbox)
