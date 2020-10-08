@@ -97,33 +97,33 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
             self.ui.thread.change_value.connect(self.pbar.setValue)
             self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
-            self.ui.thread.end.connect(self.ParsePointCloud)
+            self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
             self.ui.thread.start()
 
-    def CheckFile(self):
-        if self.path_file_str:
-            self.window.text_edit = QTextEdit()
-            self.window.setCentralWidget(self.window.text_edit)
-            self.window.setWindowTitle('File Check')
-
-            lines = ''
-            if self.label_str == 'Select GNSS Logging File' or self.label_str == 'Initial Data':
-                lines = open(self.path_file_str, 'r')
-            elif self.label_str == 'Select PointCloud Logging Path':
-                lines = self.parsed_bin.splitlines(True)
-
-            for line_no, line in enumerate(lines):
-                if line_no == 0:
-                    lines = line
-                elif line_no < self.END_LINE_INDEX:
-                    lines = lines + '\n' + line
-                else:
-                    lines = lines + '\n' + '...'
-                    break
-
-            self.window.text_edit.setText(lines)
-            self.window.setGeometry(300, 300, 800, 400)
-            self.window.show()
+    # def CheckFile(self):
+    #     if self.path_file_str:
+    #         self.window.text_edit = QTextEdit()
+    #         self.window.setCentralWidget(self.window.text_edit)
+    #         self.window.setWindowTitle('File Check')
+    #
+    #         lines = ''
+    #         if self.label_str == 'Select GNSS Logging File' or self.label_str == 'Initial Data':
+    #             lines = open(self.path_file_str, 'r')
+    #         elif self.label_str == 'Select PointCloud Logging Path':
+    #             lines = self.parsed_bin.splitlines(True)
+    #
+    #         for line_no, line in enumerate(lines):
+    #             if line_no == 0:
+    #                 lines = line
+    #             elif line_no < self.END_LINE_INDEX:
+    #                 lines = lines + '\n' + line
+    #             else:
+    #                 lines = lines + '\n' + '...'
+    #                 break
+    #
+    #         self.window.text_edit.setText(lines)
+    #         self.window.setGeometry(300, 300, 800, 400)
+    #         self.window.show()
 
     def IsSetPath(self):
         if self.path_file_str == '':
@@ -204,28 +204,13 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def ParsePointCloud(self):
-        parsed_pandas_dataframe = self.ui.importing.text_pointcloud
-        self.parsed_bin = parsed_pandas_dataframe.to_string()
-
-        default_start_time = self.ui.importing.DefaultStartTime
-        default_end_time = self.ui.importing.DefaultEndTime
-
-        # set slider default time
-        self.ui.importing_tab.start_time_layout.slider.setMaximum(default_end_time)
-        self.ui.importing_tab.start_time_layout.slider.setMinimum(default_start_time)
-        self.ui.importing_tab.end_time_layout.slider.setMaximum(default_end_time)
-        self.ui.importing_tab.end_time_layout.slider.setMinimum(default_start_time)
-
-        # set slider and double_spin_box value
-        self.ui.importing_tab.end_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.maximum())
-        self.ui.importing_tab.end_time_layout.double_spin_box.setValue(default_end_time)
-        self.ui.importing_tab.start_time_layout.slider.setValue(self.ui.importing_tab.end_time_layout.slider.minimum())
-        self.ui.importing_tab.start_time_layout.double_spin_box.setValue(default_start_time)
-
-class CheckBoxListLayout(QHBoxLayout):
-    def __init__(self, label_str, ui):
+class CheckBoxListLayout(QVBoxLayout):
+    instance_num = 1
+    def __init__(self, ui, label_str=None):
         super().__init__()
+        self.id = CheckBoxListLayout.instance_num
+        CheckBoxListLayout.instance_num += 1
+
         self.label_str = label_str
         self.ui = ui
         self.LiDAR_list = []
@@ -233,8 +218,9 @@ class CheckBoxListLayout(QHBoxLayout):
         self.InitUi()
 
     def InitUi(self):
-        self.label = QLabel(self.label_str)
-        self.addWidget(self.label)
+        if self.label_str is not None:
+            self.label = QLabel(self.label_str)
+            self.addWidget(self.label)
 
         self.listWidget = QListWidget()
         #TODO resize listWidget
@@ -255,7 +241,7 @@ class CheckBoxListLayout(QHBoxLayout):
         is_first = True
 
         ## Adding configuration tab sensor list
-        if self.label_str == 'Select Using Sensor List':
+        if self.id == 1:    # instance name is 'handeye_using_sensor_list_layout'
             for sensor_index in PARM_LIDAR_SENSOR_LIST:
                 item = QListWidgetItem('LiDAR %i' % sensor_index)
                 if sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
@@ -266,7 +252,7 @@ class CheckBoxListLayout(QHBoxLayout):
                 self.LiDAR_list.append(item)
 
         ## Adding optimization tab sensor list
-        elif self.label_str == 'Select Principle Sensor List':
+        elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
             for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
                 item = QListWidgetItem()
                 item.setFlags(Qt.ItemIsEnabled)
@@ -282,16 +268,47 @@ class CheckBoxListLayout(QHBoxLayout):
                 self.listWidget.setItemWidget(item, radio_btn)
                 self.LiDAR_list.append(item)
 
+        # Adding handeye evaluation tab in evaluation tab
+        elif self.id == 3:    # instance name is 'handeye_using_sensor_list_layout'
+            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
+                item = QListWidgetItem('LiDAR %i' % sensor_index)
+                item.setCheckState(Qt.Checked)
+
+                self.listWidget.addItem(item)
+                self.LiDAR_list.append(item)
+
+        # Adding optimization evaluation tab in evaluation tab
+        elif self.id == 4:    # instance name is 'optimization_using_sensor_list_layout'
+            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
+                item = QListWidgetItem('LiDAR %i' % sensor_index)
+                item.setCheckState(Qt.Checked)
+
+                self.listWidget.addItem(item)
+                self.LiDAR_list.append(item)
+
     def ItemChanged(self):
         items = []
         for item in self.LiDAR_list:
             words = item.text().split()
             if not item.checkState() == 0:
                 items.append(int(words[1]))
-        if self.label_str == 'Select Using Sensor List':
+        if self.id == 1:    # intance name is 'handeye_using_sensor_list_layout'
             self.ui.config.PARM_LIDAR['CheckedSensorList'] = items
+            self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = items
+            self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = items
+            self.ui.config.PARM_LIDAR['PrincipalSensor'] = items[0]
+
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.evaluation_tab.handeye_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.evaluation_tab.optimization_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+
             self.ui.ResetResultsLabels()
+
+        elif self.id == 3:    # intance name is 'select_principle_sensor_list_layout'
+            self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = items
+
+        elif self.id == 4:  # intance name is 'optimization_using_sensor_list_layout'
+            self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = items
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
@@ -342,12 +359,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
                 is_minus = True
                 add_lidar_num = add_lidar_num * -1
 
-            if not is_minus:
-                for i in range(add_lidar_num):
-                    self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
-                    self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
-                    last_lidar_num = last_lidar_num + 1
-            else:
+            if is_minus:
                 for i in range(add_lidar_num):
                     if len(self.ui.config.PARM_LIDAR['SensorList']) <= 1:
                         self.spin_box.setValue(1)
@@ -357,7 +369,20 @@ class SpinBoxLabelLayout(QVBoxLayout):
                     if sensor_index in self.ui.config.PARM_LIDAR['CheckedSensorList']:
                         list_index = self.ui.config.PARM_LIDAR['CheckedSensorList'].index(sensor_index)
                         del self.ui.config.PARM_LIDAR['CheckedSensorList'][list_index]
+                    if sensor_index in self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList']:
+                        list_index = self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'].index(sensor_index)
+                        del self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'][list_index]
+                    if sensor_index in self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList']:
+                        list_index = self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'].index(sensor_index)
+                        del self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'][list_index]
                     del self.ui.config.PARM_LIDAR['SensorList'][-1]
+            else:
+                for i in range(add_lidar_num):
+                    self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
+                    self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
+                    self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
+                    self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
+                    last_lidar_num = last_lidar_num + 1
 
             for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
                 if self.ui.config.CalibrationParam.get(idxSensor):
@@ -368,6 +393,8 @@ class SpinBoxLabelLayout(QVBoxLayout):
             ## Add widget item of lidar list in configuration tab and optimization tab
             self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.evaluation_tab.handeye_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.ui.evaluation_tab.optimization_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             ## Add Reset result label in handeye tab, optimization tab and evaulation tab
             self.ui.ResetResultsLabels()
 
@@ -441,82 +468,97 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         elif self.label_str == 'Outlier Distance  [m]':
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
-class SlideLabelLayout(QGridLayout):
-    def __init__(self, label_str, ui):
+class SlideLabelLayouts(QVBoxLayout):
+    instance_num = 1
+    def __init__(self, ui, label_str=None):
         super().__init__()
-        self.label_str = label_str
+        self.id = SlideLabelLayouts.instance_num
+        SlideLabelLayouts.instance_num += 1
+
         self.ui = ui
+        self.label_str = label_str
+
         self.end_editing_finished = False
         self.start_editing_finished = False
+
+        self.start_time = 0.0
+        self.end_time = 0.0
+
         self.InitUi()
 
     def InitUi(self):
-        self.slider = DoubleSlider(Qt.Horizontal)
-        self.slider.valueChanged.connect(self.SetLabelEdit)
-        self.addWidget(self.slider, 0, 0)
+        if self.label_str is not None:
+            limit_time_label = QLabel(self.label_str)
+            self.addWidget(limit_time_label)
 
-        self.label = QLabel(self.label_str)
-        self.addWidget(self.label, 1, 0)
+        self.start_time_layout = SlideLabelLayout('Start Time [s]:', self)
+        self.addLayout(self.start_time_layout)
+        self.end_time_layout = SlideLabelLayout('End Time [s]:', self)
+        self.addLayout(self.end_time_layout)
 
-        self.double_spin_box = QDoubleSpinBox()
-        self.double_spin_box.setSingleStep(0.01)
-        self.double_spin_box.setMaximum(10000.0)
-        self.double_spin_box.setMinimum(0.0)
-        self.double_spin_box.setValue(self.slider.value())
-        self.double_spin_box.editingFinished.connect(self.DoubleSpinBoxChanged)
-        self.addWidget(self.double_spin_box, 1, 1)
-
-    def SetLabelEdit(self):
-        if self.label_str == 'Start Time [s]:':
+    def SliderChanged(self):
+        label_str = self.CheckChangedSlideLabelLayout()
+        if label_str == 'Start Time [s]:':
             if self.start_editing_finished:
                 self.start_editing_finished = False
             else:
-                end_time = self.ui.importing_tab.end_time_layout.double_spin_box.value()
-                if self.slider.value() > end_time:
-                    self.double_spin_box.setValue(end_time)
-                    self.slider.setValue(end_time)
+                end_time = self.end_time_layout.double_spin_box.value()
+                if self.start_time_layout.slider.value() > end_time:
+                    self.start_time_layout.double_spin_box.setValue(end_time)
+                    self.start_time_layout.slider.setValue(end_time)
                 else:
-                    self.double_spin_box.setValue(self.slider.value())
+                    self.start_time_layout.double_spin_box.setValue(self.start_time_layout.slider.value())
 
-            self.ui.importing.start_time = self.double_spin_box.value()
+            self.start_time_layout.prev_slider_value = self.start_time_layout.slider.value()
+            self.start_time_layout.prev_double_spin_box_value = self.start_time_layout.double_spin_box.value()
+            self.start_time = self.start_time_layout.double_spin_box.value()
 
-        elif self.label_str == 'End Time [s]:':
+        elif label_str == 'End Time [s]:':
             if self.end_editing_finished:
                 self.end_editing_finished = False
             else:
-                start_time = self.ui.importing_tab.start_time_layout.double_spin_box.value()
-                if self.slider.value() < start_time:
-                    self.double_spin_box.setValue(start_time)
-                    self.slider.setValue(start_time)
+                start_time = self.start_time_layout.double_spin_box.value()
+                if self.end_time_layout.slider.value() < start_time:
+                    self.end_time_layout.double_spin_box.setValue(start_time)
+                    self.end_time_layout.slider.setValue(start_time)
                 else:
-                    self.double_spin_box.setValue(self.slider.value())
+                    self.end_time_layout.double_spin_box.setValue(self.end_time_layout.slider.value())
 
-            self.ui.importing.end_time = self.double_spin_box.value()
+            self.end_time_layout.prev_slider_value = self.end_time_layout.slider.value()
+            self.end_time_layout.prev_double_spin_box_value = self.end_time_layout.double_spin_box.value()
+            self.end_time = self.end_time_layout.double_spin_box.value()
 
     def DoubleSpinBoxChanged(self):
-        if self.label_str == 'Start Time [s]:':
+        label_str = self.CheckChangedDoubleSpinBoxLayout()
+        if label_str == 'Start Time [s]:':
             self.start_editing_finished = True
 
-            end_time = self.ui.importing_tab.end_time_layout.double_spin_box.value()
-            if self.double_spin_box.value() > end_time:
-                self.double_spin_box.setValue(end_time)
-                self.slider.setValue(end_time)
+            end_time = self.end_time_layout.double_spin_box.value()
+            if self.start_time_layout.double_spin_box.value() > end_time:
+                self.start_time_layout.double_spin_box.setValue(end_time)
+                self.start_time_layout.slider.setValue(end_time)
                 self.ErrorPopUp('Start time cannot be higher than end time')
             else:
-                self.slider.setValue(self.double_spin_box.value())
-            self.ui.importing.start_time = self.double_spin_box.value()
+                self.start_time_layout.slider.setValue(self.start_time_layout.double_spin_box.value())
 
-        elif self.label_str == 'End Time [s]:':
+            self.start_time_layout.prev_slider_value = self.start_time_layout.slider.value()
+            self.start_time_layout.prev_double_spin_box_value = self.start_time_layout.double_spin_box.value()
+            self.start_time = self.start_time_layout.double_spin_box.value()
+
+        elif label_str == 'End Time [s]:':
             self.end_editing_finished = True
 
-            start_time = self.ui.importing_tab.start_time_layout.double_spin_box.value()
-            if self.double_spin_box.value() < start_time:
-                self.double_spin_box.setValue(start_time)
-                self.slider.setValue(start_time)
+            start_time = self.start_time_layout.double_spin_box.value()
+            if self.end_time_layout.double_spin_box.value() < start_time:
+                self.end_time_layout.double_spin_box.setValue(start_time)
+                self.end_time_layout.slider.setValue(start_time)
                 self.ErrorPopUp('End time cannot be lower than start time')
             else:
-                self.slider.setValue(self.double_spin_box.value())
-            self.ui.importing.end_time = self.double_spin_box.value()
+                self.end_time_layout.slider.setValue(self.end_time_layout.double_spin_box.value())
+
+            self.end_time_layout.prev_slider_value = self.end_time_layout.slider.value()
+            self.end_time_layout.prev_double_spin_box_value = self.end_time_layout.double_spin_box.value()
+            self.end_time = self.end_time_layout.double_spin_box.value()
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -527,6 +569,61 @@ class SlideLabelLayout(QGridLayout):
         widget.move(qr.topLeft())
 
         QMessageBox.information(widget, 'Information', error_message)
+
+    def CheckChangedSlideLabelLayout(self):
+        prev_start_time = self.start_time_layout.prev_slider_value
+        curr_start_time = self.start_time_layout.slider.value()
+
+        prev_end_time = self.end_time_layout.prev_slider_value
+        curr_end_time = self.end_time_layout.slider.value()
+
+        if not prev_start_time == curr_start_time:
+            return self.start_time_layout.label_str
+        elif not prev_end_time == curr_end_time:
+            return self.end_time_layout.label_str
+        else:
+            return 'Slider nothing'
+
+    def CheckChangedDoubleSpinBoxLayout(self):
+        prev_start_time = self.start_time_layout.prev_double_spin_box_value
+        curr_start_time = self.start_time_layout.double_spin_box.value()
+
+        prev_end_time = self.end_time_layout.prev_double_spin_box_value
+        curr_end_time = self.end_time_layout.double_spin_box.value()
+
+        if not prev_start_time == curr_start_time:
+            return self.start_time_layout.label_str
+        elif not prev_end_time == curr_end_time:
+            return self.end_time_layout.label_str
+        else:
+            return 'Double nothing'
+
+class SlideLabelLayout(QGridLayout):
+    def __init__(self, label_str, parent):
+        super().__init__()
+        self.label_str = label_str
+        self.parent = parent
+        self.InitUi()
+        self.prev_slider_value = 0.0
+        self.prev_double_spin_box_value = 0.0
+
+    def InitUi(self):
+        self.slider = DoubleSlider(Qt.Horizontal)
+        self.slider.valueChanged.connect(self.parent.SliderChanged)
+        self.prev_slider_value = self.slider.value()
+        self.addWidget(self.slider, 0, 0)
+
+        self.label = QLabel(self.label_str)
+        self.addWidget(self.label, 1, 0)
+
+        self.double_spin_box = QDoubleSpinBox()
+        self.double_spin_box.setSingleStep(0.01)
+        self.double_spin_box.setMaximum(10000.0)
+        self.double_spin_box.setMinimum(0.0)
+        self.double_spin_box.setValue(self.slider.value())
+        self.double_spin_box.editingFinished.connect(self.parent.DoubleSpinBoxChanged)
+        self.prev_double_spin_box_value = self.double_spin_box.value()
+        self.addWidget(self.double_spin_box, 1, 1)
 
 class CalibrationResultEditLabel(QVBoxLayout):
     def __init__(self, id, idxSensor, calibration_param, ui):
@@ -577,10 +674,10 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180
 
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.df_info, self.calibration_param)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param)
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.df_info, self.calibration_param)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param)
             calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
         ## Plot 'Result of Calibration'
@@ -715,7 +812,6 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         if self.calibration_param.get(self.idxSensor) == None:
             return False
 
-        print(self.ui.handeye.CalibrationParam)
         roll_deg = self.double_spin_box_roll.value()
         pitch_deg = self.double_spin_box_pitch.value()
         yaw_deg = self.double_spin_box_yaw.value()
@@ -730,9 +826,6 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         self.calibration_param[self.idxSensor][5] = z
 
         self.ui.optimization.initial_calibration_param[self.idxSensor] = copy.deepcopy(self.calibration_param[self.idxSensor])
-
-        print('after change initial value')
-        print(self.ui.handeye.CalibrationParam)
 
         lidar = 'Set Lidar {} initial value\n'.format(self.idxSensor)
         roll_pitch_yaw = 'Roll: ' + str(round(roll_deg, 2)) + ' [Deg], Pitch: ' + str(round(pitch_deg, 2)) + ' [Deg], Yaw: ' + str(round(yaw_deg, 2)) + ' [Deg]\n'

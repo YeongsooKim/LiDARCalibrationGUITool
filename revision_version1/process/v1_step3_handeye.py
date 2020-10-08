@@ -34,7 +34,8 @@ class HandEye:
     ##############################################################################################################################
     # %% 3. Handeye
     ##############################################################################################################################
-    def Calibration(self, thread):
+    def Calibration(self, thread, str):
+        print(str)
         thread.mutex.lock()
         start_time = self.Import.start_time
         end_time = self.Import.end_time

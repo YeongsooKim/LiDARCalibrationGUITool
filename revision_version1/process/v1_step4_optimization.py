@@ -42,7 +42,8 @@ class Optimization:
     ##############################################################################################################################
     # %% 3. Optimization
     ##############################################################################################################################
-    def Calibration(self, thread):
+    def Calibration(self, thread, str):
+        print(str)
         start_time = self.Import.start_time
         end_time = self.Import.end_time
         df_info = self.Import.df_info
@@ -62,7 +63,6 @@ class Optimization:
         # Get calibration data
         idxSensor = self.config.PARM_LIDAR['PrincipalSensor']
         calib_param = self.initial_calibration_param[idxSensor]
-        print(self.initial_calibration_param)
         for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
             self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 

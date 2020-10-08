@@ -51,7 +51,6 @@ CONST_STOP = 0
 CONST_PLAY = 1
 CONST_PAUSE = 2
 
-
 class ConfigurationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
@@ -106,7 +105,7 @@ class ConfigurationTab(QWidget):
         self.lidar_num_label_layout = element.SpinBoxLabelLayout('LiDAR Num', self.ui)
         vbox.addLayout(self.lidar_num_label_layout)
 
-        self.select_using_sensor_list_layout = element.CheckBoxListLayout('Select Using Sensor List', self.ui)
+        self.select_using_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Using Sensor List')
         vbox.addLayout(self.select_using_sensor_list_layout)
 
         return vbox
@@ -176,7 +175,7 @@ class ConfigurationTab(QWidget):
 
         layout = target.itemAt(0)
         target.removeItem(layout)
-                
+
 class ImportDataTab(QWidget):
     def __init__(self, ui):
         super().__init__()
@@ -236,13 +235,8 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
-        self.limit_time_label = QLabel('[ Limit Time ]', self)
-        vbox.addWidget(self.limit_time_label)
-
-        self.start_time_layout = element.SlideLabelLayout('Start Time [s]:', self.ui)
-        vbox.addLayout(self.start_time_layout)
-        self.end_time_layout = element.SlideLabelLayout('End Time [s]:', self.ui)
-        vbox.addLayout(self.end_time_layout)
+        self.limit_time_layout = element.SlideLabelLayouts(self.ui, '[ Limit Time ]')
+        vbox.addLayout(self.limit_time_layout)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -272,6 +266,52 @@ class ImportDataTab(QWidget):
         text = 'PointCloud {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
 
         self.logging_file_path_layout.lidar_buttons[idxSensor].setText(text)
+
+    def EndImport(self):
+        parsed_pandas_dataframe = self.ui.importing.text_pointcloud
+        self.logging_file_path_layout.parsed_bin = parsed_pandas_dataframe.to_string()
+
+        default_start_time = self.ui.importing.DefaultStartTime
+        default_end_time = self.ui.importing.DefaultEndTime
+
+        # Import tab
+        ## set slider default time
+        self.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
+        self.limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
+        self.limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
+        self.limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
+
+        ## set slider and double_spin_box value
+        self.limit_time_layout.end_time_layout.slider.setValue(self.limit_time_layout.end_time_layout.slider.maximum())
+        self.limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
+        self.limit_time_layout.start_time_layout.slider.setValue(self.limit_time_layout.end_time_layout.slider.minimum())
+        self.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+
+        # Evaluation tab
+        ## set slider default time
+        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
+        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
+        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
+        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
+
+        ## set slider and double_spin_box value
+        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.maximum())
+        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
+        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.minimum())
+        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+
+        # Optimization tab
+        ## set slider default time
+        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
+        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
+        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
+        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
+
+        ## set slider and double_spin_box value
+        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.maximum())
+        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
+        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.minimum())
+        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
 
 class CalibrationTab(QWidget):
     def __init__(self, ui):
@@ -570,7 +610,7 @@ class OptimizationTab(CalibrationTab):
         liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.select_principle_sensor_list_layout = element.CheckBoxListLayout('Select Principle Sensor List', self.ui)
+        self.select_principle_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Principle Sensor List')
         vbox.addLayout(self.select_principle_sensor_list_layout)
 
         liDAR_configuration_label = QLabel('[ Optimization Configuration ]', self)
@@ -636,6 +676,9 @@ class OptimizationTab(CalibrationTab):
         if self.calibration_status is not CONST_STOP:
             return False
         self.calibration_status = CONST_PLAY
+
+        print(self.ui.importing.start_time)
+        print(self.ui.importing.end_time)
 
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
@@ -790,6 +833,8 @@ class EvaluationTab(QWidget):
         self.handeye_result_labels = {}
         self.edit_handeye_calibration_parm = {}
         self.edit_optimization_calibration_parm = {}
+        self.handeye_eval_lidar = {}
+        self.optimization_eval_lidar = {}
 
         self.initUi()
 
@@ -802,20 +847,71 @@ class EvaluationTab(QWidget):
 
     def InterfaceLayout_v_main(self):
         self.main_h_box = QHBoxLayout()
+        tabs = QTabWidget(self)
 
-        self.vbox1 = QVBoxLayout()
-        self.vbox1.addWidget(self.Main_g_select_method())
-        self.vbox1.addWidget(self.Main_g_before_apply_calibration_result())
+        tabs.addTab(self.CalibrationResult(), 'Calibration Result')
+        tabs.addTab(self.HandeyeEval(), 'Handeye Evaluation')
+        tabs.addTab(self.OptimizationEval(), 'Optimization Evaluation')
 
-        self.main_h_box.addLayout(self.vbox1)
-        self.main_h_box.setStretchFactor(self.vbox1,2)
+        self.main_h_box.addWidget(tabs)
 
-        self.vbox2 = QVBoxLayout()
-        self.vbox2.addWidget(self.Main_g_result_of_calibration())
-        self.vbox2.addWidget(self.Main_g_after_apply_calibration_result())
+    ## Tab
+    def CalibrationResult(self):
+        self.cali_result = QWidget(self)
+        hbox = QHBoxLayout()
 
-        self.main_h_box.addLayout(self.vbox2)
-        self.main_h_box.setStretchFactor(self.vbox2,2)
+        vbox1 = QVBoxLayout()
+        vbox1.addWidget(self.Main_g_select_method())
+        vbox1.addWidget(self.Main_g_before_apply_calibration_result())
+
+        hbox.addLayout(vbox1)
+        hbox.setStretchFactor(vbox1, 2)
+
+        vbox2 = QVBoxLayout()
+        vbox2.addWidget(self.Main_g_result_of_calibration())
+        vbox2.addWidget(self.Main_g_after_apply_calibration_result())
+
+        hbox.addLayout(vbox2)
+        hbox.setStretchFactor(vbox2, 2)
+        self.cali_result.setLayout(hbox)
+        return self.cali_result
+
+    def HandeyeEval(self):
+        self.handeye_eval = QWidget(self)
+        vbox = QVBoxLayout()
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(self.HandeyeEvaluation_g_using_sensor_list())
+        hbox1.addWidget(self.HandeyeEvaluation_g_limit_time())
+        vbox.addLayout(hbox1)
+
+        hbox2 = QHBoxLayout()
+        hbox2.addLayout(self.Eval_v_handeye_RMSE_graph())
+        hbox2.addLayout(self.Eval_v_handeye_result_graph())
+        vbox.addLayout(hbox2)
+
+        self.handeye_eval.setLayout(vbox)
+        return self.handeye_eval
+
+    def OptimizationEval(self):
+        self.optimization_eval = QWidget(self)
+        vbox = QVBoxLayout()
+
+        hbox1 = QHBoxLayout()
+        hbox1.addWidget(self.OptimizationEvaluation_g_using_sensor_list())
+        hbox1.addWidget(self.OptimizationEvaluation_g_limit_time())
+        vbox.addLayout(hbox1)
+
+        vbox.addLayout(hbox1)
+
+        hbox2 = QHBoxLayout()
+        hbox2.addLayout(self.Eval_v_optimization_RMSE_graph())
+        hbox2.addLayout(self.Eval_v_optimization_result_graph())
+        vbox.addLayout(hbox2)
+
+        self.optimization_eval.setLayout(vbox)
+        return self.optimization_eval
+
     ## Groupbox
 
     def Main_g_select_method(self):
@@ -898,6 +994,146 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
+    def HandeyeEvaluation_g_using_sensor_list(self):
+        groupbox = QGroupBox('Using Sensor List')
+        vbox = QVBoxLayout()
+
+        self.handeye_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
+        vbox.addLayout(self.handeye_using_sensor_list_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def HandeyeEvaluation_g_limit_time(self):
+        groupbox = QGroupBox('Limit Time')
+        vbox = QVBoxLayout()
+
+        vbox.addLayout(self.Eval_v_handeye_time_limit())
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def OptimizationEvaluation_g_using_sensor_list(self):
+        groupbox = QGroupBox('Using Sensor List')
+        vbox = QVBoxLayout()
+
+        self.optimization_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
+        vbox.addLayout(self.optimization_using_sensor_list_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def OptimizationEvaluation_g_limit_time(self):
+        groupbox = QGroupBox('Limit Time')
+        vbox = QVBoxLayout()
+
+        vbox.addLayout(self.Eval_v_optimization_time_limit())
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Layout
+
+    def Eval_v_handeye_RMSE_graph(self):
+        vbox = QVBoxLayout()
+
+        self.eval_handeye_graph_fig = plt.figure()
+        self.eval_handeye_graph_canvas = FigureCanvas(self.eval_handeye_graph_fig)
+        self.eval_handeye_graph_ax = self.eval_handeye_graph_fig.add_subplot(1, 1, 1)
+        self.eval_handeye_graph_ax.grid()
+        self.eval_handeye_graph_canvas.draw()
+        vbox.addWidget(self.eval_handeye_graph_canvas)
+
+        btn = QPushButton('View')
+        # btn.clicked.connect(self.ViewLiDAR)
+        vbox.addWidget(btn)
+
+        return vbox
+
+    def Eval_v_handeye_result_graph(self):
+        vbox = QVBoxLayout()
+
+        self.eval_handeye_rmse_graph_fig = plt.figure()
+        self.eval_handeye_rmse_graph_canvas = FigureCanvas(self.eval_handeye_rmse_graph_fig)
+        self.eval_handeye_rmse_graph_ax = self.eval_handeye_rmse_graph_fig.add_subplot(1, 1, 1)
+        self.eval_handeye_rmse_graph_ax.grid()
+        self.eval_handeye_rmse_graph_canvas.draw()
+        vbox.addWidget(self.eval_handeye_rmse_graph_canvas)
+
+        btn = QPushButton('View')
+        # btn.clicked.connect(self.ViewPointCloud)
+        vbox.addWidget(btn)
+
+        return vbox
+
+    def Eval_v_handeye_time_limit(self):
+        vbox = QVBoxLayout()
+
+        self.handeye_limit_time_layout = element.SlideLabelLayouts(self.ui)
+        vbox.addLayout(self.handeye_limit_time_layout)
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('Start')
+        # btn.clicked.connect(self.StartCalibration)
+        hbox.addWidget(btn)
+
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.PauseCalibration)
+        hbox.addWidget(self.pause_btn)
+        vbox.addLayout(hbox)
+
+        return vbox
+
+    def Eval_v_optimization_RMSE_graph(self):
+        vbox = QVBoxLayout()
+
+        self.eval_optimization_graph_fig = plt.figure()
+        self.eval_optimization_graph_canvas = FigureCanvas(self.eval_optimization_graph_fig)
+        self.eval_optimization_graph_ax = self.eval_optimization_graph_fig.add_subplot(1, 1, 1)
+        self.eval_optimization_graph_ax.grid()
+        self.eval_optimization_graph_canvas.draw()
+        vbox.addWidget(self.eval_optimization_graph_canvas)
+
+        btn = QPushButton('View')
+        # btn.clicked.connect(self.ViewLiDAR)
+        vbox.addWidget(btn)
+
+        return vbox
+
+    def Eval_v_optimization_result_graph(self):
+        vbox = QVBoxLayout()
+
+        self.eval_optimization_rmse_graph_fig = plt.figure()
+        self.eval_optimization_rmse_graph_canvas = FigureCanvas(self.eval_optimization_rmse_graph_fig)
+        self.eval_optimization_rmse_graph_ax = self.eval_optimization_rmse_graph_fig.add_subplot(1, 1, 1)
+        self.eval_optimization_rmse_graph_ax.grid()
+        self.eval_optimization_rmse_graph_canvas.draw()
+        vbox.addWidget(self.eval_optimization_rmse_graph_canvas)
+
+        btn = QPushButton('View')
+        # btn.clicked.connect(self.ViewPointCloud)
+        vbox.addWidget(btn)
+
+        return vbox
+
+    def Eval_v_optimization_time_limit(self):
+        vbox = QVBoxLayout()
+
+        self.optimization_limit_time_layout = element.SlideLabelLayouts(self.ui)
+        vbox.addLayout(self.optimization_limit_time_layout)
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('Start')
+        # btn.clicked.connect(self.StartCalibration)
+        hbox.addWidget(btn)
+
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.PauseCalibration)
+        hbox.addWidget(self.pause_btn)
+        vbox.addLayout(hbox)
+
+        return vbox
+
     # Callback
     def ViewLiDAR(self):
         status = self.button_group.checkedId()
@@ -946,6 +1182,26 @@ class EvaluationTab(QWidget):
         self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_after_graph_ax, self.result_after_graph_canvas)
 
         self.prev_checkID = self.button_group.checkedId()
+
+    def PauseCalibration(self):
+        pass
+        # self.ui.thread.toggle_status()
+        #
+        # if self.calibration_status is CONST_PLAY:
+        #     self.pause_btn.setText("Replay")
+        #     self.calibration_status = CONST_PAUSE
+        #
+        #     ## Set 'Result Calibration Data'
+        #     for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+        #         self.result_labels[idxSensor].label_edit_x.setText(
+        #             str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+        #         self.result_labels[idxSensor].label_edit_y.setText(
+        #             str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+        #         self.result_labels[idxSensor].label_edit_yaw.setText(
+        #             str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+        # else:
+        #     self.pause_btn.setText("Pause")
+        #     self.calibration_status = CONST_PLAY
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -1064,7 +1320,9 @@ class MyApp(QMainWindow):
                 sensor_list = sensor_list + ' ' + str(sensor_index)
 
         for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
-            if 'CheckedSensorList' in line:
+            if 'PrincipalSensor' in line:
+                line = line.replace(line, 'PrincipalSensor = ' + str(self.form_widget.config.PARM_LIDAR['PrincipalSensor']) + '\n')
+            elif 'CheckedSensorList' in line:
                 line = line.replace(line, 'CheckedSensorList = ' + str(checked_sensor_list) + '\n')
             elif 'SensorList' in line:
                 line = line.replace(line, 'SensorList = ' + str(sensor_list) + '\n')
@@ -1231,11 +1489,6 @@ class FormWidget(QWidget):
         self.config_tab.lidar_num_label_layout.spin_box.setValue(len(self.config.PARM_LIDAR['SensorList']))
         self.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.config.PARM_LIDAR['SensorList'], self.config.PARM_LIDAR['CheckedSensorList'])
 
-        ### Setting import tab
-        self.importing_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['Logging_file_path'])
-        self.importing_tab.logging_file_path_layout.path_file_str = self.config.PATH['Logging_file_path']
-
-        ### Setting evaluation tab
         PARM_PC = self.config.PARM_PC
         self.config_tab.minimum_threshold_distance_layout.double_spin_box.setValue(PARM_PC['MinThresholdDist_m'])
         self.config_tab.maximum_threshold_istance_layout.double_spin_box.setValue(PARM_PC['MaxThresholdDist_m'])
@@ -1246,6 +1499,11 @@ class FormWidget(QWidget):
         self.config_tab.minimum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MinThresholdZ_m'])
         self.config_tab.maximum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MaxThresholdZ_m'])
 
+        ### Setting import tab
+        self.importing_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['Logging_file_path'])
+        self.importing_tab.logging_file_path_layout.path_file_str = self.config.PATH['Logging_file_path']
+
+        ### Setting handeye tab
         PARM_HE = self.config.PARM_HE
         self.handeye_tab.sampling_interval_layout.spin_box.setValue(PARM_HE['SamplingInterval'])
         self.handeye_tab.maximum_interation_layout.spin_box.setValue(PARM_HE['MaximumIteration'])
@@ -1254,12 +1512,17 @@ class FormWidget(QWidget):
         self.handeye_tab.heading_threshold_layout.double_spin_box.setValue(PARM_HE['filter_HeadingThreshold'])
         self.handeye_tab.distance_threshold_layout.double_spin_box.setValue(PARM_HE['filter_DistanceThreshold'])
 
+        ### Setting optimization tab
         PARM_MO = self.config.PARM_MO
         self.optimization_tab.pose_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PoseSamplingRatio'])
         self.optimization_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
         self.optimization_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
         self.optimization_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
         self.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.config.PARM_LIDAR['SensorList'], self.config.PARM_LIDAR['CheckedSensorList'])
+
+        ### Setting evaluation tab
+        self.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = copy.deepcopy(self.config.PARM_LIDAR['CheckedSensorList'])
+        self.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = copy.deepcopy(self.config.PARM_LIDAR['CheckedSensorList'])
 
         print('Set all tab\'s configuration')
 
