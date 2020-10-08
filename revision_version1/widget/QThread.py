@@ -25,7 +25,7 @@ class Thread(QThread):
         self.wait()
 
     def run(self):
-        self.target(self)
+        self.target(self, 'test')
         self.end.emit()
 
     def SetFunc(self, target):

@@ -60,7 +60,7 @@ class Import:
 
         print('Parse Gnss logging data')
 
-    def ParsePointCloud(self, thread):
+    def ParsePointCloud(self, thread, ):
         thread.mutex.lock()
         # Parse Point Cloud
         PointCloudFileCnt = 0
