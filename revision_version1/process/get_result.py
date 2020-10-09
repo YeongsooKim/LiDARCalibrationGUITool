@@ -19,11 +19,9 @@ from process import utils_pointcloud
 from process import utils_pose
 
     # Paramet
-def GetPlotParam(config, Import, calibration_param):
+def GetPlotParam(config, Import, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
-    start_time = Import.start_time
-    end_time = Import.end_time
     tmp_df_info = Import.df_info
 
     # Limit time

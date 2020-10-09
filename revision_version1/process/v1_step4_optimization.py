@@ -5,10 +5,6 @@
 @version: 0.0.1
 """
 
-##############################################################################################################################
-# %% Import libraries
-##############################################################################################################################
-
 # Basic modules in Anaconda
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
@@ -42,10 +38,9 @@ class Optimization:
     ##############################################################################################################################
     # %% 3. Optimization
     ##############################################################################################################################
-    def Calibration(self, thread, str):
-        print(str)
-        start_time = self.Import.start_time
-        end_time = self.Import.end_time
+    def Calibration(self, thread, args):
+        start_time = args[0]
+        end_time = args[1]
         df_info = self.Import.df_info
 
         # Limit time

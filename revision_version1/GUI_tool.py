@@ -216,13 +216,13 @@ class ImportDataTab(QWidget):
         self.logging_file_path_layout = element.FileInputWithCheckBtnLayout('Select Logging File Path', self.ui)
         self.logging_vbox.addLayout(self.logging_file_path_layout)
 
-        label = QLabel('[ Gnss File List ]')
+        label = QLabel('[ csv File List ]')
         self.logging_vbox.addWidget(label)
 
         self.gnss_scroll_box = ScrollAreaH()
         self.logging_vbox.addWidget(self.gnss_scroll_box)
 
-        label = QLabel('[ PointCloud File List ]')
+        label = QLabel('[ bin File List ]')
         self.logging_vbox.addWidget(label)
 
         self.lidar_scroll_box = ScrollAreaH()
@@ -268,6 +268,8 @@ class ImportDataTab(QWidget):
         self.logging_file_path_layout.lidar_buttons[idxSensor].setText(text)
 
     def EndImport(self):
+        self.ui.importing.ResampleTime()
+
         parsed_pandas_dataframe = self.ui.importing.text_pointcloud
         self.logging_file_path_layout.parsed_bin = parsed_pandas_dataframe.to_string()
 
@@ -476,7 +478,7 @@ class HandEyeTab(CalibrationTab):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
 
-        self.ui.thread.SetFunc(self.ui.handeye.Calibration)
+        self.ui.thread.SetFunc(self.ui.handeye.Calibration, [self.ui.importing_tab.limit_time_layout.start_time, self.ui.importing_tab.limit_time_layout.end_time])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -504,7 +506,9 @@ class HandEyeTab(CalibrationTab):
     def ViewPointCloud(self):
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.handeye.CalibrationParam)
+                                                                                           self.ui.handeye.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def EndHandEyeCalibration(self):
@@ -512,7 +516,9 @@ class HandEyeTab(CalibrationTab):
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.handeye.CalibrationParam)
+                                                                                           self.ui.handeye.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
         # Handeye tab
 
         ## Set 'Result Calibration Data'
@@ -677,9 +683,6 @@ class OptimizationTab(CalibrationTab):
             return False
         self.calibration_status = CONST_PLAY
 
-        print(self.ui.importing.start_time)
-        print(self.ui.importing.end_time)
-
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
@@ -691,7 +694,8 @@ class OptimizationTab(CalibrationTab):
 
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
-        self.ui.thread.SetFunc(self.ui.optimization.Calibration)
+
+        self.ui.thread.SetFunc(self.ui.optimization.Calibration, [self.ui.importing_tab.limit_time_layout.start_time, self.ui.importing_tab.limit_time_layout.end_time])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -743,7 +747,9 @@ class OptimizationTab(CalibrationTab):
             return False
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.optimization.CalibrationParam)
+                                                                                           self.ui.optimization.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
     def EndOptimizationCalibration(self):
@@ -752,7 +758,9 @@ class OptimizationTab(CalibrationTab):
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
-                                                                                           self.ui.optimization.CalibrationParam)
+                                                                                           self.ui.optimization.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
         # Optimization tab
 
         ## Set 'Result Calibration Data'
@@ -1148,10 +1156,14 @@ class EvaluationTab(QWidget):
     def ViewPointCloud(self):
         status = self.button_group.checkedId()
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.CalibrationParam)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
 
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.CalibrationParam)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.CalibrationParam,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
 
         self.ui.ViewPointCloud(df_info, accum_pointcloud)
 
@@ -1167,10 +1179,14 @@ class EvaluationTab(QWidget):
                 return False
 
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing,self.edit_handeye_calibration_parm)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing,self.edit_handeye_calibration_parm,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.edit_optimization_calibration_parm)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.edit_optimization_calibration_parm,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
             calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
         ## Plot 'Result of Calibration'

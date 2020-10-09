@@ -5,12 +5,7 @@
 @version: 0.0.1
 """
 
-##############################################################################################################################
-# %% Import libraries
-##############################################################################################################################
-
 # Basic modules in Anaconda
-import os
 import numpy as np
 import pandas as pd
 # Additional modules
@@ -19,7 +14,7 @@ from tqdm import tqdm
 # User defined modules
 from process import utils_file
 from process import utils_pose
-
+from process import utils_pose_dr
 
 class Import:
     def __init__(self, config):
@@ -30,8 +25,6 @@ class Import:
         self.point_cloud_logging_path = ''
 
         # Parameter
-        self.start_time = 0.0
-        self.end_time = 0.0
         self.DefaultStartTime = 0.0
         self.DefaultEndTime = 0.0
         self.PointCloudSensorList = {}
@@ -50,17 +43,35 @@ class Import:
         # Parse GNSS
         gnss_usecols = ['timestamp', 'latitude', 'longitude', 'heading']
         gnss_logging_file = self.gnss_logging_file + '/Gnss.csv'
-        df_gnss = utils_file.parse_gnss_csv_df(gnss_logging_file, gnss_usecols)
+        self.df_gnss = utils_file.parse_gnss_csv_df(gnss_logging_file, gnss_usecols)
 
         # Add ENU coordinate
-        RefWGS84 = [df_gnss['latitude'][0], df_gnss['longitude'][0]]
-        df_gnss = utils_pose.get_gnss_enu(df_gnss, RefWGS84)
-        df_gnss = df_gnss.set_index('timestamp')
-        self.df_info = df_gnss
+        RefWGS84 = [self.df_gnss['latitude'][0], self.df_gnss['longitude'][0]]
+        self.df_gnss = utils_pose.get_gnss_enu(self.df_gnss, RefWGS84)
+        self.df_gnss = self.df_gnss.set_index('timestamp')
+        self.df_info = self.df_gnss
 
         print('Parse Gnss logging data')
 
-    def ParsePointCloud(self, thread, ):
+    def ParseMotion(self):
+        motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # 사용할 column 'timestamp','speed_x','yaw_rate'으로 설정
+        motion_file = self.gnss_logging_file + '/Motion.csv'
+        df_motion = utils_file.parse_motion_csv_df(motion_file,
+                                                   motion_usecols)  # motion file, motion usecols 입력으로 넣어 motion file parsing
+        # df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
+
+        df_motion = df_motion.set_index('timestamp')
+        df_motion['yaw_rate'] = df_motion['yaw_rate'] * 180 / np.pi
+        init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
+                self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
+        df_motion = utils_pose_dr.get_motion_enu(df_motion, init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+        # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+        self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
+
+        print('Parse Motion logging data')
+
+    def ParsePointCloud(self, thread):
         thread.mutex.lock()
         # Parse Point Cloud
         PointCloudFileCnt = 0
@@ -171,3 +182,29 @@ class Import:
         thread.mutex.unlock()
 
         print('Parse pointcloud logging data')
+        
+    def ResampleTime(self):
+        # -----------------------------------------------------------------------------------------------------------------------------
+        # %% 2-2. Resample time
+        # -----------------------------------------------------------------------------------------------------------------------------
+        # Interpolation
+        for i in list(self.df_info.columns.values):
+            if i[-1].isdigit():
+                self.df_info[i].fillna(0, inplace=True)
+        self.df_info = self.df_info.interpolate(
+            method='linear')  # Linear interpolation in NaN
+        self.df_info = self.df_info.dropna(how='any')  # not interpolated rows dropped
+
+        # Remove rows without num_points
+        valid_info = []
+        for i in list(self.df_info.columns.values):
+            if i[-1].isdigit():
+                if len(valid_info) == 0:
+                    valid_info = self.df_info[i].values != 0
+                else:
+                    valid_info = valid_info | (self.df_info[i].values != 0)
+        non_valid_info = ~valid_info
+        self.df_info = self.df_info.drop(self.df_info[non_valid_info].index)
+        del valid_info, non_valid_info
+
+        print('Resample time')

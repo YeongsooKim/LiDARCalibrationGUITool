@@ -5,10 +5,6 @@
 @version: 0.0.1
 """
 
-##############################################################################################################################
-# %% Import libraries
-##############################################################################################################################
-
 # Basic modules in Anaconda
 import numpy as np
 
@@ -34,11 +30,10 @@ class HandEye:
     ##############################################################################################################################
     # %% 3. Handeye
     ##############################################################################################################################
-    def Calibration(self, thread, str):
-        print(str)
+    def Calibration(self, thread, args):
         thread.mutex.lock()
-        start_time = self.Import.start_time
-        end_time = self.Import.end_time
+        start_time = args[0]
+        end_time = args[1]
         df_info = self.Import.df_info
 
         # Limit time

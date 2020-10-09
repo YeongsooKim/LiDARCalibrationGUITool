@@ -73,6 +73,9 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if has_file:
             self.ui.importing.ParseGnss()
             self.gnss_button.setText('Gnss.csv 100%')
+
+            self.ui.importing.ParseMotion()
+            self.motion_button.setText('Motion.csv 100%')
             self.label_edit.setText(self.path_file_str)
 
         has_file = self.CheckPointCloudFile()
@@ -153,13 +156,27 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
     def CheckGnssFile(self):
         self.ui.importing.gnss_logging_file = self.path_file_str
         self.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+        has_gnss_file = True
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
             self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
             self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
-            return True
         else:
             self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
             self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            has_gnss_file = False
+
+        has_motion_file = True
+        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv') == True:
+            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+        else:
+            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            has_motion_file = False
+
+        if has_gnss_file and has_motion_file:
+            return True
+        else:
             return False
 
     def CheckPointCloudFile(self):
@@ -674,10 +691,14 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180
 
         if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
             calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
         elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param)
+            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param,
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
             calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
 
         ## Plot 'Result of Calibration'
