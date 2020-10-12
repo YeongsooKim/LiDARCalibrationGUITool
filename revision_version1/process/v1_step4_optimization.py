@@ -19,9 +19,9 @@ from process import utils_pointcloud
 from process import utils_cost_func
 
 class Optimization:
-    def __init__(self, config, Import):
+    def __init__(self, config, importing):
         self.config = config
-        self.Import = Import
+        self.importing = importing
 
         # Path and file
         self.config_lidar_file = ''
@@ -41,7 +41,8 @@ class Optimization:
     def Calibration(self, thread, args):
         start_time = args[0]
         end_time = args[1]
-        df_info = self.Import.df_info
+        PARM_LIDAR = args[2]
+        df_info = self.importing.df_info
 
         # Limit time
         df_info = df_info.drop(
@@ -56,9 +57,10 @@ class Optimization:
 
         ##################
         # Get calibration data
-        idxSensor = self.config.PARM_LIDAR['PrincipalSensor']
+        idxSensor = PARM_LIDAR['PrincipalSensor']
         calib_param = self.initial_calibration_param[idxSensor]
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        self.CalibrationParam.clear()
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         # self.CalibrationParam = self.initial_calibration_param
@@ -80,7 +82,7 @@ class Optimization:
 
         ##################
         # Get Point cloud list
-        pointcloud = self.Import.PointCloudSensorList[idxSensor]
+        pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
         ##################
         # Sampling the pose bsaed on pose sampling interval
@@ -113,10 +115,10 @@ class Optimization:
         # 3-2.  Optimization
         # -----------------------------------------------------------------------------------------------------------------------------
 
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             # Exclude the principal sensor
             thread.mutex.lock()
-            if idxSensor == self.config.PARM_LIDAR['PrincipalSensor']:
+            if idxSensor == PARM_LIDAR['PrincipalSensor']:
                 thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
                 thread.mutex.unlock()
                 continue
@@ -137,7 +139,7 @@ class Optimization:
             pose = np.vstack([pose, df_one_info[strColIndex].values])
 
             # Get Point cloud list
-            pointcloud = self.Import.PointCloudSensorList[idxSensor]
+            pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
             ##### cost function for optimization
             utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
@@ -156,7 +158,7 @@ class Optimization:
 
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
 
@@ -182,8 +184,8 @@ class Optimization:
 
                 pbar.set_description("PointCloud_" + str(idxSensor))
                 # Get point clouds
-                pointcloud1 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud2 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
+                pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
                 if pointcloud1.shape[0] < 1:
                     continue
@@ -264,7 +266,7 @@ class Optimization:
         self.calib_x = []
         self.calib_y = []
         self.calib_yaw = []
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
             diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]
             diff_gnss_xyzdh = diff_gnss_xyzdh_dict[idxSensor]

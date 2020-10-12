@@ -15,9 +15,9 @@ from tqdm import tqdm
 from process import utils_icp
 
 class HandEye:
-    def __init__(self, config, Import):
+    def __init__(self, config, importing):
         self.config = config
-        self.Import = Import
+        self.importing = importing
         self.complete_calibration = False
 
         # Path and file
@@ -34,7 +34,8 @@ class HandEye:
         thread.mutex.lock()
         start_time = args[0]
         end_time = args[1]
-        df_info = self.Import.df_info
+        PARM_LIDAR = args[2] 
+        df_info = self.importing.df_info
 
         # Limit time
         df_info = df_info.drop(
@@ -44,9 +45,9 @@ class HandEye:
         # -----------------------------------------------------------------------------------------------------------------------------
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
-        lidar_len = len(self.config.PARM_LIDAR['CheckedSensorList'])
+        lidar_len = len(PARM_LIDAR['CheckedSensorList'])
         p_index = 0.0
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
 
@@ -82,8 +83,8 @@ class HandEye:
 
                 pbar.set_description("PointCloud_" + str(idxSensor))
                 # Get point clouds
-                pointcloud1 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud2 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
+                pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
                 if pointcloud1.shape[0] < 1:
                     continue
@@ -167,7 +168,7 @@ class HandEye:
         self.calib_x = []
         self.calib_y = []
         self.calib_yaw = []
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
 
             diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]

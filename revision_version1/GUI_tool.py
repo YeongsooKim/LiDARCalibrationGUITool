@@ -35,6 +35,10 @@ CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
 CONST_EVALUATION = 4
 
+CONST_CALIBRATION_RESULT_TAB = 0
+CONST_HANDEYE_EVALUATION_TAB = 1
+CONST_OPTIMIZATION_EVALUATION_TAB = 2
+
 CONST_DISPLAY_HANDEYE = 0
 CONST_DISPLAY_OPTIMIZATION = 1
 
@@ -145,11 +149,12 @@ class ConfigurationTab(QWidget):
     ## Callback Function
 
     def NextBtn(self):
-        if self.select_using_sensor_list_layout.listWidget.count() == 0:
-            self.ErrorPopUp('Please open a ini file')
-        else:
-            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
-            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+        # if self.select_using_sensor_list_layout.listWidget.count() == 0:
+        #     self.ErrorPopUp('Please open a ini file')
+        # else:
+        #     self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+        #     self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+        self.ui.evaluation_tab.eval_handeye_graph_ax.clear()
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -416,13 +421,16 @@ class HandEyeTab(CalibrationTab):
         self.configuration_v_box.addWidget(self.Configuration_g_configuration())
 
         self.btn = QPushButton('Start Calibration')
-        self.btn.clicked.connect(self.StartCalibration)
         self.configuration_v_box.addWidget(self.btn)
 
         self.label = QLabel('[ HandEye Calibration Progress ]')
         self.configuration_v_box.addWidget(self.label)
 
         self.pbar = QProgressBar(self)
+        self.btn.clicked.connect(lambda: self.StartCalibration(self.ui.importing_tab.limit_time_layout.start_time,
+                                                               self.ui.importing_tab.limit_time_layout.end_time,
+                                                               self.ui.config.PARM_LIDAR,
+                                                               self.pbar.setValue))
         self.configuration_v_box.addWidget(self.pbar)
 
         self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
@@ -469,8 +477,12 @@ class HandEyeTab(CalibrationTab):
 
     ## Callback func
 
-    def StartCalibration(self):
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+    def StartCalibration(self, start_time, end_time, sensor_list, progress_callback_func):
+        if self.calibration_status is not CONST_STOP:
+            return False
+        self.calibration_status = CONST_PLAY
+
+        for idxSensor in sensor_list['CheckedSensorList']:
             if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
                 return False
@@ -478,7 +490,7 @@ class HandEyeTab(CalibrationTab):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
 
-        self.ui.thread.SetFunc(self.ui.handeye.Calibration, [self.ui.importing_tab.limit_time_layout.start_time, self.ui.importing_tab.limit_time_layout.end_time])
+        self.ui.thread.SetFunc(self.ui.handeye.Calibration, [start_time, end_time, sensor_list])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -496,7 +508,8 @@ class HandEyeTab(CalibrationTab):
         except:
             pass
 
-        self.ui.thread.change_value.connect(self.pbar.setValue)
+
+        self.ui.thread.change_value.connect(progress_callback_func)
         self.ui.thread.end.connect(self.EndHandEyeCalibration)
         self.ui.thread.start()
 
@@ -509,9 +522,10 @@ class HandEyeTab(CalibrationTab):
                                                                                            self.ui.handeye.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
                                                                                            self.ui.importing_tab.limit_time_layout.end_time)
-        self.ui.ViewPointCloud(df_info, accum_pointcloud)
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
 
     def EndHandEyeCalibration(self):
+        self.calibration_status = CONST_STOP
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
@@ -531,9 +545,9 @@ class HandEyeTab(CalibrationTab):
         self.result_data_pose_ax.clear()
         self.ui.ViewLiDAR(self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw, self.result_data_pose_ax, self.result_data_pose_canvas)
 
-        ## Plot 'Result Graph''
+        ## Plot 'Result Graph'
         self.result_graph_ax.clear()
-        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
 
         ## Transfer
         self.CopyList(self.ui.handeye.CalibrationParam, self.ui.optimization_tab.edit_handeye_calibration_parm)
@@ -564,11 +578,11 @@ class HandEyeTab(CalibrationTab):
 
             ## Plot 'Before Aplly Calibration Result'
             self.ui.evaluation_tab.result_before_graph_ax.clear()
-            self.ui.ViewPointCloud(df_info, accum_pointcloud, self.ui.evaluation_tab.result_before_graph_ax, self.ui.evaluation_tab.result_before_graph_canvas)
+            self.ui.ViewPointCloud(df_info, accum_pointcloud_, PARM_LIDAR, self.ui.evaluation_tab.result_before_graph_ax, self.ui.evaluation_tab.result_before_graph_canvas)
 
             ## Plot 'After Aplly Calibration Result'
             self.ui.evaluation_tab.result_after_graph_ax.clear()
-            self.ui.ViewPointCloud(df_info, accum_pointcloud_, self.ui.evaluation_tab.result_after_graph_ax, self.ui.evaluation_tab.result_after_graph_canvas)
+            self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.ui.evaluation_tab.result_after_graph_ax, self.ui.evaluation_tab.result_after_graph_canvas)
 
         ## Set 'Select The Method'
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
@@ -659,7 +673,10 @@ class OptimizationTab(CalibrationTab):
 
         hbox = QHBoxLayout(self)
         btn = QPushButton('Start')
-        btn.clicked.connect(self.StartCalibration)
+        btn.clicked.connect(lambda: self.StartCalibration(self.ui.importing_tab.limit_time_layout.start_time,
+                                                          self.ui.importing_tab.limit_time_layout.end_time,
+                                                          self.ui.config.PARM_LIDAR,
+                                                          self.text_edit))
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
@@ -678,12 +695,12 @@ class OptimizationTab(CalibrationTab):
 
     ## Callback func
 
-    def StartCalibration(self):
+    def StartCalibration(self, start_time, end_time, sensor_list, progress_callback_func):
         if self.calibration_status is not CONST_STOP:
             return False
         self.calibration_status = CONST_PLAY
 
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in sensor_list['CheckedSensorList']:
             if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
                 return False
@@ -695,7 +712,7 @@ class OptimizationTab(CalibrationTab):
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
 
-        self.ui.thread.SetFunc(self.ui.optimization.Calibration, [self.ui.importing_tab.limit_time_layout.start_time, self.ui.importing_tab.limit_time_layout.end_time])
+        self.ui.thread.SetFunc(self.ui.optimization.Calibration, [start_time, end_time, sensor_list])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -712,9 +729,9 @@ class OptimizationTab(CalibrationTab):
             self.ui.thread.emit_string.disconnect()
         except:
             pass
-        self.text_edit.clear()
+        progress_callback_func.clear()
 
-        self.ui.thread.emit_string.connect(self.text_edit.append)
+        self.ui.thread.emit_string.connect(progress_callback_func.append)
         self.ui.thread.end.connect(self.EndOptimizationCalibration)
         self.ui.thread.start()
 
@@ -727,12 +744,9 @@ class OptimizationTab(CalibrationTab):
 
             ## Set 'Result Calibration Data'
             for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-                self.result_labels[idxSensor].label_edit_x.setText(
-                    str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
-                self.result_labels[idxSensor].label_edit_y.setText(
-                    str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
-                self.result_labels[idxSensor].label_edit_yaw.setText(
-                    str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+                self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+                self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+                self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
         else:
             self.pause_btn.setText("Pause")
             self.calibration_status = CONST_PLAY
@@ -750,7 +764,7 @@ class OptimizationTab(CalibrationTab):
                                                                                            self.ui.optimization.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
                                                                                            self.ui.importing_tab.limit_time_layout.end_time)
-        self.ui.ViewPointCloud(df_info, accum_pointcloud)
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
 
     def EndOptimizationCalibration(self):
         self.calibration_status = CONST_STOP
@@ -775,7 +789,7 @@ class OptimizationTab(CalibrationTab):
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
-        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_graph_ax, self.result_graph_canvas)
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
 
         ## Transfer
         self.CopyList(self.ui.optimization.CalibrationParam, self.ui.evaluation_tab.edit_optimization_calibration_parm)
@@ -791,12 +805,12 @@ class OptimizationTab(CalibrationTab):
 
             ## Plot 'Before Aplly Calibration Result'
             self.ui.evaluation_tab.result_before_graph_ax.clear()
-            self.ui.ViewPointCloud(df_info, accum_pointcloud, self.ui.evaluation_tab.result_before_graph_ax,
+            self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.ui.evaluation_tab.result_before_graph_ax,
                                    self.ui.evaluation_tab.result_before_graph_canvas)
 
             ## Plot 'After Aplly Calibration Result'
             self.ui.evaluation_tab.result_after_graph_ax.clear()
-            self.ui.ViewPointCloud(df_info, accum_pointcloud_, self.ui.evaluation_tab.result_after_graph_ax,
+            self.ui.ViewPointCloud(df_info, accum_pointcloud_, PARM_LIDAR, self.ui.evaluation_tab.result_after_graph_ax,
                                    self.ui.evaluation_tab.result_after_graph_canvas)
 
         ## Set 'Select The Method'
@@ -837,11 +851,23 @@ class EvaluationTab(QWidget):
         super().__init__()
         self.ui = ui
         self.prev_checkID = 0
-        self.opt_result_labels = {}
+        self.evaluation_status = CONST_STOP
+        self.evaluation_id = None
+        self.handeye_eval_df_info = None
+        self.handeye_eval_Map = None
+        self.handeye_eval_PARM_LIDAR = None
+        self.optimization_eval_df_info = None
+        self.optimization_eval_Map = None
+        self.optimization_eval_PARM_LIDAR = None
+
+        # handeye
         self.handeye_result_labels = {}
         self.edit_handeye_calibration_parm = {}
-        self.edit_optimization_calibration_parm = {}
         self.handeye_eval_lidar = {}
+
+        # optimization
+        self.opt_result_labels = {}
+        self.edit_optimization_calibration_parm = {}
         self.optimization_eval_lidar = {}
 
         self.initUi()
@@ -894,8 +920,8 @@ class EvaluationTab(QWidget):
         vbox.addLayout(hbox1)
 
         hbox2 = QHBoxLayout()
-        hbox2.addLayout(self.Eval_v_handeye_RMSE_graph())
         hbox2.addLayout(self.Eval_v_handeye_result_graph())
+        hbox2.addLayout(self.Eval_v_handeye_RMSE_graph())
         vbox.addLayout(hbox2)
 
         self.handeye_eval.setLayout(vbox)
@@ -913,8 +939,8 @@ class EvaluationTab(QWidget):
         vbox.addLayout(hbox1)
 
         hbox2 = QHBoxLayout()
-        hbox2.addLayout(self.Eval_v_optimization_RMSE_graph())
         hbox2.addLayout(self.Eval_v_optimization_result_graph())
+        hbox2.addLayout(self.Eval_v_optimization_RMSE_graph())
         vbox.addLayout(hbox2)
 
         self.optimization_eval.setLayout(vbox)
@@ -978,7 +1004,7 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.result_before_graph_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.ViewPointCloud)
+        btn.clicked.connect(lambda: self.ViewPointCloud(CONST_CALIBRATION_RESULT_TAB))
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
@@ -996,7 +1022,7 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.result_after_graph_canvas)
 
         btn = QPushButton('View')
-        btn.clicked.connect(self.ViewPointCloud)
+        btn.clicked.connect(lambda: self.ViewPointCloud(CONST_CALIBRATION_RESULT_TAB))
         vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
@@ -1042,7 +1068,7 @@ class EvaluationTab(QWidget):
 
     ## Layout
 
-    def Eval_v_handeye_RMSE_graph(self):
+    def Eval_v_handeye_result_graph(self):
         vbox = QVBoxLayout()
 
         self.eval_handeye_graph_fig = plt.figure()
@@ -1053,24 +1079,30 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.eval_handeye_graph_canvas)
 
         btn = QPushButton('View')
-        # btn.clicked.connect(self.ViewLiDAR)
+        btn.clicked.connect(lambda: self.ViewPointCloud(CONST_HANDEYE_EVALUATION_TAB))
         vbox.addWidget(btn)
 
         return vbox
 
-    def Eval_v_handeye_result_graph(self):
+    def Eval_v_handeye_RMSE_graph(self):
         vbox = QVBoxLayout()
 
-        self.eval_handeye_rmse_graph_fig = plt.figure()
-        self.eval_handeye_rmse_graph_canvas = FigureCanvas(self.eval_handeye_rmse_graph_fig)
-        self.eval_handeye_rmse_graph_ax = self.eval_handeye_rmse_graph_fig.add_subplot(1, 1, 1)
-        self.eval_handeye_rmse_graph_ax.grid()
-        self.eval_handeye_rmse_graph_canvas.draw()
-        vbox.addWidget(self.eval_handeye_rmse_graph_canvas)
+        self.eval_handeye_rmse_fig = plt.figure()
+        self.eval_handeye_rmse_canvas = FigureCanvas(self.eval_handeye_rmse_fig)
 
-        btn = QPushButton('View')
-        # btn.clicked.connect(self.ViewPointCloud)
-        vbox.addWidget(btn)
+        self.eval_handeye_rmse_xy_ax = self.eval_handeye_rmse_fig.add_subplot(2, 1, 1)
+        self.eval_handeye_rmse_xy_ax.set_xlabel('LiDAR List')
+        self.eval_handeye_rmse_xy_ax.set_ylabel('RMSE [m]')
+        self.eval_handeye_rmse_xy_ax.set_title('RMSE x, y')
+
+        self.eval_handeye_rmse_yaw_ax = self.eval_handeye_rmse_fig.add_subplot(2, 1, 2)
+        self.eval_handeye_rmse_yaw_ax.set_xlabel('LiDAR List')
+        self.eval_handeye_rmse_yaw_ax.set_ylabel('RMSE [deg]')
+        self.eval_handeye_rmse_yaw_ax.set_title('RMSE yaw')
+
+        self.eval_handeye_rmse_fig.tight_layout()
+        self.eval_handeye_rmse_canvas.draw()
+        vbox.addWidget(self.eval_handeye_rmse_canvas)
 
         return vbox
 
@@ -1082,7 +1114,13 @@ class EvaluationTab(QWidget):
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
-        # btn.clicked.connect(self.StartCalibration)
+        btn.clicked.connect(lambda: self.StartEvaluation(CONST_HANDEYE,
+                                                         self.handeye_limit_time_layout.start_time,
+                                                         self.handeye_limit_time_layout.end_time,
+                                                         self.handeye_eval_lidar,
+                                                         self.ui.handeye.CalibrationParam,
+                                                         self.handeye_pbar.setValue,
+                                                         self.EndEvaluation))
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
@@ -1090,9 +1128,15 @@ class EvaluationTab(QWidget):
         hbox.addWidget(self.pause_btn)
         vbox.addLayout(hbox)
 
+        label = QLabel('[ HandEye Evaluation Progress ]')
+        vbox.addWidget(label)
+
+        self.handeye_pbar = QProgressBar(self)
+        vbox.addWidget(self.handeye_pbar)
+
         return vbox
 
-    def Eval_v_optimization_RMSE_graph(self):
+    def Eval_v_optimization_result_graph(self):
         vbox = QVBoxLayout()
 
         self.eval_optimization_graph_fig = plt.figure()
@@ -1103,24 +1147,30 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.eval_optimization_graph_canvas)
 
         btn = QPushButton('View')
-        # btn.clicked.connect(self.ViewLiDAR)
+        btn.clicked.connect(lambda: self.ViewPointCloud(CONST_OPTIMIZATION_EVALUATION_TAB))
         vbox.addWidget(btn)
 
         return vbox
 
-    def Eval_v_optimization_result_graph(self):
+    def Eval_v_optimization_RMSE_graph(self):
         vbox = QVBoxLayout()
 
-        self.eval_optimization_rmse_graph_fig = plt.figure()
-        self.eval_optimization_rmse_graph_canvas = FigureCanvas(self.eval_optimization_rmse_graph_fig)
-        self.eval_optimization_rmse_graph_ax = self.eval_optimization_rmse_graph_fig.add_subplot(1, 1, 1)
-        self.eval_optimization_rmse_graph_ax.grid()
-        self.eval_optimization_rmse_graph_canvas.draw()
-        vbox.addWidget(self.eval_optimization_rmse_graph_canvas)
+        self.eval_optimization_rmse_fig = plt.figure()
+        self.eval_optimization_rmse_canvas = FigureCanvas(self.eval_optimization_rmse_fig)
 
-        btn = QPushButton('View')
-        # btn.clicked.connect(self.ViewPointCloud)
-        vbox.addWidget(btn)
+        self.eval_optimization_rmse_xy_ax = self.eval_optimization_rmse_fig.add_subplot(2, 1, 1)
+        self.eval_optimization_rmse_xy_ax.set_xlabel('LiDAR List')
+        self.eval_optimization_rmse_xy_ax.set_ylabel('RMSE [m]')
+        self.eval_optimization_rmse_xy_ax.set_title('RMSE x, y')
+
+        self.eval_optimization_rmse_yaw_ax = self.eval_optimization_rmse_fig.add_subplot(2, 1, 2)
+        self.eval_optimization_rmse_yaw_ax.set_xlabel('LiDAR List')
+        self.eval_optimization_rmse_yaw_ax.set_ylabel('RMSE [deg]')
+        self.eval_optimization_rmse_yaw_ax.set_title('RMSE yaw')
+
+        self.eval_optimization_rmse_fig.tight_layout()
+        self.eval_optimization_rmse_canvas.draw()
+        vbox.addWidget(self.eval_optimization_rmse_canvas)
 
         return vbox
 
@@ -1132,13 +1182,25 @@ class EvaluationTab(QWidget):
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
-        # btn.clicked.connect(self.StartCalibration)
+        btn.clicked.connect(lambda: self.StartEvaluation(CONST_OPTIMIZATION,
+                                                         self.optimization_limit_time_layout.start_time,
+                                                         self.optimization_limit_time_layout.end_time,
+                                                         self.optimization_eval_lidar,
+                                                         self.ui.optimization.CalibrationParam,
+                                                         self.optimization_pbar.setValue,
+                                                         self.EndEvaluation))
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
         self.pause_btn.clicked.connect(self.PauseCalibration)
         hbox.addWidget(self.pause_btn)
         vbox.addLayout(hbox)
+
+        label = QLabel('[ Optimization Evaluation Progress ]')
+        vbox.addWidget(label)
+
+        self.optimization_pbar = QProgressBar(self)
+        vbox.addWidget(self.optimization_pbar)
 
         return vbox
 
@@ -1153,19 +1215,34 @@ class EvaluationTab(QWidget):
 
         self.ui.ViewLiDAR(calib_x, calib_y, calib_yaw)
 
-    def ViewPointCloud(self):
-        status = self.button_group.checkedId()
-        if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.CalibrationParam,
-                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
-                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
+    def ViewPointCloud(self, tab_id):
+        if tab_id == CONST_CALIBRATION_RESULT_TAB:
+            status = self.button_group.checkedId()
+            if status == CONST_DISPLAY_HANDEYE:
+                df_info, PARM_LIDAR, pointcloud, origin_pointcloud = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.handeye.CalibrationParam,
+                                                                                               self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                               self.ui.importing_tab.limit_time_layout.end_time)
 
-        elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.CalibrationParam,
-                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
-                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
+            elif status == CONST_DISPLAY_OPTIMIZATION:
+                df_info, PARM_LIDAR, pointcloud, origin_pointcloud = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.ui.optimization.CalibrationParam,
+                                                                                               self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                               self.ui.importing_tab.limit_time_layout.end_time)
 
-        self.ui.ViewPointCloud(df_info, accum_pointcloud)
+        elif tab_id == CONST_HANDEYE_EVALUATION_TAB:
+            if self.handeye_eval_df_info is None:
+                return False
+            df_info = self.handeye_eval_df_info
+            PARM_LIDAR = self.handeye_eval_PARM_LIDAR
+            pointcloud = self.handeye_eval_Map
+
+        elif tab_id == CONST_OPTIMIZATION_EVALUATION_TAB:
+            if self.optimization_eval_df_info is None:
+                return False
+            df_info = self.optimization_eval_df_info
+            PARM_LIDAR = self.optimization_eval_PARM_LIDAR
+            pointcloud = self.optimization_eval_Map
+
+        self.ui.ViewPointCloud(df_info, pointcloud, PARM_LIDAR)
 
     def DisplayCalibrationGraph(self):
         status = self.button_group.checkedId()
@@ -1195,7 +1272,7 @@ class EvaluationTab(QWidget):
 
         ## Plot 'After Apply Calibration Result'
         self.result_after_graph_ax.clear()
-        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.result_after_graph_ax, self.result_after_graph_canvas)
+        self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_after_graph_ax, self.result_after_graph_canvas)
 
         self.prev_checkID = self.button_group.checkedId()
 
@@ -1218,6 +1295,96 @@ class EvaluationTab(QWidget):
         # else:
         #     self.pause_btn.setText("Pause")
         #     self.calibration_status = CONST_PLAY
+
+    def StartEvaluation(self, evaluation_id, start_time, end_time, sensor_list, calibration_param, progress_callback_func, end_callback_func):
+        if self.evaluation_status is not CONST_STOP:
+            return False
+        self.evaluation_status = CONST_PLAY
+        self.evaluation_id = evaluation_id
+
+        for idxSensor in sensor_list['CheckedSensorList']:
+            if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
+                self.PopUp('Import pointcloud {}'.format(idxSensor))
+                return False
+
+        self.ui.thread.SetFunc(self.ui.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param])
+        try:
+            self.ui.thread.change_value.disconnect()
+        except:
+            pass
+        try:
+            self.ui.thread.interation_percentage.disconnect()
+        except:
+            pass
+        try:
+            self.ui.thread.end.disconnect()
+        except:
+            pass
+        try:
+            self.ui.thread.emit_string.disconnect()
+        except:
+            pass
+
+        self.ui.thread.change_value.connect(progress_callback_func)
+        self.ui.thread.end.connect(end_callback_func)
+        self.ui.thread.start()
+
+    def EndEvaluation(self):
+        self.evaluation_status = CONST_STOP
+
+        if self.evaluation_id == CONST_HANDEYE:
+            ## Plot 'Result Graph'
+            self.eval_handeye_graph_ax.clear()
+            self.handeye_eval_df_info = copy.deepcopy(self.ui.evaluation.df_info)
+            self.handeye_eval_Map = copy.deepcopy(self.ui.evaluation.Map)
+            self.handeye_eval_PARM_LIDAR = copy.deepcopy(self.ui.evaluation.PARM_LIDAR)
+            self.ui.ViewPointCloud(self.handeye_eval_df_info,
+                                   self.handeye_eval_Map,
+                                   self.handeye_eval_PARM_LIDAR,
+                                   self.eval_handeye_graph_ax,
+                                   self.eval_handeye_graph_canvas)
+
+            ## Plot 'Result RMSE'
+            self.eval_handeye_rmse_xy_ax.clear()
+            self.eval_handeye_rmse_yaw_ax.clear()
+            self.ui.ViewRMSE(self.ui.evaluation.rmse_x,
+                             self.ui.evaluation.rmse_y,
+                             self.ui.evaluation.rmse_yaw,
+                             self.ui.evaluation.lidarlist,
+                             self.ui.evaluation.PARM_LIDAR,
+                             self.eval_handeye_rmse_xy_ax,
+                             self.eval_handeye_rmse_yaw_ax,
+                             self.eval_handeye_rmse_canvas)
+
+        elif self.evaluation_id == CONST_OPTIMIZATION:
+            ## Plot 'Result Graph'
+            self.eval_optimization_graph_ax.clear()
+            self.optimization_eval_df_info = copy.deepcopy(self.ui.evaluation.df_info)
+            self.optimization_eval_Map = copy.deepcopy(self.ui.evaluation.Map)
+            self.optimization_eval_PARM_LIDAR = copy.deepcopy(self.ui.evaluation.PARM_LIDAR)
+            self.ui.ViewPointCloud(self.optimization_eval_df_info,
+                                   self.optimization_eval_Map,
+                                   self.optimization_eval_PARM_LIDAR,
+                                   self.eval_optimization_graph_ax,
+                                   self.eval_optimization_graph_canvas)
+
+            ## Plot 'Result RMSE'
+            self.eval_optimization_rmse_xy_ax.clear()
+            self.eval_optimization_rmse_yaw_ax.clear()
+            self.ui.ViewRMSE(self.ui.evaluation.rmse_x,
+                             self.ui.evaluation.rmse_y,
+                             self.ui.evaluation.rmse_yaw,
+                             self.ui.evaluation.lidarlist,
+                             self.ui.evaluation.PARM_LIDAR,
+                             self.eval_optimization_rmse_xy_ax,
+                             self.eval_optimization_rmse_yaw_ax,
+                             self.eval_optimization_rmse_canvas)
+
+        print('end evaluation')
+
+    def OptimizationEvaluation(self):
+
+        pass
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -1335,6 +1502,10 @@ class MyApp(QMainWindow):
             else:
                 sensor_list = sensor_list + ' ' + str(sensor_index)
 
+        is_pointcloud = False
+        is_handeye = False
+        is_multi_optimization = False
+
         for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
             if 'PrincipalSensor' in line:
                 line = line.replace(line, 'PrincipalSensor = ' + str(self.form_widget.config.PARM_LIDAR['PrincipalSensor']) + '\n')
@@ -1343,6 +1514,7 @@ class MyApp(QMainWindow):
             elif 'SensorList' in line:
                 line = line.replace(line, 'SensorList = ' + str(sensor_list) + '\n')
             elif 'MinThresholdDist_m' in line:
+                is_pointcloud = True
                 line = line.replace(line, 'MinThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdDist_m']) + '\n')
             elif 'MaxThresholdDist_m' in line:
                 line = line.replace(line, 'MaxThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdDist_m']) + '\n')
@@ -1358,27 +1530,27 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'MinThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdZ_m']) + '\n')
             elif 'MaxThresholdZ_m' in line:
                 line = line.replace(line, 'MaxThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdZ_m']) + '\n')
-
             elif 'SamplingInterval' in line:
+                is_handeye = True
                 line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_HE['SamplingInterval']) + '\n')
             elif 'MaximumIteration' in line:
                 line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_HE['MaximumIteration']) + '\n')
             elif 'Tolerance' in line:
                 line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_HE['Tolerance']) + '\n')
-            elif 'OutlierDistance_m' in line:
+            elif ('OutlierDistance_m' in line) and (is_multi_optimization == False):
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_HE['OutlierDistance_m']) + '\n')
             elif 'filter_HeadingThreshold' in line:
                 line = line.replace(line, 'filter_HeadingThreshold = ' + str(self.form_widget.config.PARM_HE['filter_HeadingThreshold']) + '\n')
             elif 'filter_DistanceThreshold' in line:
                 line = line.replace(line, 'filter_DistanceThreshold = ' + str(self.form_widget.config.PARM_HE['filter_DistanceThreshold']) + '\n')
-
             elif 'PoseSamplingRatio' in line:
+                is_multi_optimization = True
                 line = line.replace(line, 'PoseSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PoseSamplingRatio']) + '\n')
             elif 'PointSamplingRatio' in line:
                 line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PointSamplingRatio']) + '\n')
             elif 'NumPointsPlaneModeling' in line:
                 line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
-            elif 'OutlierDistance_m' in line:
+            elif ('OutlierDistance_m' in line) and (is_multi_optimization == True):
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
             sys.stdout.write(line)
         self.form_widget.value_changed = False
@@ -1460,7 +1632,7 @@ class FormWidget(QWidget):
         self.importing = v1_step2_import_data.Import(self.config)
         self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
         self.optimization = v1_step4_optimization.Optimization(self.config, self.importing)
-        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing, self.handeye, self.optimization)
+        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing)
         self.config.WriteDefaultFile()
         self.config.InitConfiguration()
 
@@ -1672,27 +1844,22 @@ class FormWidget(QWidget):
             ax.axes.xaxis.set_visible(False)
             ax.axes.yaxis.set_visible(False)
             canvas.draw()
-
-        if canvas is None:
+        else:
             root = Tk.Tk()
             canvas = FigureCanvasTkAgg(fig, master=root)
             nav = NavigationToolbar2Tk(canvas, root)
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
-            # fig.canvas.callbacks.connect('pick_event', self._onPick)
             root.mainloop()
-        # canvas.show()
 
-    def ViewPointCloud(self, df_info, accum_pointcloud, ax=None, canvas=None):
-        root = Tk.Tk()
-        lidar_num = len(self.handeye.config.PARM_LIDAR['CheckedSensorList'])
+    def ViewPointCloud(self, df_info, pointcloud, PARM_LIDAR, ax=None, canvas=None):
+        lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
         fig = plt.figure(figsize=(20, 20))
 
-        for i in range(len(self.config.PARM_LIDAR['CheckedSensorList'])):
-            idxSensor = list(self.config.PARM_LIDAR['CheckedSensorList'])
+        for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+            idxSensor = list(PARM_LIDAR['CheckedSensorList'])
             if canvas is None:
                 plot_num_str = column + row + str(i + 1)
                 ax = fig.add_subplot(int(plot_num_str))
@@ -1700,8 +1867,8 @@ class FormWidget(QWidget):
             strColIndex = 'PointCloud_' + str(idxSensor[i])
 
             ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
-            ax.plot(accum_pointcloud[idxSensor[i]][:, 0], accum_pointcloud[idxSensor[i]][:, 1], ',',
-                    color=self.color_list[(idxSensor[i])%len(self.color_list)], label=strColIndex)
+            ax.plot(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], ',',
+                    color=self.color_list[(idxSensor[i]) % len(self.color_list)], label=strColIndex)
 
             if canvas is None:
                 ax.axis('equal')
@@ -1715,20 +1882,50 @@ class FormWidget(QWidget):
             ax.legend()
             ax.set_title('Result of calibration')
             canvas.draw()
-
-        if canvas is None:
+        else:
             root = Tk.Tk()
             canvas = FigureCanvasTkAgg(fig, master=root)
             nav = NavigationToolbar2Tk(canvas, root)
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
-            # fig.canvas.callbacks.connect('pick_event', self._onPick)
             root.mainloop()
 
-        # canvas.draw()
-        # canvas.show()
-        
+
+    def ViewRMSE(self, rmse_x, rmse_y, rmse_yaw, lidarlist, PARM_LIDAR, xy_ax, yaw_ax, canvas=None):
+        index = np.arange(len(PARM_LIDAR['CheckedSensorList']))
+        sensor_num = len(PARM_LIDAR['CheckedSensorList'])
+        bar_width = 0.35
+        opacity = 0.4
+
+        rect_x = xy_ax.bar(index[:sensor_num] - bar_width / 2, rmse_x[:sensor_num], bar_width/2., alpha=opacity, color="b", label='RMSE x')
+        rect_y = xy_ax.bar(index[:sensor_num] + bar_width / 2, rmse_y[:sensor_num], bar_width/2., alpha=opacity, color="r", label='RMSE y')
+        self.evaluation.AutoLabel(rect_x, xy_ax)
+        self.evaluation.AutoLabel(rect_y, xy_ax)
+        xy_ax.set_xlim(-1, sensor_num)
+        rect_x_height = self.evaluation.GetMaxBarHeight(rect_x)
+        rect_y_height = self.evaluation.GetMaxBarHeight(rect_y)
+        height = max(rect_x_height, rect_y_height) * 1.2
+        xy_ax.set_ylim(0, height)
+        xy_ax.set_xticks(list(range(len(lidarlist))))
+        xy_ax.set_xticklabels(lidarlist)
+        xy_ax.set_xlabel('LiDAR List')
+        xy_ax.set_ylabel('RMSE [m]')
+        xy_ax.set_title('RMSE x, y')
+        xy_ax.legend()
+
+        rect_yaw = yaw_ax.bar(index[:sensor_num], rmse_yaw[:sensor_num], bar_width / 2., alpha=opacity, color="g", label='RMSE yaw')
+        self.evaluation.AutoLabel(rect_yaw, yaw_ax)
+        yaw_ax.set_xlim(-1, sensor_num)
+        height = self.evaluation.GetMaxBarHeight(rect_yaw) * 1.2
+        yaw_ax.set_ylim(0, height)
+        yaw_ax.set_xticks(list(range(len(lidarlist))))
+        yaw_ax.set_xticklabels(lidarlist)
+        yaw_ax.set_xlabel('LiDAR List')
+        yaw_ax.set_ylabel('RMSE [deg]')
+        yaw_ax.set_title('RMSE yaw')
+        yaw_ax.legend()
+        canvas.draw()
+
     def resizeEvent(self, e):
         width = self.geometry().width()
         self.config_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
