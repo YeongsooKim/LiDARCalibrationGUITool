@@ -423,12 +423,14 @@ class SpinBoxLabelLayout(QVBoxLayout):
             ## Add Reset result label in handeye tab, optimization tab and evaulation tab
             self.ui.ResetResultsLabels()
 
+
         elif self.label_str == 'Sampling Interval':
             self.ui.config.PARM_HE['SamplingInterval'] = self.spin_box.value()
         elif self.label_str == 'Maximum Iteration':
             self.ui.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
         elif self.label_str == 'Num Points Plane Modeling':
             self.ui.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
+
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
     def __init__(self, string, ui):
@@ -867,10 +869,10 @@ class ResultTab(QVBoxLayout):
         self.handeye_init_value = self.HandEyeInit()
         self.user_define_init_value = self.UserDefineInit()
 
-        tabs = QTabWidget()
-        tabs.addTab(self.handeye_init_value, 'Handeye')
-        tabs.addTab(self.user_define_init_value, 'User Define')
-        self.addWidget(tabs)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.handeye_init_value, 'Handeye')
+        self.tabs.addTab(self.user_define_init_value, 'User Define')
+        self.addWidget(self.tabs)
 
     def UserDefineInit(self):
         self.user_define_scroll_box = ScrollAreaV()

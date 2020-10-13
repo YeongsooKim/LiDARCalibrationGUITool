@@ -62,6 +62,7 @@ class HandEye:
             # Generate Index Pairs
             idx_pair = []
             l = list(range(len(df_sampled_info)))
+
             for first, second in zip(l, l[1:]):
                 idx_pair.append((first, second))
 
@@ -69,6 +70,7 @@ class HandEye:
             pbar = tqdm(idx_pair)
             iteration_size = len(idx_pair)
             index = 0
+
             for i, j in pbar:
                 # Display progress
                 iteration_ratio = float(index + 1) / float(iteration_size)
@@ -117,15 +119,14 @@ class HandEye:
                                            [np.sin(diff_h), np.cos(diff_h), 0., translation_gnss[1]],
                                            [0., 0., 1., 0.],
                                            [0., 0., 0., 1.]))
+
                 # ICP
                 transform_point, distances, iterations, converged = utils_icp.icp_NM(pointcloud2[:, 0:3],
                                                                                      pointcloud1[:, 0:3],
                                                                                      init_pose=transform_gnss,
                                                                                      tolerance=self.config.PARM_HE['Tolerance'],
-                                                                                     max_iterations=self.config.PARM_HE[
-                                                                                         'MaximumIteration'],
-                                                                                     rm_outlier_dist=self.config.PARM_HE[
-                                                                                         'OutlierDistance_m'])
+                                                                                     max_iterations=self.config.PARM_HE['MaximumIteration'],
+                                                                                     rm_outlier_dist=self.config.PARM_HE['OutlierDistance_m'])
 
                 #        # Check Matching of ICP
                 #        uf.FnDisplayTransformPointCloud(pointcloud2, pointcloud1, transform_point)

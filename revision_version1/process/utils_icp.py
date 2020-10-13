@@ -85,7 +85,6 @@ def icp(A, B,
         i: number of iterations to converge
         converged: Convergence of icp algorithm (mean error within the tolerance)
     '''
-
     assert A.shape == B.shape
     
     converged = False
@@ -108,7 +107,7 @@ def icp(A, B,
     for i in range(max_iterations):
         # find the nearest neighbors between the current source and destination points
         distances, indices = nearest_neighbor(src[:m,:].T, dst[:m,:].T)
-        
+
         # outlier remove
         idx_src = np.arange(A.shape[0])
         idx_dst = indices
@@ -119,7 +118,7 @@ def icp(A, B,
         if np.sum(cond) <= 0:
             converged = False
             break
-        
+
         idx_src = idx_src[cond]
         idx_dst = indices[cond]       
 
@@ -162,7 +161,7 @@ def icp_NM(A, B,
     '''
     A, B = random_upsampling(A, B)
     
-    T, distances, iterations, converged = icp(A, B, 
+    T, distances, iterations, converged = icp(A, B,
                                               init_pose, 
                                               max_iterations, 
                                               tolerance, 
@@ -172,7 +171,6 @@ def icp_NM(A, B,
 
 
 def random_upsampling(A, B):
-
   assert A.shape[1] == B.shape[1]
   
   n1 = A.shape[0]

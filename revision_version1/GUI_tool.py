@@ -85,7 +85,7 @@ class ConfigurationTab(QWidget):
     ## Groupbox
 
     def Configuration_g_configuration(self):
-        groupbox = QGroupBox('Set Configuration')
+        self.set_configuration_groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
         hbox = QHBoxLayout()
@@ -96,8 +96,8 @@ class ConfigurationTab(QWidget):
         self.image_display_widget = element.ImageDisplay(self.ui.config.PATH['Image_path'])
         vbox.addWidget(self.image_display_widget)
 
-        groupbox.setLayout(vbox)
-        return groupbox
+        self.set_configuration_groupbox.setLayout(vbox)
+        return self.set_configuration_groupbox
 
     ## Groupbox layout
 
@@ -154,7 +154,8 @@ class ConfigurationTab(QWidget):
         # else:
         #     self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
         #     self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
-        self.ui.evaluation_tab.eval_handeye_graph_ax.clear()
+        configuration_width = self.ui.config_tab.set_configuration_groupbox.geometry().width()
+        print(configuration_width)
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -678,7 +679,7 @@ class OptimizationTab(CalibrationTab):
     ## Groupbox
 
     def Configuration_g_configuration(self):
-        groupbox = QGroupBox('Set Configuration')
+        self.optimization_configuration_groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
         liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
@@ -708,8 +709,8 @@ class OptimizationTab(CalibrationTab):
         self.optimization_initial_value_tab = element.ResultTab(self.ui)
         vbox.addLayout(self.optimization_initial_value_tab)
 
-        groupbox.setLayout(vbox)
-        return groupbox
+        self.optimization_configuration_groupbox.setLayout(vbox)
+        return self.optimization_configuration_groupbox
 
     def Configuration_g_progress(self):
         groupbox = QGroupBox()
@@ -1437,9 +1438,7 @@ class MyApp(QMainWindow):
         self.statusBar()
 
         self.setWindowTitle('Calibration Tool')
-        # self.showFullScreen()
-        # self.resize(1000, 600)
-        self.center()
+        self.showMaximized()
 
     def center(self):
         qr = self.frameGeometry()
@@ -1636,6 +1635,7 @@ class MyApp(QMainWindow):
 class FormWidget(QWidget):
     def __init__(self, parent):
         super(FormWidget, self).__init__(parent)
+        self.resize_count = 0
         self.thread = QThread.Thread()
 
         self.config = v1_step1_configuration.Configuration()
@@ -1936,14 +1936,22 @@ class FormWidget(QWidget):
         canvas.draw()
 
     def resizeEvent(self, e):
-        width = self.geometry().width()
-        self.config_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
-        self.importing_tab.next_btn.setFixedSize(width-42, CONST_NEXT_BTN_HEIGHT)
-        self.importing_tab.lidar_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
-        self.importing_tab.gnss_scroll_box.setFixedSize(width-62, CONST_SCROLL_BOX_HEIGHT)
+        self.resize_count += 1
+
+        if self.resize_count >= 2:
+            self.config_tab.next_btn.setFixedHeight(CONST_NEXT_BTN_HEIGHT)
+            self.importing_tab.next_btn.setFixedHeight(CONST_NEXT_BTN_HEIGHT)
+            self.importing_tab.lidar_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
+            self.importing_tab.gnss_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
+
+
+            self.optimization_tab.select_principle_sensor_list_layout.listWidget.setFixedHeight(CONST_SCROLL_BOX_HEIGHT-40)
+            self.optimization_tab.text_edit.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
+            self.optimization_tab.optimization_initial_value_tab.tabs.setFixedHeight(CONST_SCROLL_BOX_HEIGHT+50)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = MyApp()
     w.show()
+
     sys.exit(app.exec_())
