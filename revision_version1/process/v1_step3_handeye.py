@@ -219,5 +219,4 @@ class HandEye:
             self.calib_x.append(Trans_veh2sen[0])
             self.calib_y.append(Trans_veh2sen[1])
 
-        self.complete_calibration = True
         print("Complete Handeye calibration")

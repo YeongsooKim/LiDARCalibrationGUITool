@@ -370,6 +370,9 @@ class SpinBoxLabelLayout(QVBoxLayout):
             if len(self.ui.config.PARM_LIDAR['SensorList']) <= 0:
                 return False
 
+            self.ui.handeye.complete_calibration = False
+            self.ui.optimization.complete_calibration = False
+
             is_minus = False
             last_lidar_num = self.ui.config.PARM_LIDAR['SensorList'][-1]
             spin_box_value = self.spin_box.value()
@@ -487,7 +490,7 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
             self.ui.config.PARM_MO['PoseSamplingRatio'] = self.double_spin_box.value()
         elif self.label_str == 'Point Sampling Ratio':
             self.ui.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
-        elif self.label_str == 'Outlier Distance  [m]':
+        elif self.label_str == 'Outlier Distance [m]':
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):
@@ -695,24 +698,7 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180
         self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180
 
-        if status == CONST_DISPLAY_HANDEYE:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param,
-                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
-                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
-            calib_x, calib_y, calib_yaw = self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw
-        elif status == CONST_DISPLAY_OPTIMIZATION:
-            df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config, self.ui.importing, self.calibration_param,
-                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
-                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
-            calib_x, calib_y, calib_yaw = self.ui.optimization.calib_x, self.ui.optimization.calib_y, self.ui.optimization.calib_yaw
-
-        ## Plot 'Result of Calibration'
-        self.ui.evaluation_tab.result_data_pose_ax.clear()
-        self.ui.ViewLiDAR(calib_x, calib_y, calib_yaw, self.ui.evaluation_tab.result_data_pose_ax, self.ui.evaluation_tab.result_data_pose_canvas)
-
-        ## Plot 'After Apply Calibration Result'
-        self.ui.evaluation_tab.result_after_graph_ax.clear()
-        self.ui.ViewPointCloud(df_info, accum_pointcloud, self.ui.evaluation_tab.result_after_graph_ax, self.ui.evaluation_tab.result_after_graph_canvas)
+        self.ui.evaluation_tab.DisplayCalibrationGraph()
 
 class CalibrationResultLabel(QVBoxLayout):
     def __init__(self, idxSensor):
