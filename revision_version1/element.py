@@ -231,6 +231,7 @@ class CheckBoxListLayout(QVBoxLayout):
         self.label_str = label_str
         self.ui = ui
         self.LiDAR_list = []
+        self.lidar_buttons = {}
 
         self.InitUi()
 
@@ -239,30 +240,35 @@ class CheckBoxListLayout(QVBoxLayout):
             self.label = QLabel(self.label_str)
             self.addWidget(self.label)
 
-        self.listWidget = QListWidget()
-        self.listWidget.itemChanged.connect(self.ItemChanged)
-        self.addWidget(self.listWidget)
+        if self.id == 1:
+            self.config_scroll_box = ScrollAreaH()
+            self.addWidget(self.config_scroll_box)
+        else:
+            self.listWidget = QListWidget()
+            self.listWidget.itemChanged.connect(self.ItemChanged)
+            self.addWidget(self.listWidget)
 
     def AddWidgetItem(self, PARM_LIDAR_SENSOR_LIST, PARM_LIDAR_CHECKED_SENSOR_LIST):
         self.LiDAR_list.clear()
-        listItems = self.listWidget.count()
-        if not listItems == 0:
-            for item_index in reversed(range(listItems)):
-                self.listWidget.takeItem(item_index)
-                self.listWidget.removeItemWidget(self.listWidget.takeItem(item_index))
+        self.lidar_buttons.clear()
+        if self.id == 1:
+            self.RemoveLayout(self.config_scroll_box.layout)
+        else:
+            listItems = self.listWidget.count()
+            if not listItems == 0:
+                for item_index in reversed(range(listItems)):
+                    self.listWidget.takeItem(item_index)
+                    self.listWidget.removeItemWidget(self.listWidget.takeItem(item_index))
 
         self.button_group = QButtonGroup()
 
         ## Adding configuration tab sensor list
-        if self.id == 1:    # instance name is 'handeye_using_sensor_list_layout'
+        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             for sensor_index in PARM_LIDAR_SENSOR_LIST:
-                item = QListWidgetItem('LiDAR %i' % sensor_index)
-                if sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
-                    item.setCheckState(Qt.Checked)
-                else:
-                    item.setCheckState(Qt.Unchecked)
-                self.listWidget.addItem(item)
-                self.LiDAR_list.append(item)
+                ## Add button
+                btn = Button('PointCloud {}'.format(sensor_index), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'], click=True, callback=self.ItemChanged)
+                self.lidar_buttons[sensor_index] = btn
+                self.config_scroll_box.layout.addWidget(btn)
 
         ## Adding optimization tab sensor list
         elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
@@ -300,11 +306,16 @@ class CheckBoxListLayout(QVBoxLayout):
 
     def ItemChanged(self):
         items = []
-        for item in self.LiDAR_list:
-            words = item.text().split()
-            if not item.checkState() == 0:
-                items.append(int(words[1]))
-        if self.id == 1:    # instance name is 'handeye_using_sensor_list_layout'
+        if self.id == 1:
+            items = copy.deepcopy(list(self.lidar_buttons.keys()))
+            print('icon: ' + str(items))
+        else:
+            for item in self.LiDAR_list:
+                words = item.text().split()
+                if not item.checkState() == 0:
+                    items.append(int(words[1]))
+            print(items)
+        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             self.ui.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
             self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
             self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
@@ -326,7 +337,7 @@ class CheckBoxListLayout(QVBoxLayout):
 
             self.ui.ResetResultsLabels()
 
-        elif self.id == 3:    # instance name is 'select_principle_sensor_list_layout'
+        elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
             self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = items
 
         elif self.id == 4:  # instance name is 'optimization_using_sensor_list_layout'
@@ -334,6 +345,18 @@ class CheckBoxListLayout(QVBoxLayout):
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
+
+    def RemoveLayout(self, target):
+        while target.count():
+            item = target.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                self.RemoveLayout(item)
+
+        layout = target.itemAt(0)
+        target.removeItem(layout)
 
 class SpinBoxLabelLayout(QVBoxLayout):
     def __init__(self, label_str, ui):

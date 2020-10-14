@@ -110,6 +110,8 @@ class ConfigurationTab(QWidget):
         vbox.addLayout(self.lidar_num_label_layout)
 
         self.select_using_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Using Sensor List')
+        print('--------' + str(self.select_using_sensor_list_layout.id))
+
         vbox.addLayout(self.select_using_sensor_list_layout)
 
         return vbox
@@ -149,13 +151,11 @@ class ConfigurationTab(QWidget):
     ## Callback Function
 
     def NextBtn(self):
-        # if self.select_using_sensor_list_layout.listWidget.count() == 0:
-        #     self.ErrorPopUp('Please open a ini file')
-        # else:
-        #     self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
-        #     self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
-        configuration_width = self.ui.config_tab.set_configuration_groupbox.geometry().width()
-        print(configuration_width)
+        if self.select_using_sensor_list_layout.listWidget.count() == 0:
+            self.ErrorPopUp('Please open a ini file')
+        else:
+            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
 
     def ErrorPopUp(self, error_message):
         widget = QWidget()
@@ -686,6 +686,7 @@ class OptimizationTab(CalibrationTab):
         vbox.addWidget(liDAR_configuration_label)
 
         self.select_principle_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Principle Sensor List')
+        print('principle id: ' + str(self.select_principle_sensor_list_layout.id))
         vbox.addLayout(self.select_principle_sensor_list_layout)
 
         liDAR_configuration_label = QLabel('[ Optimization Configuration ]', self)
@@ -1068,6 +1069,7 @@ class EvaluationTab(QWidget):
         vbox = QVBoxLayout()
 
         self.handeye_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
+        print('handeye id: ' + str(self.handeye_using_sensor_list_layout.id))
         vbox.addLayout(self.handeye_using_sensor_list_layout)
 
         groupbox.setLayout(vbox)
@@ -1147,6 +1149,7 @@ class EvaluationTab(QWidget):
         vbox = QVBoxLayout()
 
         self.optimization_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
+        print('optimization id:' + str(self.optimization_using_sensor_list_layout.id))
         vbox.addLayout(self.optimization_using_sensor_list_layout)
 
         groupbox.setLayout(vbox)
