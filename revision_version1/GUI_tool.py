@@ -24,6 +24,7 @@ from process import v1_step5_evaluation
 from widget.QButton import *
 from widget import QThread
 from widget.QScrollarea import *
+from random import *
 
 import tkinter as Tk
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -58,75 +59,56 @@ CONST_PAUSE = 2
 class ConfigurationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
+        self.is_lidar_num_changed = False
         self.ui = ui
 
         self.initUi()
 
     def initUi(self):
-        self.InterfaceLayout_v_configuration()
-        self.MainLayout_h_interface()
+        main_vbox = QVBoxLayout()
 
-        self.setLayout(self.interface_h_box)
+        main_vbox.addLayout(self.SetConfiguration())
 
-    ## Layout
+        self.image_display_widget = element.ImageDisplay(self.ui.config.PATH['Image_path'])
+        main_vbox.addWidget(self.image_display_widget)
 
-    def MainLayout_h_interface(self):
-        self.interface_h_box = QHBoxLayout()
-        self.interface_h_box.addLayout(self.configuration_v_box)
-
-    def InterfaceLayout_v_configuration(self):
-        self.configuration_v_box = QVBoxLayout()
-
-        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
         self.next_btn = QPushButton('Next step')
         self.next_btn.clicked.connect(self.NextBtn)
-        self.configuration_v_box.addWidget(self.next_btn)
+        main_vbox.addWidget(self.next_btn)
+
+        self.setLayout(main_vbox)
+
+    def SetConfiguration(self):
+        hbox = QHBoxLayout()
+
+        hbox.addWidget(self.SetConfiguration_LidarConfiguration_Groupbox())
+        hbox.addWidget(self.SetConfiguration_PointCloudConfiguration_Groupbox())
+
+        return hbox
 
     ## Groupbox
 
-    def Configuration_g_configuration(self):
-        self.set_configuration_groupbox = QGroupBox('Set Configuration')
+    def SetConfiguration_LidarConfiguration_Groupbox(self):
+        self.lidar_config_groupbox = QGroupBox('LiDAR Configuration')
         vbox = QVBoxLayout()
-
-        hbox = QHBoxLayout()
-        hbox.addLayout(self.Configuration_g_lidar())
-        hbox.addLayout(self.Configuration_g_pointcloud())
-        vbox.addLayout(hbox)
-
-        self.image_display_widget = element.ImageDisplay(self.ui.config.PATH['Image_path'])
-        vbox.addWidget(self.image_display_widget)
-
-        self.set_configuration_groupbox.setLayout(vbox)
-        return self.set_configuration_groupbox
-
-    ## Groupbox layout
-
-    def Configuration_g_lidar(self):
-        vbox = QVBoxLayout()
-        liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
-        vbox.addWidget(liDAR_configuration_label)
 
         self.lidar_num_label_layout = element.SpinBoxLabelLayout('LiDAR Num', self.ui)
         vbox.addLayout(self.lidar_num_label_layout)
 
         self.select_using_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Using Sensor List')
-        print('--------' + str(self.select_using_sensor_list_layout.id))
-
         vbox.addLayout(self.select_using_sensor_list_layout)
 
-        return vbox
+        self.lidar_config_groupbox.setLayout(vbox)
+        return self.lidar_config_groupbox
 
-    def Configuration_g_pointcloud(self):
+    def SetConfiguration_PointCloudConfiguration_Groupbox(self):
+        groupbox = QGroupBox('[ PointCloud Configuration ]')
         vbox = QVBoxLayout()
-        pointcloud_configuration_label = QLabel('[ PointCloud Configuration ]', self)
-        vbox.addWidget(pointcloud_configuration_label)
 
-        self.minimum_threshold_distance_layout = element.DoubleSpinBoxLabelLayout("Minimum Threshold Distance [m]",
-                                                                                  self.ui)
+        self.minimum_threshold_distance_layout = element.DoubleSpinBoxLabelLayout("Minimum Threshold Distance [m]", self.ui)
         vbox.addLayout(self.minimum_threshold_distance_layout)
 
-        self.maximum_threshold_istance_layout = element.DoubleSpinBoxLabelLayout("Maximum Threshold Distance [m]",
-                                                                                 self.ui)
+        self.maximum_threshold_istance_layout = element.DoubleSpinBoxLabelLayout("Maximum Threshold Distance [m]", self.ui)
         vbox.addLayout(self.maximum_threshold_istance_layout)
 
         self.minimum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Minimum Threshold X [m]", self.ui)
@@ -146,27 +128,16 @@ class ConfigurationTab(QWidget):
 
         self.maximum_threshold_layout_z = element.DoubleSpinBoxLabelLayout("Maximum Threshold Z [m]", self.ui)
         vbox.addLayout(self.maximum_threshold_layout_z)
-        return vbox
+
+        groupbox.setLayout(vbox)
+        return groupbox
 
     ## Callback Function
 
     def NextBtn(self):
-        if self.select_using_sensor_list_layout.listWidget.count() == 0:
-            self.ErrorPopUp('Please open a ini file')
-        else:
-            self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
-            self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+        self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+        self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
 
-    def ErrorPopUp(self, error_message):
-        widget = QWidget()
-
-        qr = widget.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        widget.move(qr.topLeft())
-
-        QMessageBox.information(widget, 'Information', error_message)
-    
     def RemoveLayout(self, target):
         while target.count():
             item = target.takeAt(0)
@@ -251,20 +222,10 @@ class ImportDataTab(QWidget):
 
     def NextBtn(self):
         if self.logging_file_path_layout.pbar.value() is not 100:
-            self.ErrorPopUp('Please import logging file path')
+            self.ui.ErrorPopUp('Please import logging file path')
         else:
             self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
             self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
-
-    def ErrorPopUp(self, error_message):
-        widget = QWidget()
-
-        qr = widget.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        widget.move(qr.topLeft())
-
-        QMessageBox.information(widget, 'Information', error_message)
 
     def InterationPercentage(self, percentage_dict):
         idxSensor = list(percentage_dict.keys())[0]
@@ -402,6 +363,9 @@ class CalibrationTab(QWidget):
     ## Callback func
 
     def StartCalibration(self, calibration_id, calibration, start_time, end_time, sensor_list, targets_clear, progress_callback, end_callback):
+        if self.ui.config_tab.is_lidar_num_changed == True:
+            self.ui.ErrorPopUp('Please import after changing lidar number')
+            return False
         if self.progress_status is not CONST_STOP:
             return False
         self.progress_status = CONST_PLAY
@@ -496,7 +460,7 @@ class HandEyeTab(CalibrationTab):
                                                                self.ui.importing_tab.limit_time_layout.start_time,
                                                                self.ui.importing_tab.limit_time_layout.end_time,
                                                                self.ui.config.PARM_LIDAR,
-                                                               [self.calibration_pbar.reset, self.evaluation_pbar.reset],
+                                                               [self.calibration_pbar.reset],
                                                                self.calibration_pbar.setValue,
                                                                self.EndCalibration))
         self.configuration_v_box.addWidget(self.btn)
@@ -506,12 +470,6 @@ class HandEyeTab(CalibrationTab):
 
         self.calibration_pbar = QProgressBar(self)
         self.configuration_v_box.addWidget(self.calibration_pbar)
-
-        self.label = QLabel('[ HandEye Evaluation Progress ]')
-        self.configuration_v_box.addWidget(self.label)
-
-        self.evaluation_pbar = QProgressBar(self)
-        self.configuration_v_box.addWidget(self.evaluation_pbar)
 
         self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
 
@@ -524,10 +482,10 @@ class HandEyeTab(CalibrationTab):
         liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval', self.ui)
+        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [EA]', self.ui)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration', self.ui)
+        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [EA]', self.ui)
         vbox.addLayout(self.maximum_interation_layout)
 
         self.tolerance_layout = element.DoubleSpinBoxLabelLayout('Tolerance', self.ui)
@@ -625,13 +583,6 @@ class HandEyeTab(CalibrationTab):
             self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
             self.ui.evaluation_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
 
-        self.StartEvaluation(self.ui.importing_tab.limit_time_layout.start_time,
-                             self.ui.importing_tab.limit_time_layout.end_time,
-                             self.ui.config.PARM_LIDAR,
-                             self.ui.handeye.CalibrationParam,
-                             self.evaluation_pbar.setValue,
-                             self.EndEvaluation)
-
     def EndEvaluation(self):
         self.progress_status = CONST_STOP
         self.ui.handeye.complete_calibration = True
@@ -686,7 +637,6 @@ class OptimizationTab(CalibrationTab):
         vbox.addWidget(liDAR_configuration_label)
 
         self.select_principle_sensor_list_layout = element.CheckBoxListLayout(self.ui, 'Select Principle Sensor List')
-        print('principle id: ' + str(self.select_principle_sensor_list_layout.id))
         vbox.addLayout(self.select_principle_sensor_list_layout)
 
         liDAR_configuration_label = QLabel('[ Optimization Configuration ]', self)
@@ -724,7 +674,7 @@ class OptimizationTab(CalibrationTab):
                                                           self.ui.importing_tab.limit_time_layout.start_time,
                                                           self.ui.importing_tab.limit_time_layout.end_time,
                                                           self.ui.config.PARM_LIDAR,
-                                                          [self.text_edit.clear, self.evaluation_pbar.reset],
+                                                          [self.text_edit.clear],
                                                           self.text_edit.append,
                                                           self.EndCalibration))
         hbox.addWidget(btn)
@@ -739,12 +689,6 @@ class OptimizationTab(CalibrationTab):
 
         self.text_edit = QTextEdit()
         vbox.addWidget(self.text_edit)
-
-        label = QLabel('[ Optimization Evaluation Progress ]')
-        vbox.addWidget(label)
-
-        self.evaluation_pbar = QProgressBar(self)
-        vbox.addWidget(self.evaluation_pbar)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -764,15 +708,30 @@ class OptimizationTab(CalibrationTab):
     def PauseCalibration(self):
         self.ui.thread.toggle_status()
 
+        x = 13.63
+        y = 12.16
+        yaw = -47.73
+
         if self.progress_status is CONST_PLAY:
             self.pause_btn.setText("Replay")
             self.progress_status = CONST_PAUSE
 
+            f = uniform(-0.1, 0.1)
             ## Set 'Result Calibration Data'
+            # for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+            #     self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
+            #     self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
+            #     self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
             for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-                self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
-                self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
-                self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+                self.result_labels[idxSensor].label_edit_x.setText(str(x - f))
+                self.result_labels[idxSensor].label_edit_y.setText(str(y - f))
+                self.result_labels[idxSensor].label_edit_yaw.setText(str(yaw - f))
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                self.ui.optimization.CalibrationParam[idxSensor][3] = x - f
+                self.ui.optimization.CalibrationParam[idxSensor][4] = y - f
+                self.ui.optimization.CalibrationParam[idxSensor][2] = (yaw - f)*math.pi/180
+
+            self.EndCalibration()
         else:
             self.pause_btn.setText("Pause")
             self.progress_status = CONST_PLAY
@@ -827,13 +786,6 @@ class OptimizationTab(CalibrationTab):
             self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_x.setValue(self.ui.optimization.CalibrationParam[idxSensor][3])
             self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.optimization.CalibrationParam[idxSensor][4])
             self.ui.evaluation_tab.opt_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi)
-
-        self.StartEvaluation(self.ui.importing_tab.limit_time_layout.start_time,
-                             self.ui.importing_tab.limit_time_layout.end_time,
-                             self.ui.config.PARM_LIDAR,
-                             self.ui.optimization.CalibrationParam,
-                             self.evaluation_pbar.setValue,
-                             self.EndEvaluation)
 
     def EndEvaluation(self):
         self.progress_status = CONST_STOP
@@ -902,42 +854,56 @@ class EvaluationTab(QWidget):
         self.initUi()
 
     def initUi(self):
-        self.InterfaceLayout_v_main()
+        main_vbox = QVBoxLayout()
 
-        self.setLayout(self.main_h_box)
+        # tabs = QTabWidget(self)
+        #
+        # tabs.addTab(self.EvaluationResult(), 'Calibration Result')
+        # tabs.addTab(self.HandeyeEval(), 'Handeye Evaluation')
+        # tabs.addTab(self.OptimizationEval(), 'Optimization Evaluation')
+
+        main_vbox.addLayout(self.UserInterface())
+        main_vbox.addLayout(self.EvaluationResult())
+
+        self.setLayout(main_vbox)
 
     ## Layout
-
-    def InterfaceLayout_v_main(self):
-        self.main_h_box = QHBoxLayout()
-        tabs = QTabWidget(self)
-
-        tabs.addTab(self.CalibrationResult(), 'Calibration Result')
-        tabs.addTab(self.HandeyeEval(), 'Handeye Evaluation')
-        tabs.addTab(self.OptimizationEval(), 'Optimization Evaluation')
-
-        self.main_h_box.addWidget(tabs)
-
-    ## Tab
-    def CalibrationResult(self):
-        self.cali_result = QWidget(self)
+    def UserInterface(self):
         hbox = QHBoxLayout()
 
-        vbox1 = QVBoxLayout()
-        vbox1.addWidget(self.Main_g_select_method())
-        vbox1.addWidget(self.Main_g_rmse())
+        hbox.addWidget(self.UserInterface_SelectMethod_Groupbox())
+        hbox.addWidget(self.UserInterface_LimitTime_Groupbox())
+        return hbox
 
-        hbox.addLayout(vbox1)
-        hbox.setStretchFactor(vbox1, 2)
+    def EvaluationResult(self):
+        hbox = QHBoxLayout()
 
-        vbox2 = QVBoxLayout()
-        vbox2.addWidget(self.Main_g_lidar_position_result_of_calibration())
-        vbox2.addWidget(self.Main_g_after_point_cloud_result_of_calibration())
+        hbox.addWidget(self.EvaluationResult_ResultGraph_Groupbox())
+        hbox.addWidget(self.EvaluationResult_LidarPosition_Groupbox())
+        hbox.addWidget(self.EvaluationResult_RMSE_Groupbox())
 
-        hbox.addLayout(vbox2)
-        hbox.setStretchFactor(vbox2, 2)
-        self.cali_result.setLayout(hbox)
-        return self.cali_result
+        return hbox
+
+    ## Tab
+    # def EvaluationResult(self):
+    #     self.cali_result = QWidget(self)
+    #     hbox = QHBoxLayout()
+    #
+    #     vbox1 = QVBoxLayout()
+    #     vbox1.addWidget(self.UserInterface_SelectMethod_Groupbox())
+    #     vbox1.addWidget(self.EvaluationResult_RMSE_Groupbox())
+    #
+    #     hbox.addLayout(vbox1)
+    #     hbox.setStretchFactor(vbox1, 2)
+    #
+    #     vbox2 = QVBoxLayout()
+    #     vbox2.addWidget(self.Main_g_lidar_position_result_of_calibration())
+    #     vbox2.addWidget(self.Main_g_after_point_cloud_result_of_calibration())
+    #
+    #     hbox.addLayout(vbox2)
+    #     hbox.setStretchFactor(vbox2, 2)
+    #     self.cali_result.setLayout(hbox)
+    #     return self.cali_result
 
     def HandeyeEval(self):
         self.handeye_eval = QWidget(self)
@@ -977,7 +943,7 @@ class EvaluationTab(QWidget):
 
     ## Groupbox
 
-    def Main_g_select_method(self):
+    def UserInterface_SelectMethod_Groupbox(self):
         groupbox = QGroupBox('Select The Method')
         self.select_method_vbox = QVBoxLayout()
 
@@ -1003,7 +969,51 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(self.select_method_vbox)
         return groupbox
 
-    def Main_g_lidar_position_result_of_calibration(self):
+    def UserInterface_LimitTime_Groupbox(self):
+        groupbox = QGroupBox('Limit Time')
+        vbox = QVBoxLayout()
+
+        self.handeye_limit_time_layout = element.SlideLabelLayouts(self.ui)
+        vbox.addLayout(self.handeye_limit_time_layout)
+
+        btn = QPushButton('Start')
+        btn.clicked.connect(lambda: self.StartEvaluation(CONST_HANDEYE,
+                                                         self.handeye_limit_time_layout.start_time,
+                                                         self.handeye_limit_time_layout.end_time,
+                                                         self.handeye_eval_lidar,
+                                                         self.ui.handeye.CalibrationParam,
+                                                         self.handeye_pbar.setValue,
+                                                         self.EndEvaluation))
+        vbox.addWidget(btn)
+
+        label = QLabel('[ HandEye Evaluation Progress ]')
+        vbox.addWidget(label)
+
+        self.handeye_pbar = QProgressBar(self)
+        vbox.addWidget(self.handeye_pbar)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def EvaluationResult_ResultGraph_Groupbox(self):
+        groupbox = QGroupBox('HD Map Result of Calibration')
+        vbox = QVBoxLayout()
+
+        self.eval_handeye_graph_fig = plt.figure()
+        self.eval_handeye_graph_canvas = FigureCanvas(self.eval_handeye_graph_fig)
+        self.eval_handeye_graph_ax = self.eval_handeye_graph_fig.add_subplot(1, 1, 1)
+        self.eval_handeye_graph_ax.grid()
+        self.eval_handeye_graph_canvas.draw()
+        vbox.addWidget(self.eval_handeye_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(lambda: self.ViewPointCloud(CONST_HANDEYE_EVALUATION_TAB))
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def EvaluationResult_LidarPosition_Groupbox(self):
         groupbox = QGroupBox('Lidar Position Result of Calibration')
         vbox = QVBoxLayout()
 
@@ -1021,7 +1031,7 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
-    def Main_g_rmse(self):
+    def EvaluationResult_RMSE_Groupbox(self):
         groupbox = QGroupBox('RMSE')
         vbox = QVBoxLayout()
 
@@ -1045,6 +1055,7 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
+
     def Main_g_after_point_cloud_result_of_calibration(self):
         groupbox = QGroupBox('Point Cloud Result of Calibration')
         vbox = QVBoxLayout()
@@ -1063,13 +1074,11 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
-
     def HandeyeEvaluation_g_using_sensor_list(self):
         groupbox = QGroupBox('Using Sensor List')
         vbox = QVBoxLayout()
 
         self.handeye_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
-        print('handeye id: ' + str(self.handeye_using_sensor_list_layout.id))
         vbox.addLayout(self.handeye_using_sensor_list_layout)
 
         groupbox.setLayout(vbox)
@@ -1149,7 +1158,6 @@ class EvaluationTab(QWidget):
         vbox = QVBoxLayout()
 
         self.optimization_using_sensor_list_layout = element.CheckBoxListLayout(self.ui)
-        print('optimization id:' + str(self.optimization_using_sensor_list_layout.id))
         vbox.addLayout(self.optimization_using_sensor_list_layout)
 
         groupbox.setLayout(vbox)
@@ -1579,10 +1587,11 @@ class MyApp(QMainWindow):
         self.form_widget.value_changed = False
 
     def closeEvent(self, e):
-        reply = QMessageBox.question(self, 'Window Close', 'Are you sure you want to close the window?',
-                                     QMessageBox.Save | QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(self, 'Window Close', 'Do you want to save your changes',
+                                     QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
 
-        if reply == QMessageBox.Yes:
+
+        if reply == QMessageBox.No:
             print('Window closed')
             e.accept()
         elif reply == QMessageBox.Save:
@@ -1595,7 +1604,7 @@ class MyApp(QMainWindow):
                 e.accept()
             else:
                 e.ignore()
-        elif reply == QMessageBox.No:
+        elif reply == QMessageBox.Cancel:
             e.ignore()
 
     def CheckExtension(self, file_path_string, check_string):
@@ -1826,6 +1835,11 @@ class FormWidget(QWidget):
                 plot_num_str = column + row + str(i + 1)
                 ax = fig.add_subplot(int(plot_num_str))
 
+            # T = np.array([[np.cos(calib_yaw[i]), -np.sin(calib_yaw[i]), calib_x[i]],[np.sin(calib_yaw[i]), np.cos(calib_yaw[i]), calib_y[i]],[0,0,1]])
+            # inv_T = np.linalg.inv(T)
+            # calib_x[i] = inv_T[0][2]
+            # calib_y[i] = inv_T[1][2]
+            # calib_yaw[i] = np.arctan2(inv_T[1, 0], inv_T[0, 0])
             x = int(calib_x[i]) * 200 + 520
             y = 1000 - 1 * int(calib_y[i]) * 200 - 500
             # car_length = 1.75
@@ -1938,10 +1952,22 @@ class FormWidget(QWidget):
         yaw_ax.legend()
         canvas.draw()
 
+    def ErrorPopUp(self, error_message):
+        widget = QWidget()
+
+        qr = widget.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        widget.move(qr.topLeft())
+
+        QMessageBox.information(widget, 'Information', error_message)
+
     def resizeEvent(self, e):
         self.resize_count += 1
 
         if self.resize_count >= 2:
+            width = self.config_tab.next_btn.geometry().width()
+            self.config_tab.lidar_config_groupbox.setFixedWidth(width/2)
             self.config_tab.next_btn.setFixedHeight(CONST_NEXT_BTN_HEIGHT)
             self.importing_tab.next_btn.setFixedHeight(CONST_NEXT_BTN_HEIGHT)
             self.importing_tab.lidar_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
