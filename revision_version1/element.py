@@ -312,9 +312,6 @@ class CheckBoxListLayout(QVBoxLayout):
                 self.ui.config.PARM_LIDAR['PrincipalSensor'] = None
 
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-            self.ui.evaluation_tab.handeye_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-            self.ui.evaluation_tab.optimization_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-
             self.ui.ResetResultsLabels()
 
         elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'

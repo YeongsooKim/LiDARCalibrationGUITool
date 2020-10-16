@@ -161,32 +161,21 @@ class ImportDataTab(QWidget):
         self.initUi()
 
     def initUi(self):
-        self.InterfaceLayout_v_setting()
-        self.MainLayout_h_interface()
+        main_vbox = QVBoxLayout()
 
-        self.setLayout(self.interface_h_box)
-
-    ## Layout
-
-    def MainLayout_h_interface(self):
-        self.interface_h_box = QHBoxLayout()
-
-        self.interface_h_box.addLayout(self.setting_v_box)
-
-    def InterfaceLayout_v_setting(self):
-        self.setting_v_box = QVBoxLayout()
-
-        self.setting_v_box.addWidget(self.Setting_g_logging_data())
-        self.setting_v_box.addStretch(1)
-        self.setting_v_box.addWidget(self.Setting_g_limit_time())
+        main_vbox.addWidget(self.Main_LoggingData_Groupbox())
+        main_vbox.addStretch(1)
+        main_vbox.addWidget(self.Main_LimitTime_Groupbox())
 
         self.next_btn = QPushButton('Next step')
         self.next_btn.clicked.connect(self.NextBtn)
-        self.setting_v_box.addWidget(self.next_btn)
+        main_vbox.addWidget(self.next_btn)
+
+        self.setLayout(main_vbox)
 
     ## Groupbox
 
-    def Setting_g_logging_data(self):
+    def Main_LoggingData_Groupbox(self):
         groupbox = QGroupBox('Import Logging Data')
         self.logging_vbox = QVBoxLayout()
 
@@ -208,7 +197,7 @@ class ImportDataTab(QWidget):
         groupbox.setLayout(self.logging_vbox)
         return groupbox
 
-    def Setting_g_limit_time(self):
+    def Main_LimitTime_Groupbox(self):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
@@ -285,46 +274,45 @@ class ImportDataTab(QWidget):
 class CalibrationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
+        self.ui = ui
+
         self.progress_status = CONST_STOP
         self.result_labels = {}
-        self.ui = ui
+
         self.initUi()
 
     def initUi(self):
-        self.InterfaceLayout_v_result()
-        self.InterfaceLayout_v_configuration()
-        self.MainLayout_h_interface()
+        main_hbox = QHBoxLayout()
 
-        self.setLayout(self.interface_h_box)
+        self.config_widget = QWidget()
+        self.config_widget.setLayout(self.Configuration_Layout())
+        main_hbox.addWidget(self.config_widget, 33)
+
+        self.result_widget = QWidget()
+        self.result_widget.setLayout(self.Result_Layout())
+        main_hbox.addWidget(self.result_widget, 67)
+        self.setLayout(main_hbox)
 
     ## Layout
+    def Configuration_Layout(self):
+        self.configuration_vbox = QVBoxLayout()
 
-    def MainLayout_h_interface(self):
-        self.interface_h_box = QHBoxLayout()
-        self.interface_h_box.addLayout(self.configuration_v_box)
-        self.interface_h_box.addLayout(self.result_v_box)
-        self.interface_h_box.setStretchFactor(self.configuration_v_box, 2);
-        self.interface_h_box.setStretchFactor(self.result_v_box, 3);
+        self.configuration_vbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
+        self.configuration_vbox.addWidget(self.Configuration_Calibration_Groupbox())
+
+        return self.configuration_vbox
+
+    def Result_Layout(self):
+        vbox = QVBoxLayout()
         
-    def InterfaceLayout_v_configuration(self):
-        pass
+        vbox.addWidget(self.Result_ResultData_Groupbox())
+        vbox.addWidget(self.Result_ResultGraph_Groupbox())
 
-    def InterfaceLayout_v_result(self):
-        self.result_v_box = QVBoxLayout()
-
-        self.result_v_box.addWidget(self.Result_g_result_data())
-        self.result_v_box.addWidget(self.Result_g_result_graph())
+        return vbox
 
     ## Groupbox
 
-    def Configuration_g_configuration(self):
-        groupbox = QGroupBox('Set Configuration')
-        vbox = QVBoxLayout()
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Result_g_result_data(self):
+    def Result_ResultData_Groupbox(self):
         groupbox = QGroupBox('Result Data')
         vbox = QVBoxLayout()
 
@@ -342,7 +330,7 @@ class CalibrationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
-    def Result_g_result_graph(self):
+    def Result_ResultGraph_Groupbox(self):
         groupbox = QGroupBox('Result Graph')
         vbox = QVBoxLayout()
 
@@ -447,35 +435,8 @@ class HandEyeTab(CalibrationTab):
     def __init__(self, ui):
         super().__init__(ui)
 
-    ## Layout
-
-    def InterfaceLayout_v_configuration(self):
-        self.configuration_v_box = QVBoxLayout()
-
-        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
-
-        self.btn = QPushButton('Start Calibration')
-        self.btn.clicked.connect(lambda: self.StartCalibration(CONST_HANDEYE,
-                                                               self.ui.handeye.Calibration,
-                                                               self.ui.importing_tab.limit_time_layout.start_time,
-                                                               self.ui.importing_tab.limit_time_layout.end_time,
-                                                               self.ui.config.PARM_LIDAR,
-                                                               [self.calibration_pbar.reset],
-                                                               self.calibration_pbar.setValue,
-                                                               self.EndCalibration))
-        self.configuration_v_box.addWidget(self.btn)
-
-        self.label = QLabel('[ HandEye Calibration Progress ]')
-        self.configuration_v_box.addWidget(self.label)
-
-        self.calibration_pbar = QProgressBar(self)
-        self.configuration_v_box.addWidget(self.calibration_pbar)
-
-        self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
-
     ## Groupbox
-
-    def Configuration_g_configuration(self):
+    def Configuration_SetConfiguration_Groupbox(self):
         groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
@@ -503,9 +464,26 @@ class HandEyeTab(CalibrationTab):
         groupbox.setLayout(vbox)
         return groupbox
 
-    def Configuration_g_result_calibration_data(self):
-        groupbox = QGroupBox('Result Calibration Data')
+    def Configuration_Calibration_Groupbox(self):
+        groupbox = QGroupBox('HandEye Calibration')
         vbox = QVBoxLayout(self)
+
+        btn = QPushButton('Start')
+        btn.clicked.connect(lambda: self.StartCalibration(CONST_HANDEYE,
+                                                               self.ui.handeye.Calibration,
+                                                               self.ui.importing_tab.limit_time_layout.start_time,
+                                                               self.ui.importing_tab.limit_time_layout.end_time,
+                                                               self.ui.config.PARM_LIDAR,
+                                                               [self.calibration_pbar.reset],
+                                                               self.calibration_pbar.setValue,
+                                                               self.EndCalibration))
+        vbox.addWidget(btn)
+
+        self.label = QLabel('[ HandEye Calibration Progress ]')
+        vbox.addWidget(self.label)
+
+        self.calibration_pbar = QProgressBar(self)
+        vbox.addWidget(self.calibration_pbar)
 
         self.scroll_box = ScrollAreaV()
         vbox.addWidget(self.scroll_box)
@@ -619,17 +597,9 @@ class OptimizationTab(CalibrationTab):
         self.edit_handeye_calibration_parm = {}
         self.user_define_initial_labels = {}
         self.handeye_result_labels = {}
-    ## Layout
-
-    def InterfaceLayout_v_configuration(self):
-        self.configuration_v_box = QVBoxLayout()
-        self.configuration_v_box.addWidget(self.Configuration_g_configuration())
-        self.configuration_v_box.addWidget(self.Configuration_g_progress())
-        self.configuration_v_box.addWidget(self.Configuration_g_result_calibration_data())
 
     ## Groupbox
-
-    def Configuration_g_configuration(self):
+    def Configuration_SetConfiguration_Groupbox(self):
         self.optimization_configuration_groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
@@ -663,7 +633,7 @@ class OptimizationTab(CalibrationTab):
         self.optimization_configuration_groupbox.setLayout(vbox)
         return self.optimization_configuration_groupbox
 
-    def Configuration_g_progress(self):
+    def Configuration_Calibration_Groupbox(self):
         groupbox = QGroupBox()
         vbox = QVBoxLayout(self)
 
@@ -689,13 +659,6 @@ class OptimizationTab(CalibrationTab):
 
         self.text_edit = QTextEdit()
         vbox.addWidget(self.text_edit)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Configuration_g_result_calibration_data(self):
-        groupbox = QGroupBox('Result Calibration Data')
-        vbox = QVBoxLayout(self)
 
         self.scroll_box = ScrollAreaV()
         vbox.addWidget(self.scroll_box)
