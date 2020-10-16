@@ -11,20 +11,15 @@
 
 # Basic modules in Anaconda
 import numpy as np
+import copy
 
-# User defined modules
-from process import utils_icp
-from process import utils_file
 from process import utils_pointcloud
-from process import utils_pose
 
     # Paramet
-def GetPlotParam(config, Import, calibration_param):
+def GetPlotParam(config, importing, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
-    start_time = Import.start_time
-    end_time = Import.end_time
-    tmp_df_info = Import.df_info
+    tmp_df_info = copy.deepcopy(importing.df_info)
 
     # Limit time
     df_info = tmp_df_info.drop(
@@ -53,7 +48,7 @@ def GetPlotParam(config, Import, calibration_param):
 
         ##################
         # Get Point cloud list
-        pointcloud = Import.PointCloudSensorList[idxSensor]
+        pointcloud = importing.PointCloudSensorList[idxSensor]
 
         ##################
         # Accumulation of point cloud
@@ -75,7 +70,7 @@ def GetPlotParam(config, Import, calibration_param):
         accum_pointcloud[idxSensor] = accum_point_enup
         accum_pointcloud_[idxSensor] = accum_point_enup_
 
-    return df_info, config.PARM_LIDAR['CheckedSensorList'], accum_pointcloud, accum_pointcloud_
+    return df_info, config.PARM_LIDAR, accum_pointcloud, accum_pointcloud_
 
     # ##############################################################################################################################
     # # %% 5. Save results

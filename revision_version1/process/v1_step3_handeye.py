@@ -5,10 +5,6 @@
 @version: 0.0.1
 """
 
-##############################################################################################################################
-# %% Import libraries
-##############################################################################################################################
-
 # Basic modules in Anaconda
 import numpy as np
 
@@ -19,9 +15,9 @@ from tqdm import tqdm
 from process import utils_icp
 
 class HandEye:
-    def __init__(self, config, Import):
+    def __init__(self, config, importing):
         self.config = config
-        self.Import = Import
+        self.importing = importing
         self.complete_calibration = False
 
         # Path and file
@@ -34,12 +30,12 @@ class HandEye:
     ##############################################################################################################################
     # %% 3. Handeye
     ##############################################################################################################################
-    def Calibration(self, thread, str):
-        print(str)
+    def Calibration(self, thread, args):
         thread.mutex.lock()
-        start_time = self.Import.start_time
-        end_time = self.Import.end_time
-        df_info = self.Import.df_info
+        start_time = args[0]
+        end_time = args[1]
+        PARM_LIDAR = args[2] 
+        df_info = self.importing.df_info
 
         # Limit time
         df_info = df_info.drop(
@@ -49,9 +45,9 @@ class HandEye:
         # -----------------------------------------------------------------------------------------------------------------------------
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
-        lidar_len = len(self.config.PARM_LIDAR['CheckedSensorList'])
+        lidar_len = len(PARM_LIDAR['CheckedSensorList'])
         p_index = 0.0
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
 
@@ -66,6 +62,7 @@ class HandEye:
             # Generate Index Pairs
             idx_pair = []
             l = list(range(len(df_sampled_info)))
+
             for first, second in zip(l, l[1:]):
                 idx_pair.append((first, second))
 
@@ -73,6 +70,7 @@ class HandEye:
             pbar = tqdm(idx_pair)
             iteration_size = len(idx_pair)
             index = 0
+
             for i, j in pbar:
                 # Display progress
                 iteration_ratio = float(index + 1) / float(iteration_size)
@@ -87,8 +85,8 @@ class HandEye:
 
                 pbar.set_description("PointCloud_" + str(idxSensor))
                 # Get point clouds
-                pointcloud1 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud2 = self.Import.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
+                pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
                 if pointcloud1.shape[0] < 1:
                     continue
@@ -121,15 +119,14 @@ class HandEye:
                                            [np.sin(diff_h), np.cos(diff_h), 0., translation_gnss[1]],
                                            [0., 0., 1., 0.],
                                            [0., 0., 0., 1.]))
+
                 # ICP
                 transform_point, distances, iterations, converged = utils_icp.icp_NM(pointcloud2[:, 0:3],
                                                                                      pointcloud1[:, 0:3],
                                                                                      init_pose=transform_gnss,
                                                                                      tolerance=self.config.PARM_HE['Tolerance'],
-                                                                                     max_iterations=self.config.PARM_HE[
-                                                                                         'MaximumIteration'],
-                                                                                     rm_outlier_dist=self.config.PARM_HE[
-                                                                                         'OutlierDistance_m'])
+                                                                                     max_iterations=self.config.PARM_HE['MaximumIteration'],
+                                                                                     rm_outlier_dist=self.config.PARM_HE['OutlierDistance_m'])
 
                 #        # Check Matching of ICP
                 #        uf.FnDisplayTransformPointCloud(pointcloud2, pointcloud1, transform_point)
@@ -172,7 +169,7 @@ class HandEye:
         self.calib_x = []
         self.calib_y = []
         self.calib_yaw = []
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
 
             diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]
@@ -223,5 +220,4 @@ class HandEye:
             self.calib_x.append(Trans_veh2sen[0])
             self.calib_y.append(Trans_veh2sen[1])
 
-        self.complete_calibration = True
         print("Complete Handeye calibration")

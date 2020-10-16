@@ -25,11 +25,15 @@ class Thread(QThread):
         self.wait()
 
     def run(self):
-        self.target(self, 'test')
+        if self.args is None:
+            self.target(self)
+        else:
+            self.target(self, self.args)
         self.end.emit()
 
-    def SetFunc(self, target):
+    def SetFunc(self, target, args=None):
         self.target = target
+        self.args = args
 
     def toggle_status(self):
         self._status = not self._status

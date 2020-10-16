@@ -6,3 +6,9 @@
 revision_version1/build/
 
 revision_version1/dist/
+
+revision_version1/process/__pycache__/
+
+revision_version1/__pycache__/
+
+revision_version1/widget/__pycache__/
