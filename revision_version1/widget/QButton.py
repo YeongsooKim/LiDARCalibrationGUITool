@@ -17,10 +17,9 @@ class Button(QToolButton):
     red_lidar_icon = 'red_lidar.ico'
     green_gnss_icon = 'green_gnss.ico'
     red_gnss_icon = 'red_gnss.ico'
-    def __init__(self, text, color, icon, path, parent=None, click=False, callback=None):
+    def __init__(self, text, color, icon, path, parent=None, click=False):
         super(Button, self).__init__(parent)
         self.path = path
-        self.callback = callback
         if color is CONST_GREEN:
             if icon is CONST_LIDAR:
                 icon = QIcon(path + self.green_lidar_icon)
@@ -52,5 +51,3 @@ class Button(QToolButton):
             icon = QIcon(self.path + self.green_lidar_icon)
             self.setIcon(icon)
             self.status = 'green'
-
-        self.callback()

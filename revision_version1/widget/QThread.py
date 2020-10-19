@@ -40,6 +40,9 @@ class Thread(QThread):
         if self._status:
             self.cond.wakeAll()
 
+    def Stop(self):
+        self.terminate()
+
     @property
     def status(self):
         return self._status
