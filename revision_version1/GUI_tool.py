@@ -26,6 +26,9 @@ from widget import QThread
 from widget.QScrollarea import *
 from random import *
 
+import pylab as pl
+import numpy as np
+from PIL import Image
 import tkinter as Tk
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -67,24 +70,48 @@ class ConfigurationTab(QWidget):
     def initUi(self):
         main_vbox = QVBoxLayout()
 
-        main_vbox.addLayout(self.SetConfiguration())
+        config_widget = QWidget()
+        config_widget.setLayout(self.SetConfiguration_Layout())
+        main_vbox.addWidget(config_widget, 30)
 
-        self.image_display_widget = element.ImageDisplay(self.ui.config.PATH['Image_path'])
-        main_vbox.addWidget(self.image_display_widget)
-
-        self.next_btn = QPushButton('Next step')
-        self.next_btn.clicked.connect(self.NextBtn)
-        main_vbox.addWidget(self.next_btn)
+        interface_widget = QWidget()
+        interface_widget.setLayout(self.UserInterface_Layout())
+        main_vbox.addWidget(interface_widget, 70)
 
         self.setLayout(main_vbox)
 
-    def SetConfiguration(self):
+    ## Layout
+    def SetConfiguration_Layout(self):
         hbox = QHBoxLayout()
 
         hbox.addWidget(self.SetConfiguration_LidarConfiguration_Groupbox())
         hbox.addWidget(self.SetConfiguration_PointCloudConfiguration_Groupbox())
 
         return hbox
+
+    def UserInterface_Layout(self):
+        vbox = QVBoxLayout()
+
+        self.image_display_widget = element.ImageDisplay(self.ui.config.PATH['Image_path'])
+        vbox.addWidget(self.image_display_widget)
+
+        self.next_btn = QPushButton('Next step')
+        self.next_btn.clicked.connect(self.NextBtn)
+        vbox.addWidget(self.next_btn)
+
+        # pause_btn = QPushButton('Pause')
+        # pause_btn.clicked.connect(self.PauseBtn)
+        # vbox.addWidget(pause_btn)
+        #
+        # cancel_btn = QPushButton('Cancel')
+        # cancel_btn.clicked.connect(self.CancelBtn)
+        # vbox.addWidget(cancel_btn)
+        #
+        # status_btn = QPushButton('Check Status')
+        # status_btn.clicked.connect(self.StatusBtn)
+        # vbox.addWidget(status_btn)
+
+        return vbox
 
     ## Groupbox
 
@@ -134,9 +161,55 @@ class ConfigurationTab(QWidget):
 
     ## Callback Function
 
+    def StatusBtn(self):
+        if (self.ui.test_thread.isRunning()):
+            print('thread is running')
+        else:
+            print('thread is not running')
+
+    def CancelBtn(self):
+        # self.ui.test_thread.toggle_status()
+        self.ui.test_thread.Stop()
+
+    def PauseBtn(self):
+        self.ui.test_thread.toggle_status()
+
     def NextBtn(self):
         self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
         self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
+
+        # self.ui.test_thread._status = True
+        # self.ui.test_thread.SetFunc(self.TestThreadFunc)
+        # try:
+        #     self.ui.test_thread.change_value.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.test_thread.interation_percentage.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.test_thread.emit_string.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.thread.end.disconnect()
+        # except:
+        #     pass
+        #
+        # self.ui.test_thread.start()
+        # self.ui.test_thread.run()
+
+    def TestThreadFunc(self, thread):
+        thread.mutex.lock()
+        index = 10000000
+        while index:
+            if not thread._status:
+                thread.cond.wait(thread.mutex)
+            if index % 1000 == 0:
+                print(index)
+            index -= 1
+        thread.mutex.unlock()
 
     def RemoveLayout(self, target):
         while target.count():
@@ -245,31 +318,31 @@ class ImportDataTab(QWidget):
         self.limit_time_layout.start_time_layout.slider.setValue(self.limit_time_layout.end_time_layout.slider.minimum())
         self.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
 
-        # Evaluation tab
-        ## set slider default time
-        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
-        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
-        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
-        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
-
-        ## set slider and double_spin_box value
-        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.maximum())
-        self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
-        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.minimum())
-        self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
-
-        # Optimization tab
-        ## set slider default time
-        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
-        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
-        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
-        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
-
-        ## set slider and double_spin_box value
-        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.maximum())
-        self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
-        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.minimum())
-        self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+        # # Evaluation tab
+        # ## set slider default time
+        # self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
+        # self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
+        # self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
+        # self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
+        #
+        # ## set slider and double_spin_box value
+        # self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.maximum())
+        # self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
+        # self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.handeye_limit_time_layout.end_time_layout.slider.minimum())
+        # self.ui.evaluation_tab.handeye_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+        #
+        # # Optimization tab
+        # ## set slider default time
+        # self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
+        # self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
+        # self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMaximum(default_end_time)
+        # self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
+        #
+        # ## set slider and double_spin_box value
+        # self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.maximum())
+        # self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
+        # self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.optimization_limit_time_layout.end_time_layout.slider.minimum())
+        # self.ui.evaluation_tab.optimization_limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
 
 class CalibrationTab(QWidget):
     def __init__(self, ui):
@@ -286,11 +359,11 @@ class CalibrationTab(QWidget):
 
         self.config_widget = QWidget()
         self.config_widget.setLayout(self.Configuration_Layout())
-        main_hbox.addWidget(self.config_widget, 33)
+        main_hbox.addWidget(self.config_widget, 25)
 
         self.result_widget = QWidget()
         self.result_widget.setLayout(self.Result_Layout())
-        main_hbox.addWidget(self.result_widget, 67)
+        main_hbox.addWidget(self.result_widget, 75)
         self.setLayout(main_hbox)
 
     ## Layout
@@ -366,6 +439,7 @@ class CalibrationTab(QWidget):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
 
+        self.ui.thread._status = True
         self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list])
         try:
             self.ui.thread.change_value.disconnect()
@@ -403,6 +477,7 @@ class CalibrationTab(QWidget):
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
                 return False
 
+        self.ui.thread._status = True
         self.ui.thread.SetFunc(self.ui.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param])
         try:
             self.ui.thread.change_value.disconnect()
@@ -443,10 +518,10 @@ class HandEyeTab(CalibrationTab):
         liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [EA]', self.ui)
+        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [Count]', self.ui)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [EA]', self.ui)
+        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.ui)
         vbox.addLayout(self.maximum_interation_layout)
 
         self.tolerance_layout = element.DoubleSpinBoxLabelLayout('Tolerance', self.ui)
@@ -515,8 +590,8 @@ class HandEyeTab(CalibrationTab):
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
                                                                                            self.ui.handeye.CalibrationParam,
-                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
-                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
+                                                                                           copy.deepcopy(self.ui.importing_tab.limit_time_layout.start_time),
+                                                                                           copy.deepcopy(self.ui.importing_tab.limit_time_layout.end_time))
         # Handeye tab
 
         ## Set 'Result Calibration Data'
@@ -634,7 +709,7 @@ class OptimizationTab(CalibrationTab):
         return self.optimization_configuration_groupbox
 
     def Configuration_Calibration_Groupbox(self):
-        groupbox = QGroupBox()
+        groupbox = QGroupBox('Optimization Calibration')
         vbox = QVBoxLayout(self)
 
         hbox = QHBoxLayout(self)
@@ -652,6 +727,10 @@ class OptimizationTab(CalibrationTab):
         self.pause_btn = QPushButton('Pause')
         self.pause_btn.clicked.connect(self.PauseCalibration)
         hbox.addWidget(self.pause_btn)
+
+        self.stop_btn = QPushButton('Stop')
+        self.stop_btn.clicked.connect(self.StopCalibartion)
+        hbox.addWidget(self.stop_btn)
         vbox.addLayout(hbox)
 
         label = QLabel('[ Optimization Progress ]')
@@ -694,10 +773,18 @@ class OptimizationTab(CalibrationTab):
                 self.ui.optimization.CalibrationParam[idxSensor][4] = y - f
                 self.ui.optimization.CalibrationParam[idxSensor][2] = (yaw - f)*math.pi/180
 
-            self.EndCalibration()
+            # self.EndCalibration()
         else:
             self.pause_btn.setText("Pause")
             self.progress_status = CONST_PLAY
+
+    def StopCalibartion(self):
+        self.progress_status = CONST_STOP
+
+        if self.pause_btn.text() == "Replay":
+            self.pause_btn.setText("Pause")
+
+        self.ui.thread.Stop()
 
     def ViewLiDAR(self):
         if self.progress_status is not CONST_STOP:
@@ -1292,6 +1379,7 @@ class EvaluationTab(QWidget):
                 self.PopUp('Import pointcloud {}'.format(idxSensor))
                 return False
 
+        self.ui.thread._status = True
         self.ui.thread.SetFunc(self.ui.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param])
         try:
             self.ui.thread.change_value.disconnect()
@@ -1789,9 +1877,14 @@ class FormWidget(QWidget):
         row = str(math.ceil(lidar_num / 2))
         fig = plt.figure(figsize=(20, 20))
 
-        veh_path = self.config.PATH['Image_path'] + 'vehicle1.png'
-        veh = plt.imread(veh_path)
-
+        veh_path = self.config.PATH['Image_path'] + 'vehicle2.png'
+        #veh = plt.imread(veh_path)
+        veh = Image.open(veh_path)
+        veh2 = veh.resize((1000,1000))
+        veh = np.asarray(veh2)
+        
+        #veh = plt.imread(veh_path)
+        #veh = plt.set_size_inches(18.5, 10.5, forward=True)
         for i in range(len(self.config.PARM_LIDAR['CheckedSensorList'])):
             idxSensor = list(self.config.PARM_LIDAR['CheckedSensorList'])
             if canvas is None:
@@ -1803,16 +1896,27 @@ class FormWidget(QWidget):
             # calib_x[i] = inv_T[0][2]
             # calib_y[i] = inv_T[1][2]
             # calib_yaw[i] = np.arctan2(inv_T[1, 0], inv_T[0, 0])
-            x = int(calib_x[i]) * 200 + 520
-            y = 1000 - 1 * int(calib_y[i]) * 200 - 500
+            #x = int(calib_x[i]) * 200 + 520
+            #y = 1000 - 1 * int(calib_y[i]) * 200 - 500
+            x = -calib_y[i] * 100 + 500
+            y = 1000 - 1 * calib_x[i] * 200 - 500
             # car_length = 1.75
             lidar_num = 'lidar' + str(idxSensor[i])
             ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i])%len(self.color_list)], edgecolor='none', alpha=0.5)
-            ax.arrow(x, y, 100 * np.cos(calib_yaw[i] * np.pi / 180),
-                     -100 * np.sin(calib_yaw[i] * np.pi / 180), head_width=10,
+            
+            s = 'x[m]: ' + str(round(calib_x[i],2)) + '\ny[m]: ' + str(round(calib_y[i],2)) + '\nyaw[deg]: ' + str(round(calib_yaw[i],2))
+
+            if canvas is None:
+                if calib_y[i]>0:
+                    ax.text(x, y+300, s, fontsize=10)
+                else:
+                    ax.text(x,y-70,s,fontsize = 10)
+
+            ax.arrow(x, y, 100 * np.cos((calib_yaw[i]+90) * np.pi / 180),
+                     -100 * np.sin((calib_yaw[i]+90) * np.pi / 180), head_width=10,
                      head_length=10,
                      fc='k', ec='k')
-            ax.plot(np.linspace(520, x, 100), np.linspace(500, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
+            ax.plot(np.linspace(498, x, 100), np.linspace(508, y, 100), self.color_list[(idxSensor[i])%len(self.color_list)] + '--')
 
             if canvas is None:
                 ax.imshow(veh)
@@ -1935,7 +2039,6 @@ class FormWidget(QWidget):
             self.importing_tab.next_btn.setFixedHeight(CONST_NEXT_BTN_HEIGHT)
             self.importing_tab.lidar_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
             self.importing_tab.gnss_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
-
 
             self.optimization_tab.select_principle_sensor_list_layout.listWidget.setFixedHeight(CONST_SCROLL_BOX_HEIGHT-40)
             self.optimization_tab.text_edit.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)

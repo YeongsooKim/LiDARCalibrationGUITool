@@ -80,6 +80,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
         has_file = self.CheckPointCloudFile()
         if has_file:
+            self.ui.thread._status = True
             self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
             try:
                 self.ui.thread.change_value.disconnect()
@@ -219,7 +220,7 @@ class CheckBoxListLayout(QVBoxLayout):
             self.label = QLabel(self.label_str)
             self.addWidget(self.label)
 
-        if self.id == 1:
+        if self.id == 1: # Instance name is 'select_using_sensor_list_layout'
             self.config_scroll_box = ScrollAreaH()
             self.addWidget(self.config_scroll_box)
         else:
@@ -230,7 +231,7 @@ class CheckBoxListLayout(QVBoxLayout):
     def AddWidgetItem(self, PARM_LIDAR_SENSOR_LIST, PARM_LIDAR_CHECKED_SENSOR_LIST):
         self.LiDAR_list.clear()
         self.lidar_buttons.clear()
-        if self.id == 1:
+        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             self.RemoveLayout(self.config_scroll_box.layout)
         else:
             listItems = self.listWidget.count()
@@ -244,10 +245,25 @@ class CheckBoxListLayout(QVBoxLayout):
         ## Adding configuration tab sensor list
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             for sensor_index in PARM_LIDAR_SENSOR_LIST:
+                label = 'PointCloud ' + str(sensor_index)
                 ## Add button
-                btn = Button('PointCloud {}'.format(sensor_index), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'], click=True, callback=self.ItemChanged)
-                self.lidar_buttons[sensor_index] = btn
-                self.config_scroll_box.layout.addWidget(btn)
+                if sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
+                    check_btn = CheckButton(click_status=True,
+                                            label_str=label,
+                                            color=CONST_GREEN,
+                                            btn_type=CONST_LIDAR,
+                                            image_path=self.ui.config.PATH['Image_path'],
+                                            callback=self.ItemChanged)
+
+                else:
+                    check_btn = CheckButton(click_status=False,
+                                            label_str=label,
+                                            color=CONST_RED,
+                                            btn_type=CONST_LIDAR,
+                                            image_path=self.ui.config.PATH['Image_path'],
+                                            callback=self.ItemChanged)
+                self.lidar_buttons[sensor_index] = check_btn
+                self.config_scroll_box.layout.addLayout(check_btn)
 
         ## Adding optimization tab sensor list
         elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
@@ -287,7 +303,7 @@ class CheckBoxListLayout(QVBoxLayout):
         items = []
         if self.id == 1:
             for key in self.lidar_buttons.keys():
-                status = self.lidar_buttons[key].status
+                status = self.lidar_buttons[key].btn.status
                 if status == 'green':
                     items.append(key)
         else:
@@ -295,6 +311,7 @@ class CheckBoxListLayout(QVBoxLayout):
                 words = item.text().split()
                 if not item.checkState() == 0:
                     items.append(int(words[1]))
+
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             self.ui.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
             self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
@@ -334,6 +351,31 @@ class CheckBoxListLayout(QVBoxLayout):
 
         layout = target.itemAt(0)
         target.removeItem(layout)
+
+class CheckButton(QVBoxLayout):
+    def __init__(self, click_status, label_str, color, btn_type, image_path, callback=None):
+        super().__init__()
+        self.click_status = click_status
+        self.label_str = label_str
+        self.color = color
+        self.btn_type = btn_type
+        self.image_path = image_path
+        self.callback = callback
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.checkbox = QCheckBox()
+        self.checkbox.setChecked(self.click_status)
+        self.checkbox.stateChanged.connect(self.StateChanged)
+        self.addWidget(self.checkbox)
+
+        self.btn = Button(self.label_str, self.color, self.btn_type, self.image_path, click=False)
+        self.addWidget(self.btn)
+
+    def StateChanged(self):
+        self.btn.ChangeStatus()
+        self.callback()
 
 class SpinBoxLabelLayout(QVBoxLayout):
     def __init__(self, label_str, ui):
@@ -906,3 +948,4 @@ class ImageDisplay(QWidget):
         #self.setGeometry(350,150,100,50)
         self.setWindowTitle("PyQT show image")
         self.show()
+
