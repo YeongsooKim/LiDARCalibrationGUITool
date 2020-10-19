@@ -30,6 +30,10 @@ CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
 CONST_EVALUATION = 4
 
+CONST_CUSTOM = 1
+CONST_HANDEYE = 2
+CONST_OPTIMIZATION = 3
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     def __init__(self, label_str, ui):
         super().__init__()
@@ -736,9 +740,9 @@ class CalibrationResultEditLabel(QVBoxLayout):
         if not self.id == status:
             return False
 
-        self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value() * math.pi / 180
-        self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180
-        self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180
+        self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value() * math.pi / 180.0
+        self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180.0
+        self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180.0
 
         self.ui.evaluation_tab.DisplayCalibrationGraph()
 
@@ -875,9 +879,9 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         x = self.double_spin_box_x.value()
         y = self.double_spin_box_y.value()
         z = self.double_spin_box_z.value()
-        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180
-        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180
-        self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180
+        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180.0
+        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180.0
+        self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180.0
         self.calibration_param[self.idxSensor][3] = x
         self.calibration_param[self.idxSensor][4] = y
         self.calibration_param[self.idxSensor][5] = z
@@ -949,3 +953,115 @@ class ImageDisplay(QWidget):
         self.setWindowTitle("PyQT show image")
         self.show()
 
+class EvaluationLable(QHBoxLayout):
+    def __init__(self, idxSensor, ui):
+        super().__init__()
+        self.prev_checkID = CONST_HANDEYE
+        self.x = 0.0 # [m]
+        self.y = 0.0 # [m]
+        self.yaw = 0.0 # [deg]
+
+        self.idxSensor = idxSensor
+        self.ui = ui
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.checkbox = QCheckBox('LiDAR {}'.format(str(self.idxSensor)))
+        self.addWidget(self.checkbox)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        rbn1 = QRadioButton()
+        rbn1.setChecked(True)
+        rbn1.clicked.connect(self.RadioButton)
+        self.addWidget(rbn1)
+        self.button_group.addButton(rbn1, CONST_HANDEYE)
+
+        # button for optimization calibration
+        rbn2 = QRadioButton()
+        rbn2.clicked.connect(self.RadioButton)
+        self.addWidget(rbn2)
+        self.button_group.addButton(rbn2, CONST_OPTIMIZATION)
+
+        # button for custom calibration
+        rbn3 = QRadioButton()
+        rbn3.clicked.connect(self.RadioButton)
+        self.addWidget(rbn3)
+        self.button_group.addButton(rbn3, CONST_CUSTOM)
+
+        # spinbox for x
+        self.spinbox1 = QDoubleSpinBox()
+        self.spinbox1.setReadOnly(True)
+        self.spinbox1.setSingleStep(0.01)
+        self.spinbox1.setMaximum(1000.0)
+        self.spinbox1.setMinimum(-1000.0)
+        self.spinbox1.valueChanged.connect(self.DoubleSpinBoxChanged1)
+        self.addWidget(self.spinbox1)
+
+        # spinbox for y
+        self.spinbox2 = QDoubleSpinBox()
+        self.spinbox2.setReadOnly(True)
+        self.spinbox2.setSingleStep(0.01)
+        self.spinbox2.setMaximum(1000.0)
+        self.spinbox2.setMinimum(-1000.0)
+        self.spinbox2.valueChanged.connect(self.DoubleSpinBoxChanged2)
+        self.addWidget(self.spinbox2)
+
+        # spinbox for yaw
+        self.spinbox3 = QDoubleSpinBox()
+        self.spinbox3.setReadOnly(True)
+        self.spinbox3.setSingleStep(0.01)
+        self.spinbox3.setMaximum(1000.0)
+        self.spinbox3.setMinimum(-1000.0)
+        self.spinbox3.valueChanged.connect(self.DoubleSpinBoxChanged3)
+        self.addWidget(self.spinbox3)
+
+    def RadioButton(self):
+        status = self.button_group.checkedId()
+        if status == CONST_HANDEYE:
+            if not self.ui.handeye.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please complete the HandEye calibration')
+                return False
+        elif status == CONST_OPTIMIZATION:
+            if not self.ui.optimization.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please complete the Optimization calibration')
+                return False
+
+        if status == CONST_CUSTOM:
+            self.spinbox1.setReadOnly(False)
+            self.spinbox2.setReadOnly(False)
+            self.spinbox3.setReadOnly(False)
+        else:
+            self.spinbox1.setReadOnly(True)
+            self.spinbox2.setReadOnly(True)
+            self.spinbox3.setReadOnly(True)
+            
+        if status == CONST_HANDEYE:
+            self.spinbox1.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+        elif status == CONST_OPTIMIZATION:
+            self.spinbox1.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+        elif status == CONST_CUSTOM:
+            self.spinbox1.setValue(self.x)
+            self.spinbox2.setValue(self.y)
+            self.spinbox3.setValue(self.yaw * 180.0 / math.pi)
+
+        self.prev_checkID = self.button_group.checkedId()
+
+    def DoubleSpinBoxChanged1(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.x = self.spinbox1.value()
+
+    def DoubleSpinBoxChanged2(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.y = self.spinbox2.value()
+
+    def DoubleSpinBoxChanged3(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.yaw = self.spinbox3.value() * math.pi / 180.0

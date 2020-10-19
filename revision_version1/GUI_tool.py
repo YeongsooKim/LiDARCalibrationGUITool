@@ -111,6 +111,9 @@ class ConfigurationTab(QWidget):
         # status_btn.clicked.connect(self.StatusBtn)
         # vbox.addWidget(status_btn)
 
+        self.test_class = element.EvaluationLable(0, self.ui)
+        vbox.addLayout(self.test_class)
+
         return vbox
 
     ## Groupbox
@@ -586,6 +589,7 @@ class HandEyeTab(CalibrationTab):
     def EndCalibration(self):
         self.progress_status = CONST_STOP
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.ui.handeye.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
@@ -804,6 +808,7 @@ class OptimizationTab(CalibrationTab):
     def EndCalibration(self):
         self.progress_status = CONST_STOP
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.ui.optimization.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.config,
                                                                                            self.ui.importing,
@@ -1818,19 +1823,19 @@ class FormWidget(QWidget):
                 if calibration_param.get(idxSensor) is not None:
                     result_label.label_edit_x.setText(str(round(calibration_param[idxSensor][3], 2)))
                     result_label.label_edit_y.setText(str(round(calibration_param[idxSensor][4], 2)))
-                    result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180 / math.pi, 2)))
+                    result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 2)))
             elif label_type is CONST_EDITABLE_LABEL:
                 result_label = element.CalibrationResultEditLabel(display_type, idxSensor, calibration_param, self)
                 if calibration_param.get(idxSensor) is not None:
                     result_label.double_spin_box_x.setValue(calibration_param[idxSensor][3])
                     result_label.double_spin_box_y.setValue(calibration_param[idxSensor][4])
-                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180 / math.pi)
+                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180.0 / math.pi)
             elif label_type is CONST_EDITABLE_LABEL2:
                 result_label = element.CalibrationResultEditLabel2(idxSensor, calibration_param, self)
                 if calibration_param.get(idxSensor) is not None:
-                    result_label.double_spin_box_roll.setValue(calibration_param[idxSensor][0] * 180 / math.pi)
-                    result_label.double_spin_box_pitch.setValue(calibration_param[idxSensor][1] * 180 / math.pi)
-                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180 / math.pi)
+                    result_label.double_spin_box_roll.setValue(calibration_param[idxSensor][0] * 180.0 / math.pi)
+                    result_label.double_spin_box_pitch.setValue(calibration_param[idxSensor][1] * 180.0 / math.pi)
+                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180.0 / math.pi)
                     result_label.double_spin_box_x.setValue(calibration_param[idxSensor][3])
                     result_label.double_spin_box_y.setValue(calibration_param[idxSensor][4])
                     result_label.double_spin_box_z.setValue(calibration_param[idxSensor][5])
