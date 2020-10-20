@@ -473,9 +473,9 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
             self.double_spin_box.setMinimum(-1000.0)
         if self.label_str == 'Tolerance':
             self.double_spin_box. setDecimals(12)
-        if self.label_str == 'Time Speed Threshold [s]':
+        if self.label_str == 'Minimum Speed [s]':
             self.double_spin_box.setDecimals(10)
-        if self.label_str == 'Eval Time Speed Threshold [s]':
+        if self.label_str == 'Eval Minimum Speed [s]':
             self.double_spin_box.setDecimals(10)
         self.double_spin_box.setMinimum(0.0)
         self.double_spin_box.valueChanged.connect(self.DoubleSpinBoxChanged)
@@ -502,7 +502,7 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         elif self.label_str == 'Maximum Threshold Z [m]':
             self.ui.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Time Speed Threshold [s]':
+        elif self.label_str == 'Minimum Speed [s]':
             self.ui.config.PARM_IM['TimeSpeedThreshold'] = self.double_spin_box.value()
 
         elif self.label_str == 'Tolerance':
@@ -519,7 +519,7 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         elif self.label_str == 'Outlier Distance [m]':
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Eval Time Speed Threshold [s]':
+        elif self.label_str == 'Eval Minimum Speed [s]':
             self.ui.config.PARM_EV['TimeSpeedThreshold'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):

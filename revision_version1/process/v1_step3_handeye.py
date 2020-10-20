@@ -155,11 +155,14 @@ class HandEye:
 
                 index = index + 1
 
+                if not thread._status:
+                    break
+
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
             p_index = p_index + 1.0
-
-        thread.mutex.unlock()
+            if not thread._status:
+                break
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-2. Solve the A*X=X*B
@@ -173,8 +176,16 @@ class HandEye:
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             section_name = 'LiDAR_' + str(idxSensor)
 
-            diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]
-            diff_gnss_xyzdh = diff_gnss_xyzdh_dict[idxSensor]
+            try:
+                diff_point_xyzdh = diff_point_xyzdh_dict[idxSensor]
+                diff_gnss_xyzdh = diff_gnss_xyzdh_dict[idxSensor]
+            except:
+                self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                self.label.append(section_name)
+                self.calib_yaw.append(0.0)
+                self.calib_x.append(0.0)
+                self.calib_y.append(0.0)
+                break
 
             Augment_RT = np.empty((0, 4))
             Augment_t_veh = np.array([])
@@ -220,5 +231,7 @@ class HandEye:
             self.calib_yaw.append(yaw * 180 / 3.141592)
             self.calib_x.append(Trans_veh2sen[0])
             self.calib_y.append(Trans_veh2sen[1])
+
+        thread.mutex.unlock()
 
         print("Complete Handeye calibration")
