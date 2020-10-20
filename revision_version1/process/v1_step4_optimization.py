@@ -63,8 +63,6 @@ class Optimization:
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             self.CalibrationParam[idxSensor] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-        # self.CalibrationParam = self.initial_calibration_param
-
         ##################
         # Remove rows by other sensors
         strColIndex = 'PointCloud_' + str(idxSensor)
