@@ -158,28 +158,6 @@ class ConfigurationTab(QWidget):
         self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
         self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
 
-        # self.ui.test_thread._status = True
-        # self.ui.test_thread.SetFunc(self.TestThreadFunc)
-        # try:
-        #     self.ui.test_thread.change_value.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.test_thread.interation_percentage.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.test_thread.emit_string.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.thread.end.disconnect()
-        # except:
-        #     pass
-        #
-        # self.ui.test_thread.start()
-        # self.ui.test_thread.run()
-
     def RemoveLayout(self, target):
         while target.count():
             item = target.takeAt(0)
@@ -792,6 +770,23 @@ class EvaluationTab(QWidget):
     def UserInterface_SelectMethod_Groupbox(self):
         groupbox = QGroupBox('Select The Method')
         vbox = QVBoxLayout()
+
+        hbox = QHBoxLayout()
+        label = QLabel()
+        hbox.addWidget(label, 10)
+        label = QLabel('HandEye')
+        hbox.addWidget(label, 10)
+        label = QLabel('Optimization')
+        hbox.addWidget(label, 10)
+        label = QLabel('Custom')
+        hbox.addWidget(label, 10)
+        label = QLabel('x [m]')
+        hbox.addWidget(label, 10)
+        label = QLabel('y [m]')
+        hbox.addWidget(label, 10)
+        label = QLabel('yaw [deg]')
+        hbox.addWidget(label, 10)
+        vbox.addLayout(hbox)
 
         self.scroll_box = ScrollAreaV()
         vbox.addWidget(self.scroll_box)
