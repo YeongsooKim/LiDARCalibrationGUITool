@@ -85,7 +85,8 @@ class Optimization:
         ##################
         # Sampling the pose bsaed on pose sampling interval
         num_pose = pose.shape[1]
-        interval = int(1. / self.config.PARM_MO['PoseSamplingRatio'])
+        # interval = int(1. / self.config.PARM_MO['PoseSamplingRatio'])
+        interval = self.config.PARM_IM['SamplingInterval']
         if interval < 1:
             interval = 1
         idx_sampling_pose = list(range(0, num_pose, interval))
@@ -166,7 +167,7 @@ class Optimization:
             df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             # Sampling based on interval
-            df_sampled_info = df_one_info.iloc[::self.config.PARM_HE['SamplingInterval'], :]
+            df_sampled_info = df_one_info.iloc[::self.config.PARM_IM['SamplingInterval'], :]
 
             # Generate Index Pairs
             idx_pair = []

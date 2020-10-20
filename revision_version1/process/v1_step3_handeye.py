@@ -57,7 +57,7 @@ class HandEye:
             df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             # Sampling based on interval
-            df_sampled_info = df_one_info.iloc[::self.config.PARM_HE['SamplingInterval'], :]
+            df_sampled_info = df_one_info.iloc[::self.config.PARM_IM['SamplingInterval'], :]
 
             # Generate Index Pairs
             idx_pair = []

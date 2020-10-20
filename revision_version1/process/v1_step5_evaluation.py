@@ -77,7 +77,7 @@ class Evaluation:
                                                         strColIndex].values == 0)].index)  # df_one_info에서 strColIndex(PointCloud_n)의 value가 0인 값들 다 제외 --> 값이 있는 애들만 남겨놓음
 
             # Sampling based on interval
-            df_sampled_info = df_one_info.iloc[::self.config.PARM_HE['SamplingInterval'],
+            df_sampled_info = df_one_info.iloc[::self.config.PARM_EV['SamplingInterval'],
                               :]  # Sampling 간격만큼 분할(추출)함 ex) samplinginterval = 2이면 2행마다 하나 추출
             df_sampled_info.heading = df_sampled_info.heading + 90
 

@@ -20,8 +20,10 @@ class Configuration:
         self.configuration_file = ''
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
+        self.PARM_IM = {}
         self.PARM_MO = {}
         self.PARM_HE = {}
+        self.PARM_EV = {}
         self.PATH = {}
         self.CalibrationParam = {}
 
@@ -47,8 +49,11 @@ class Configuration:
         self.PARM_PC['MinThresholdZ_m'] = float(config_param['PointCloud']['MinThresholdZ_m'])
         self.PARM_PC['MaxThresholdZ_m'] = float(config_param['PointCloud']['MaxThresholdZ_m'])
 
+        # Import
+        self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
+        self.PARM_IM['TimeSpeedThreshold'] = float(config_param['Import']['TimeSpeedThreshold'])
+
         # Handeye
-        self.PARM_HE['SamplingInterval'] = int(config_param['Handeye']['SamplingInterval'])
         self.PARM_HE['MaximumIteration'] = int(config_param['Handeye']['MaximumIteration'])
         self.PARM_HE['Tolerance'] = float(config_param['Handeye']['Tolerance'])
         self.PARM_HE['OutlierDistance_m'] = float(config_param['Handeye']['OutlierDistance_m'])
@@ -56,10 +61,13 @@ class Configuration:
         self.PARM_HE['filter_DistanceThreshold'] = float(config_param['Handeye']['filter_DistanceThreshold'])
 
         # Optimization
-        self.PARM_MO['PoseSamplingRatio'] = float(config_param['MultiOptimization']['PoseSamplingRatio'])
         self.PARM_MO['PointSamplingRatio'] = float(config_param['MultiOptimization']['PointSamplingRatio'])
         self.PARM_MO['NumPointsPlaneModeling'] = int(config_param['MultiOptimization']['NumPointsPlaneModeling'])
         self.PARM_MO['OutlierDistance_m'] = float(config_param['MultiOptimization']['OutlierDistance_m'])
+
+        # Evaluation
+        self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
+        self.PARM_EV['TimeSpeedThreshold'] = float(config_param['Evaluation']['TimeSpeedThreshold'])
 
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
@@ -90,8 +98,11 @@ class Configuration:
         f.write('MinThresholdZ_m = -10000.0\n')
         f.write('MaxThresholdZ_m = 10000.0\n')
         f.write('\n')
-        f.write('[Handeye]\n')
+        f.write('[Import]\n')
         f.write('SamplingInterval = 1\n')
+        f.write('TimeSpeedThreshold = 0.0001\n')
+        f.write('\n')
+        f.write('[Handeye]\n')
         f.write('MaximumIteration = 100\n')
         f.write('Tolerance = 0.0000001\n')
         f.write('OutlierDistance_m = 0.5\n')
@@ -99,10 +110,13 @@ class Configuration:
         f.write('filter_DistanceThreshold = 0.05\n')
         f.write('\n')
         f.write('[MultiOptimization]\n')
-        f.write('PoseSamplingRatio = 0.1\n')
         f.write('PointSamplingRatio = 0.2\n')
         f.write('NumPointsPlaneModeling = 10\n')
         f.write('OutlierDistance_m = 5.\n')
+        f.write('\n')
+        f.write('[Evaluation]\n')
+        f.write('SamplingInterval = 1\n')
+        f.write('TimeSpeedThreshold = 0.0001\n')
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')

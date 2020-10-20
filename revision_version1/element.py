@@ -437,12 +437,17 @@ class SpinBoxLabelLayout(QVBoxLayout):
             ## Add Reset result label in handeye tab, optimization tab and evaulation tab
             self.ui.ResetResultsLabels()
 
-        elif self.label_str == 'Sampling Interval':
-            self.ui.config.PARM_HE['SamplingInterval'] = self.spin_box.value()
-        elif self.label_str == 'Maximum Iteration':
+        elif self.label_str == 'Sampling Interval [Count]':
+            self.ui.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
+
+        elif self.label_str == 'Maximum Iteration [Count]':
             self.ui.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
+
         elif self.label_str == 'Num Points Plane Modeling':
             self.ui.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
+
+        elif self.label_str == 'Eval Sampling Interval [Count]':
+            self.ui.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
     def __init__(self, string, ui):
@@ -468,6 +473,10 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
             self.double_spin_box.setMinimum(-1000.0)
         if self.label_str == 'Tolerance':
             self.double_spin_box. setDecimals(12)
+        if self.label_str == 'Time Speed Threshold [s]':
+            self.double_spin_box.setDecimals(10)
+        if self.label_str == 'Eval Time Speed Threshold [s]':
+            self.double_spin_box.setDecimals(10)
         self.double_spin_box.setMinimum(0.0)
         self.double_spin_box.valueChanged.connect(self.DoubleSpinBoxChanged)
         self.h_box.addWidget(self.double_spin_box)
@@ -493,6 +502,9 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         elif self.label_str == 'Maximum Threshold Z [m]':
             self.ui.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
 
+        elif self.label_str == 'Time Speed Threshold [s]':
+            self.ui.config.PARM_IM['TimeSpeedThreshold'] = self.double_spin_box.value()
+
         elif self.label_str == 'Tolerance':
             self.ui.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
         elif self.label_str == 'Outlier Distance [m]':
@@ -502,12 +514,13 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         elif self.label_str == 'Distance Threshold (filter)':
             self.ui.config.PARM_HE['filter_DistanceThreshold'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Pose Sampling Ratio':
-            self.ui.config.PARM_MO['PoseSamplingRatio'] = self.double_spin_box.value()
         elif self.label_str == 'Point Sampling Ratio':
             self.ui.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
         elif self.label_str == 'Outlier Distance [m]':
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
+
+        elif self.label_str == 'Eval Time Speed Threshold [s]':
+            self.ui.config.PARM_EV['TimeSpeedThreshold'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):
     instance_num = 1

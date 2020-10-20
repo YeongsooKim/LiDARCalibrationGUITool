@@ -246,7 +246,11 @@ class ImportDataTab(QWidget):
 
         main_vbox.addWidget(self.Main_LoggingData_Groupbox())
         main_vbox.addStretch(1)
-        main_vbox.addWidget(self.Main_LimitTime_Groupbox())
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.Main_Set_Configuration_Groupbox(), 25)
+        hbox.addWidget(self.Main_LimitTime_Groupbox(), 75)
+        main_vbox.addLayout(hbox)
 
         self.next_btn = QPushButton('Next step')
         self.next_btn.clicked.connect(self.NextBtn)
@@ -276,6 +280,19 @@ class ImportDataTab(QWidget):
         self.logging_vbox.addWidget(self.lidar_scroll_box)
 
         groupbox.setLayout(self.logging_vbox)
+        return groupbox
+
+    def Main_Set_Configuration_Groupbox(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [Count]', self.ui)
+        vbox.addLayout(self.sampling_interval_layout)
+
+        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Time Speed Threshold [s]', self.ui)
+        vbox.addLayout(self.time_speed_threshold_layout)
+
+        groupbox.setLayout(vbox)
         return groupbox
 
     def Main_LimitTime_Groupbox(self):
@@ -480,9 +497,6 @@ class HandEyeTab(CalibrationTab):
         liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [Count]', self.ui)
-        vbox.addLayout(self.sampling_interval_layout)
-
         self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.ui)
         vbox.addLayout(self.maximum_interation_layout)
 
@@ -627,9 +641,6 @@ class OptimizationTab(CalibrationTab):
 
         liDAR_configuration_label = QLabel('[ Optimization Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
-
-        self.pose_sampling_ratio_layout = element.DoubleSpinBoxLabelLayout('Pose Sampling Ratio', self.ui)
-        vbox.addLayout(self.pose_sampling_ratio_layout)
 
         self.point_sampling_ratio_layout = element.DoubleSpinBoxLabelLayout('Point Sampling Ratio', self.ui)
         vbox.addLayout(self.point_sampling_ratio_layout)
@@ -815,7 +826,21 @@ class EvaluationTab(QWidget):
         hbox = QHBoxLayout()
 
         hbox.addWidget(self.UserInterface_SelectMethod_Groupbox())
-        hbox.addWidget(self.UserInterface_LimitTime_Groupbox())
+
+        vbox = QVBoxLayout()
+        sub_hbox = QHBoxLayout()
+        sub_hbox.addWidget(self.UserInterface_SetConfiguration_Groupbox())
+        sub_hbox.addWidget(self.UserInterface_LimitTime_Groupbox())
+        vbox.addLayout(sub_hbox)
+
+        vbox.addStretch(1)
+        label = QLabel('[ Evaluation Progress ]')
+        vbox.addWidget(label)
+
+        self.pbar = QProgressBar(self)
+        vbox.addWidget(self.pbar)
+        hbox.addLayout(vbox)
+
         return hbox
 
     def EvaluationResult(self):
@@ -839,6 +864,19 @@ class EvaluationTab(QWidget):
         groupbox.setLayout(vbox)
         return groupbox
 
+    def UserInterface_SetConfiguration_Groupbox(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        self.sampling_interval_layout = element.SpinBoxLabelLayout('Eval Sampling Interval [Count]', self.ui)
+        vbox.addLayout(self.sampling_interval_layout)
+
+        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Eval Time Speed Threshold [s]', self.ui)
+        vbox.addLayout(self.time_speed_threshold_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
     def UserInterface_LimitTime_Groupbox(self):
         groupbox = QGroupBox('Limit Time')
         vbox = QVBoxLayout()
@@ -849,14 +887,6 @@ class EvaluationTab(QWidget):
         btn = QPushButton('Start')
         btn.clicked.connect(self.StartBtn)
         vbox.addWidget(btn)
-
-        vbox.addStretch(1)
-
-        label = QLabel('[ Evaluation Progress ]')
-        vbox.addWidget(label)
-
-        self.pbar = QProgressBar(self)
-        vbox.addWidget(self.pbar)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -1188,10 +1218,12 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'MinThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdZ_m']) + '\n')
             elif 'MaxThresholdZ_m' in line:
                 line = line.replace(line, 'MaxThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdZ_m']) + '\n')
-            elif 'SamplingInterval' in line:
-                is_handeye = True
-                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_HE['SamplingInterval']) + '\n')
+            elif ('SamplingInterval' in line) and (is_multi_optimization == False):
+                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
+            elif ('TimeSpeedThreshold' in line) and (is_multi_optimization == False):
+                line = line.replace(line, 'TimeSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['TimeSpeedThreshold']) + '\n')
             elif 'MaximumIteration' in line:
+                is_handeye = True
                 line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_HE['MaximumIteration']) + '\n')
             elif 'Tolerance' in line:
                 line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_HE['Tolerance']) + '\n')
@@ -1201,15 +1233,17 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'filter_HeadingThreshold = ' + str(self.form_widget.config.PARM_HE['filter_HeadingThreshold']) + '\n')
             elif 'filter_DistanceThreshold' in line:
                 line = line.replace(line, 'filter_DistanceThreshold = ' + str(self.form_widget.config.PARM_HE['filter_DistanceThreshold']) + '\n')
-            elif 'PoseSamplingRatio' in line:
-                is_multi_optimization = True
-                line = line.replace(line, 'PoseSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PoseSamplingRatio']) + '\n')
             elif 'PointSamplingRatio' in line:
+                is_multi_optimization = True
                 line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PointSamplingRatio']) + '\n')
             elif 'NumPointsPlaneModeling' in line:
                 line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
             elif ('OutlierDistance_m' in line) and (is_multi_optimization == True):
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
+            elif ('SamplingInterval' in line) and (is_multi_optimization == True):
+                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
+            elif ('TimeSpeedThreshold' in line) and (is_multi_optimization == True):
+                line = line.replace(line, 'TimeSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['TimeSpeedThreshold']) + '\n')
             sys.stdout.write(line)
         self.form_widget.value_changed = False
 
@@ -1348,12 +1382,14 @@ class FormWidget(QWidget):
         self.config_tab.maximum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MaxThresholdZ_m'])
 
         ### Setting import tab
+        PARM_IM = self.config.PARM_IM
         self.importing_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['Logging_file_path'])
         self.importing_tab.logging_file_path_layout.path_file_str = self.config.PATH['Logging_file_path']
+        self.importing_tab.sampling_interval_layout.spin_box.setValue(PARM_IM['SamplingInterval'])
+        self.importing_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_IM['TimeSpeedThreshold'])
 
         ### Setting handeye tab
         PARM_HE = self.config.PARM_HE
-        self.handeye_tab.sampling_interval_layout.spin_box.setValue(PARM_HE['SamplingInterval'])
         self.handeye_tab.maximum_interation_layout.spin_box.setValue(PARM_HE['MaximumIteration'])
         self.handeye_tab.tolerance_layout.double_spin_box.setValue(PARM_HE['Tolerance'])
         self.handeye_tab.outlier_distance_layout.double_spin_box.setValue(PARM_HE['OutlierDistance_m'])
@@ -1362,14 +1398,16 @@ class FormWidget(QWidget):
 
         ### Setting optimization tab
         PARM_MO = self.config.PARM_MO
-        self.optimization_tab.pose_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PoseSamplingRatio'])
         self.optimization_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
         self.optimization_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
         self.optimization_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
         self.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.config.PARM_LIDAR['SensorList'], self.config.PARM_LIDAR['CheckedSensorList'])
 
         ### Setting evaluation tab
+        PARM_EV = self.config.PARM_EV
         self.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.config.PARM_LIDAR['CheckedSensorList'])
+        self.evaluation_tab.sampling_interval_layout.spin_box.setValue(PARM_EV['SamplingInterval'])
+        self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['TimeSpeedThreshold'])
 
         print('Set all tab\'s configuration')
 
