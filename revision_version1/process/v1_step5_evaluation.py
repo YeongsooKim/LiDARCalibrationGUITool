@@ -71,7 +71,6 @@ class Evaluation:
             # Remove rows by other sensors
             strColIndex = 'PointCloud_' + str(idxSensor)  # PointCloud_n 이름 생성
             LiDAR_list[idxSensor] = strColIndex
-            # Todo df_info 새로 drop 된 값 사용
             df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading',
                                    strColIndex]]  # df_info의 'east','north','heading',...,PointCloud 하나씩 분리해서 저장
             df_one_info = df_one_info.drop(df_info[(df_one_info[
@@ -139,19 +138,6 @@ class Evaluation:
                 HD_map = np.vstack([HD_map, np.transpose(point)])
 
             Map[idxSensor] = HD_map
-
-            ##########################################
-            # Todo 아래 주석 이용해서 HD map plot
-            ##########################################
-
-            '''
-            plt.figure()
-            plt.plot(HD_map[:,0], HD_map[:,1],',',label = 'Generated HD Map')
-            plt.axis('equal')
-            plt.grid()
-            plt.legend()
-            '''
-            ##########################################
 
             ##-----------------------------------------------------------------------------------------------------------------------------
             # 6-2. Localization

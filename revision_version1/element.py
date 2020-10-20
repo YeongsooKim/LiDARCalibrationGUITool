@@ -30,6 +30,10 @@ CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
 CONST_EVALUATION = 4
 
+CONST_CUSTOM = 1
+CONST_HANDEYE = 2
+CONST_OPTIMIZATION = 3
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     def __init__(self, label_str, ui):
         super().__init__()
@@ -281,24 +285,6 @@ class CheckBoxListLayout(QVBoxLayout):
                 self.listWidget.setItemWidget(item, radio_btn)
                 self.LiDAR_list.append(item)
 
-        # Adding handeye evaluation tab in evaluation tab
-        elif self.id == 3:    # instance name is 'handeye_using_sensor_list_layout'
-            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
-                item = QListWidgetItem('LiDAR %i' % sensor_index)
-                item.setCheckState(Qt.Checked)
-
-                self.listWidget.addItem(item)
-                self.LiDAR_list.append(item)
-
-        # Adding optimization evaluation tab in evaluation tab
-        elif self.id == 4:    # instance name is 'optimization_using_sensor_list_layout'
-            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
-                item = QListWidgetItem('LiDAR %i' % sensor_index)
-                item.setCheckState(Qt.Checked)
-
-                self.listWidget.addItem(item)
-                self.LiDAR_list.append(item)
-
     def ItemChanged(self):
         items = []
         if self.id == 1:
@@ -314,8 +300,7 @@ class CheckBoxListLayout(QVBoxLayout):
 
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             self.ui.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
-            self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
-            self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
+            self.ui.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
 
             if not len(items) == 0:
                 configuration_first_checked_sensor = items[0]
@@ -330,12 +315,6 @@ class CheckBoxListLayout(QVBoxLayout):
 
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.ResetResultsLabels()
-
-        elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
-            self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'] = items
-
-        elif self.id == 4:  # instance name is 'optimization_using_sensor_list_layout'
-            self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'] = items
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
@@ -434,19 +413,15 @@ class SpinBoxLabelLayout(QVBoxLayout):
                     if sensor_index in self.ui.config.PARM_LIDAR['CheckedSensorList']:
                         list_index = self.ui.config.PARM_LIDAR['CheckedSensorList'].index(sensor_index)
                         del self.ui.config.PARM_LIDAR['CheckedSensorList'][list_index]
-                    if sensor_index in self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList']:
-                        list_index = self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'].index(sensor_index)
-                        del self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'][list_index]
-                    if sensor_index in self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList']:
-                        list_index = self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'].index(sensor_index)
-                        del self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'][list_index]
+                    if sensor_index in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
+                        list_index = self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].index(sensor_index)
+                        del self.ui.evaluation_tab.eval_lidar['CheckedSensorList'][list_index]
                     del self.ui.config.PARM_LIDAR['SensorList'][-1]
             else:
                 for i in range(add_lidar_num):
                     self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
                     self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
-                    self.ui.evaluation_tab.handeye_eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
-                    self.ui.evaluation_tab.optimization_eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
+                    self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
                     last_lidar_num = last_lidar_num + 1
 
             for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
@@ -736,9 +711,9 @@ class CalibrationResultEditLabel(QVBoxLayout):
         if not self.id == status:
             return False
 
-        self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value() * math.pi / 180
-        self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180
-        self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180
+        self.calibration_param[self.idxSensor][3] = self.double_spin_box_x.value() * math.pi / 180.0
+        self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180.0
+        self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180.0
 
         self.ui.evaluation_tab.DisplayCalibrationGraph()
 
@@ -875,9 +850,9 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         x = self.double_spin_box_x.value()
         y = self.double_spin_box_y.value()
         z = self.double_spin_box_z.value()
-        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180
-        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180
-        self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180
+        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180.0
+        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180.0
+        self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180.0
         self.calibration_param[self.idxSensor][3] = x
         self.calibration_param[self.idxSensor][4] = y
         self.calibration_param[self.idxSensor][5] = z
@@ -949,3 +924,144 @@ class ImageDisplay(QWidget):
         self.setWindowTitle("PyQT show image")
         self.show()
 
+class EvaluationLable(QHBoxLayout):
+    def __init__(self, idxSensor, ui):
+        super().__init__()
+        self.prev_checkID = CONST_HANDEYE
+        self.x = 0.0 # [m]
+        self.y = 0.0 # [m]
+        self.yaw = 0.0 # [deg]
+
+        self.idxSensor = idxSensor
+        self.ui = ui
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.checkbox = QCheckBox('LiDAR {}'.format(str(self.idxSensor)))
+        self.checkbox.setChecked(True)
+        self.checkbox.stateChanged.connect(self.CheckBox)
+        self.addWidget(self.checkbox)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        rbn1 = QRadioButton()
+        rbn1.setChecked(True)
+        rbn1.clicked.connect(self.RadioButton)
+        self.addWidget(rbn1)
+        self.button_group.addButton(rbn1, CONST_HANDEYE)
+
+        # button for optimization calibration
+        rbn2 = QRadioButton()
+        rbn2.clicked.connect(self.RadioButton)
+        self.addWidget(rbn2)
+        self.button_group.addButton(rbn2, CONST_OPTIMIZATION)
+
+        # button for custom calibration
+        rbn3 = QRadioButton()
+        rbn3.clicked.connect(self.RadioButton)
+        self.addWidget(rbn3)
+        self.button_group.addButton(rbn3, CONST_CUSTOM)
+
+        # spinbox for x
+        self.spinbox1 = QDoubleSpinBox()
+        self.spinbox1.setReadOnly(True)
+        self.spinbox1.setSingleStep(0.01)
+        self.spinbox1.setMaximum(1000.0)
+        self.spinbox1.setMinimum(-1000.0)
+        self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox1.valueChanged.connect(self.DoubleSpinBoxChanged1)
+        self.addWidget(self.spinbox1)
+
+        # spinbox for y
+        self.spinbox2 = QDoubleSpinBox()
+        self.spinbox2.setReadOnly(True)
+        self.spinbox2.setSingleStep(0.01)
+        self.spinbox2.setMaximum(1000.0)
+        self.spinbox2.setMinimum(-1000.0)
+        self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox2.valueChanged.connect(self.DoubleSpinBoxChanged2)
+        self.addWidget(self.spinbox2)
+
+        # spinbox for yaw
+        self.spinbox3 = QDoubleSpinBox()
+        self.spinbox3.setReadOnly(True)
+        self.spinbox3.setSingleStep(0.01)
+        self.spinbox3.setMaximum(1000.0)
+        self.spinbox3.setMinimum(-1000.0)
+        self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox3.valueChanged.connect(self.DoubleSpinBoxChanged3)
+        self.addWidget(self.spinbox3)
+
+    def CheckBox(self):
+        if self.checkbox.checkState() == 0:
+            if self.idxSensor in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
+                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].remove(self.idxSensor)
+        else:
+            if not self.idxSensor in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
+                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].append(self.idxSensor)
+                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
+
+    def RadioButton(self):
+        if self.ui.config_tab.is_lidar_num_changed == True:
+            self.button_group.button(self.prev_checkID).setChecked(True)
+            self.ui.ErrorPopUp('Please import after changing lidar number')
+            return False
+
+        status = self.button_group.checkedId()
+        if status == CONST_HANDEYE:
+            if not self.ui.handeye.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please complete the HandEye calibration')
+                return False
+        elif status == CONST_OPTIMIZATION:
+            if not self.ui.optimization.complete_calibration:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please complete the Optimization calibration')
+                return False
+        elif status == CONST_CUSTOM:
+            if self.ui.evaluation_tab.custom_calibration_param.get(self.idxSensor) == None:
+                self.ui.evaluation_tab.custom_calibration_param[self.idxSensor] = [0., 0., 0., 0., 0., 0.]
+
+        if status == CONST_CUSTOM:
+            self.spinbox1.setReadOnly(False)
+            self.spinbox1.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+            self.spinbox2.setReadOnly(False)
+            self.spinbox2.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+            self.spinbox3.setReadOnly(False)
+            self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+        else:
+            self.spinbox1.setReadOnly(True)
+            self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
+            self.spinbox2.setReadOnly(True)
+            self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
+            self.spinbox3.setReadOnly(True)
+            self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
+
+            
+        if status == CONST_HANDEYE:
+            self.spinbox1.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+        elif status == CONST_OPTIMIZATION:
+            self.spinbox1.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.ui.optimization.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+        elif status == CONST_CUSTOM:
+            self.spinbox1.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][3])
+            self.spinbox2.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][4])
+            self.spinbox3.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][2] * 180.0 / math.pi)
+
+        self.prev_checkID = self.button_group.checkedId()
+
+    def DoubleSpinBoxChanged1(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][3] = self.spinbox1.value()
+
+    def DoubleSpinBoxChanged2(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][4] = self.spinbox2.value()
+
+    def DoubleSpinBoxChanged3(self):
+        if self.button_group.checkedId() == CONST_CUSTOM:
+            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0
