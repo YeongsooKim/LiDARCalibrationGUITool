@@ -44,6 +44,7 @@ class Optimization:
         start_time = args[0]
         end_time = args[1]
         PARM_LIDAR = args[2]
+        using_gnss_motion = args[3]
         df_info = self.importing.df_info
 
         # Limit time
@@ -125,8 +126,14 @@ class Optimization:
 
             # Remove rows by other sensors
             strColIndex = 'PointCloud_' + str(idxSensor)
-            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
-            df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+
+            if not using_gnss_motion:
+                df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+            elif using_gnss_motion:
+                df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+                df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
+                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             ##### Arguments
             # Get position

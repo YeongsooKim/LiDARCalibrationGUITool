@@ -325,19 +325,19 @@ class CalibrationTab(QWidget):
         self.configuration_vbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
 
         hbox = QHBoxLayout()
-        label = QLabel('Using Method')
+        label = QLabel('Used Data')
         hbox.addWidget(label)
 
         # button for Handeye calibration
         self.button_group = QButtonGroup()
-        rbn1 = QRadioButton('Used Data')
+        rbn1 = QRadioButton('GNSS Data')
         rbn1.setChecked(True)
         rbn1.clicked.connect(self.RadioButton)
         hbox.addWidget(rbn1)
         self.button_group.addButton(rbn1, 1)
 
         # button for optimization calibration
-        rbn2 = QRadioButton('Gnss Motion')
+        rbn2 = QRadioButton('Motion Data')
         rbn2.clicked.connect(self.RadioButton)
         hbox.addWidget(rbn2)
         self.button_group.addButton(rbn2, 2)
@@ -447,9 +447,9 @@ class CalibrationTab(QWidget):
 
     def RadioButton(self):
         status = self.button_group.checkedId()
-        if status == 1:  # Used Data
+        if status == 1:  # GNSS Data
             self.using_gnss_motion = False
-        elif status == 2:  # Gnss Motion
+        elif status == 2:  # Motion Data
             self.using_gnss_motion = True
 
 class HandEyeTab(CalibrationTab):
