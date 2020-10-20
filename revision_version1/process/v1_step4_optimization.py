@@ -155,7 +155,10 @@ class Optimization:
                            thread=thread,
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
-            thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
+            if not thread._status:
+                thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
+            else:
+                thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
             thread.mutex.unlock()
             # set data
             self.CalibrationParam[idxSensor][2] = float(res.x)
