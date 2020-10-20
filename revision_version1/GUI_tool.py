@@ -298,6 +298,7 @@ class ImportDataTab(QWidget):
 class CalibrationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
+        self.using_gnss_motion = False
         self.ui = ui
 
         self.progress_status = CONST_STOP
@@ -322,6 +323,26 @@ class CalibrationTab(QWidget):
         self.configuration_vbox = QVBoxLayout()
 
         self.configuration_vbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
+
+        hbox = QHBoxLayout()
+        label = QLabel('Using Method')
+        hbox.addWidget(label)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        rbn1 = QRadioButton('Used Data')
+        rbn1.setChecked(True)
+        rbn1.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn1)
+        self.button_group.addButton(rbn1, 1)
+
+        # button for optimization calibration
+        rbn2 = QRadioButton('Gnss Motion')
+        rbn2.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn2)
+        self.button_group.addButton(rbn2, 2)
+        self.configuration_vbox.addLayout(hbox)
+
         self.configuration_vbox.addWidget(self.Configuration_Calibration_Groupbox())
 
         return self.configuration_vbox
@@ -391,7 +412,7 @@ class CalibrationTab(QWidget):
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
 
         self.ui.thread._status = True
-        self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list])
+        self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list, self.using_gnss_motion])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -423,6 +444,13 @@ class CalibrationTab(QWidget):
 
     def ViewPointCloud(self):
         pass
+
+    def RadioButton(self):
+        status = self.button_group.checkedId()
+        if status == 1:  # Used Data
+            self.using_gnss_motion = False
+        elif status == 2:  # Gnss Motion
+            self.using_gnss_motion = True
 
 class HandEyeTab(CalibrationTab):
     def __init__(self, ui):
