@@ -104,21 +104,6 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         vbox.addWidget(self.next_btn)
 
-        # pause_btn = QPushButton('Pause')
-        # pause_btn.clicked.connect(self.PauseBtn)
-        # vbox.addWidget(pause_btn)
-        #
-        # cancel_btn = QPushButton('Cancel')
-        # cancel_btn.clicked.connect(self.CancelBtn)
-        # vbox.addWidget(cancel_btn)
-        #
-        # status_btn = QPushButton('Check Status')
-        # status_btn.clicked.connect(self.StatusBtn)
-        # vbox.addWidget(status_btn)
-
-        self.test_class = element.EvaluationLable(0, self.ui)
-        vbox.addLayout(self.test_class)
-
         return vbox
 
     ## Groupbox
@@ -169,19 +154,6 @@ class ConfigurationTab(QWidget):
 
     ## Callback Function
 
-    def StatusBtn(self):
-        if (self.ui.test_thread.isRunning()):
-            print('thread is running')
-        else:
-            print('thread is not running')
-
-    def CancelBtn(self):
-        # self.ui.test_thread.toggle_status()
-        self.ui.test_thread.Stop()
-
-    def PauseBtn(self):
-        self.ui.test_thread.toggle_status()
-
     def NextBtn(self):
         self.ui.tabs.setTabEnabled(CONST_IMPORTDATA, True)
         self.ui.tabs.setCurrentIndex(CONST_IMPORTDATA)
@@ -207,17 +179,6 @@ class ConfigurationTab(QWidget):
         #
         # self.ui.test_thread.start()
         # self.ui.test_thread.run()
-
-    def TestThreadFunc(self, thread):
-        thread.mutex.lock()
-        index = 10000000
-        while index:
-            if not thread._status:
-                thread.cond.wait(thread.mutex)
-            if index % 1000 == 0:
-                print(index)
-            index -= 1
-        thread.mutex.unlock()
 
     def RemoveLayout(self, target):
         while target.count():
@@ -289,7 +250,7 @@ class ImportDataTab(QWidget):
         self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [Count]', self.ui)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Time Speed Threshold [s]', self.ui)
+        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Minimum Speed [s]', self.ui)
         vbox.addLayout(self.time_speed_threshold_layout)
 
         groupbox.setLayout(vbox)
@@ -519,6 +480,7 @@ class HandEyeTab(CalibrationTab):
         groupbox = QGroupBox('HandEye Calibration')
         vbox = QVBoxLayout(self)
 
+        hbox = QHBoxLayout()
         btn = QPushButton('Start')
         btn.clicked.connect(lambda: self.StartCalibration(CONST_HANDEYE,
                                                                self.ui.handeye.Calibration,
@@ -528,7 +490,12 @@ class HandEyeTab(CalibrationTab):
                                                                [self.calibration_pbar.reset],
                                                                self.calibration_pbar.setValue,
                                                                self.EndCalibration))
-        vbox.addWidget(btn)
+        hbox.addWidget(btn)
+
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.Cancel)
+        hbox.addWidget(stop_btn)
+        vbox.addLayout(hbox)
 
         self.label = QLabel('[ HandEye Calibration Progress ]')
         vbox.addWidget(self.label)
@@ -543,6 +510,10 @@ class HandEyeTab(CalibrationTab):
         return groupbox
 
     ## Callback func
+
+    def Cancel(self):
+        self.ui.thread.toggle_status()
+        self.progress_status = CONST_STOP
 
     def ViewLiDAR(self):
         if self.progress_status is not CONST_STOP:
@@ -601,7 +572,7 @@ class HandEyeTab(CalibrationTab):
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_z.setValue(self.ui.handeye.CalibrationParam[idxSensor][5])
 
         ## Transfer
-        self.ui.optimization.initial_calibration_param = copy.deepcopy(self.ui.handeye.CalibrationParam)
+        self.ui.optimization.CalibrationParam = copy.deepcopy(self.ui.handeye.CalibrationParam)
 
 
         # Evaluation tab
@@ -676,10 +647,6 @@ class OptimizationTab(CalibrationTab):
                                                           self.EndCalibration))
         hbox.addWidget(btn)
 
-        self.pause_btn = QPushButton('Pause')
-        self.pause_btn.clicked.connect(self.PauseCalibration)
-        hbox.addWidget(self.pause_btn)
-
         self.stop_btn = QPushButton('Stop')
         self.stop_btn.clicked.connect(self.StopCalibartion)
         hbox.addWidget(self.stop_btn)
@@ -699,44 +666,12 @@ class OptimizationTab(CalibrationTab):
 
     ## Callback func
 
-    def PauseCalibration(self):
-        self.ui.thread.toggle_status()
-
-        x = 13.63
-        y = 12.16
-        yaw = -47.73
-
-        if self.progress_status is CONST_PLAY:
-            self.pause_btn.setText("Replay")
-            self.progress_status = CONST_PAUSE
-
-            f = uniform(-0.1, 0.1)
-            ## Set 'Result Calibration Data'
-            # for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            #     self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][3], 2)))
-            #     self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][4], 2)))
-            #     self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.optimization.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
-            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-                self.result_labels[idxSensor].label_edit_x.setText(str(x - f))
-                self.result_labels[idxSensor].label_edit_y.setText(str(y - f))
-                self.result_labels[idxSensor].label_edit_yaw.setText(str(yaw - f))
-            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-                self.ui.optimization.CalibrationParam[idxSensor][3] = x - f
-                self.ui.optimization.CalibrationParam[idxSensor][4] = y - f
-                self.ui.optimization.CalibrationParam[idxSensor][2] = (yaw - f)*math.pi/180
-
-            # self.EndCalibration()
-        else:
-            self.pause_btn.setText("Pause")
-            self.progress_status = CONST_PLAY
-
     def StopCalibartion(self):
         self.progress_status = CONST_STOP
 
-        if self.pause_btn.text() == "Replay":
-            self.pause_btn.setText("Pause")
+        self.ui.thread.toggle_status()
 
-        self.ui.thread.Stop()
+        self.ui.ErrorPopUp('Please wait for stop the calibration')
 
     def ViewLiDAR(self):
         if self.progress_status is not CONST_STOP:
@@ -871,7 +806,7 @@ class EvaluationTab(QWidget):
         self.sampling_interval_layout = element.SpinBoxLabelLayout('Eval Sampling Interval [Count]', self.ui)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Eval Time Speed Threshold [s]', self.ui)
+        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout('Eval Minimum Speed [s]', self.ui)
         vbox.addLayout(self.time_speed_threshold_layout)
 
         groupbox.setLayout(vbox)
