@@ -16,7 +16,7 @@ import copy
 from process import utils_pointcloud
 
     # Paramet
-def GetPlotParam(config, importing, calibration_param, start_time, end_time):
+def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
     tmp_df_info = copy.deepcopy(importing.df_info)
@@ -28,7 +28,7 @@ def GetPlotParam(config, importing, calibration_param, start_time, end_time):
     accum_pointcloud = {}
     accum_pointcloud_ = {}
     calib_param_ = [0, 0, 0, 0, 0, 0]
-    for idxSensor in config.PARM_LIDAR['CheckedSensorList']:
+    for idxSensor in PARM_LIDAR['CheckedSensorList']:
         calib_param = calibration_param[idxSensor]
 
         ##################
@@ -70,7 +70,7 @@ def GetPlotParam(config, importing, calibration_param, start_time, end_time):
         accum_pointcloud[idxSensor] = accum_point_enup
         accum_pointcloud_[idxSensor] = accum_point_enup_
 
-    return df_info, config.PARM_LIDAR, accum_pointcloud, accum_pointcloud_
+    return df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_
 
     # ##############################################################################################################################
     # # %% 5. Save results

@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 # User defined modules
 from process import utils_icp
+import copy
 
 class HandEye:
     def __init__(self, config, importing):
@@ -34,13 +35,18 @@ class HandEye:
         thread.mutex.lock()
         start_time = args[0]
         end_time = args[1]
-        PARM_LIDAR = args[2]
+        PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
+        vehicle_speed_threshold = args[4] / 3.6
         df_info = self.importing.df_info
+        print(vehicle_speed_threshold)
 
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
+
+        df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1. Match the point cloud based on ICP
         # -----------------------------------------------------------------------------------------------------------------------------
@@ -79,7 +85,6 @@ class HandEye:
             index = 0
 
             for i, j in pbar:
-                print('thread keep running')
                 # Display progress
                 iteration_ratio = float(index + 1) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100
@@ -163,13 +168,36 @@ class HandEye:
                 index = index + 1
 
                 if not thread._status:
+                    evaluated_lidar = {}
+                    not_evaluated_lidar = {}
+
+                    curr_index = PARM_LIDAR['CheckedSensorList'].index(idxSensor)
+
+                    evaluated_lidar['CheckedSensorList'] = []
+                    not_evaluated_lidar['CheckedSensorList'] = []
+
+                    for sensor_id in PARM_LIDAR['CheckedSensorList']:
+                        if PARM_LIDAR['CheckedSensorList'].index(sensor_id) <= curr_index:
+                            evaluated_lidar['CheckedSensorList'].append(sensor_id)
+                        else:
+                            not_evaluated_lidar['CheckedSensorList'].append(sensor_id)
+
+                    PARM_LIDAR = copy.deepcopy(evaluated_lidar)
                     break
+            # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
             p_index = p_index + 1.0
+
             if not thread._status:
+                thread.emit_string.emit('Interrupted evaluating lidar {} calibration'.format(idxSensor))
                 break
+            thread.emit_string.emit('Complete evaluating lidar {} calibration'.format(idxSensor))
+
+        if not thread._status:
+            for idxSensor in not_evaluated_lidar['CheckedSensorList']:
+                thread.emit_string.emit('Never evaluating lidar {} calibration'.format(idxSensor))
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-2. Solve the A*X=X*B
@@ -239,6 +267,7 @@ class HandEye:
             self.calib_x.append(Trans_veh2sen[0])
             self.calib_y.append(Trans_veh2sen[1])
 
+        self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
         thread.mutex.unlock()
 
         print("Complete Handeye calibration")

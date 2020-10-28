@@ -17,6 +17,7 @@ from tqdm import tqdm
 from process import utils_icp
 from process import utils_pointcloud
 from process import utils_cost_func
+import copy
 
 class Optimization:
     def __init__(self, config, importing):
@@ -43,13 +44,17 @@ class Optimization:
     def Calibration(self, thread, args):
         start_time = args[0]
         end_time = args[1]
-        PARM_LIDAR = args[2]
+        PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
+        vehicle_speed_threshold = args[4] / 3.6
         df_info = self.importing.df_info
 
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
+
+        df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+
         ##############################################################################################################################
         # %% 3. Multiple optimization
         ##############################################################################################################################
@@ -155,13 +160,13 @@ class Optimization:
                            thread=thread,
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
-            if not thread._status:
-                thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
-            else:
-                thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
-            thread.mutex.unlock()
             # set data
             self.CalibrationParam[idxSensor][2] = float(res.x)
+
+            if not thread._status:
+                thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
+                break
+            thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
 
         self.calib_yaw.clear()
         self.calib_x.clear()
@@ -171,4 +176,6 @@ class Optimization:
             self.calib_x.append(self.CalibrationParam[idxSensor][3])
             self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
+        self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+        thread.mutex.unlock()
         print("Complete optimization calibration")

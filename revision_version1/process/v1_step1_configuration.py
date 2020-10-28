@@ -51,7 +51,7 @@ class Configuration:
 
         # Import
         self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
-        self.PARM_IM['TimeSpeedThreshold'] = float(config_param['Import']['TimeSpeedThreshold'])
+        self.PARM_IM['VehicleSpeedThreshold'] = float(config_param['Import']['VehicleSpeedThreshold'])
 
         # Handeye
         self.PARM_HE['MaximumIteration'] = int(config_param['Handeye']['MaximumIteration'])
@@ -67,7 +67,7 @@ class Configuration:
 
         # Evaluation
         self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
-        self.PARM_EV['TimeSpeedThreshold'] = float(config_param['Evaluation']['TimeSpeedThreshold'])
+        self.PARM_EV['VehicleSpeedThreshold'] = float(config_param['Evaluation']['VehicleSpeedThreshold'])
 
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
@@ -100,7 +100,7 @@ class Configuration:
         f.write('\n')
         f.write('[Import]\n')
         f.write('SamplingInterval = 1\n')
-        f.write('TimeSpeedThreshold = 0.0001\n')
+        f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
         f.write('[Handeye]\n')
         f.write('MaximumIteration = 100\n')
@@ -116,7 +116,7 @@ class Configuration:
         f.write('\n')
         f.write('[Evaluation]\n')
         f.write('SamplingInterval = 1\n')
-        f.write('TimeSpeedThreshold = 0.0001\n')
+        f.write('VehicleSpeedThreshold = 0.0001\n')
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
