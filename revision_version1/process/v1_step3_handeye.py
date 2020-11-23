@@ -85,6 +85,8 @@ class HandEye:
             index = 0
 
             for i, j in pbar:
+                while thread.pause:
+                    thread.sleep(1)
                 # Display progress
                 iteration_ratio = float(index + 1) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100

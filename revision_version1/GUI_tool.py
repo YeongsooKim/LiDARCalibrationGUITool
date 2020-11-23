@@ -236,6 +236,7 @@ class ImportDataTab(QWidget):
             self.ui.ErrorPopUp('Please import logging file path')
         else:
             self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
+            self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
             self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
 
     def InterationPercentage(self, percentage_dict):
@@ -396,34 +397,79 @@ class CalibrationTab(QWidget):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
         self.ui.tabs.setTabEnabled(CONST_EVALUATION, True)
 
-        self.ui.thread._status = True
-        self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
-        try:
-            self.ui.thread.change_value.disconnect()
-        except:
-            pass
-        try:
-            self.ui.thread.interation_percentage.disconnect()
-        except:
-            pass
-        try:
-            self.ui.thread.end.disconnect()
-        except:
-            pass
-        try:
-            self.ui.thread.emit_string.disconnect()
-        except:
-            pass
-
         for target_clear in targets_clear:
             target_clear()
+
+        # self.ui.thread._status = True
+        # self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
+        # try:
+        #     self.ui.thread.change_value.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.thread.interation_percentage.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.thread.end.disconnect()
+        # except:
+        #     pass
+        # try:
+        #     self.ui.thread.emit_string.disconnect()
+        # except:
+        #     pass
+
         if calibration_id == CONST_HANDEYE:
-            self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-            self.ui.thread.change_value.connect(progress_callbacks[1]) # progress_callback
+            self.ui.handeye_thread._status = True
+            self.ui.handeye_thread.SetFunc(calibration,
+                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
+            try:
+                self.ui.handeye_thread.change_value.disconnect()
+            except:
+                pass
+            try:
+                self.ui.handeye_thread.interation_percentage.disconnect()
+            except:
+                pass
+            try:
+                self.ui.handeye_thread.end.disconnect()
+            except:
+                pass
+            try:
+                self.ui.handeye_thread.emit_string.disconnect()
+            except:
+                pass
+
+            self.ui.handeye_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
+            self.ui.handeye_thread.change_value.connect(progress_callbacks[1]) # progress_callback
+
+            self.ui.handeye_thread.end.connect(end_callback)
+            self.ui.handeye_thread.start()
         elif calibration_id == CONST_OPTIMIZATION:
-            self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-        self.ui.thread.end.connect(end_callback)
-        self.ui.thread.start()
+            self.ui.opti_thread._status = True
+            self.ui.opti_thread.SetFunc(calibration,
+                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
+            try:
+                self.ui.opti_thread.change_value.disconnect()
+            except:
+                pass
+            try:
+                self.ui.opti_thread.interation_percentage.disconnect()
+            except:
+                pass
+            try:
+                self.ui.opti_thread.end.disconnect()
+            except:
+                pass
+            try:
+                self.ui.opti_thread.emit_string.disconnect()
+            except:
+                pass
+
+
+            self.ui.opti_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
+            self.ui.opti_thread.end.connect(end_callback)
+            self.ui.opti_thread.start()
 
     def ViewLiDAR(self):
         pass
@@ -485,6 +531,11 @@ class HandEyeTab(CalibrationTab):
                                                           self.EndCalibration))
         hbox.addWidget(btn)
 
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.Pause)
+        hbox.addWidget(self.pause_btn)
+        vbox.addLayout(hbox)
+
         stop_btn = QPushButton('Stop')
         stop_btn.clicked.connect(self.Cancel)
         hbox.addWidget(stop_btn)
@@ -507,9 +558,27 @@ class HandEyeTab(CalibrationTab):
 
     ## Callback func
 
+    def Pause(self):
+        if self.progress_status is CONST_PLAY:
+            self.progress_status = CONST_PAUSE
+
+            self.ui.handeye_thread.pause = True
+            self.pause_btn.setText("Resume")
+
+        elif self.progress_status is CONST_PAUSE:
+            self.progress_status = CONST_PLAY
+
+            self.ui.handeye_thread.pause = False
+            self.pause_btn.setText("Pause")
+
+        else:
+            return False
+
     def Cancel(self):
-        self.ui.thread.toggle_status()
         self.progress_status = CONST_STOP
+        self.ui.handeye_thread.pause = False
+        self.pause_btn.setText("Pause")
+        self.ui.handeye_thread.toggle_status()
 
     def ViewLiDAR(self):
         if self.progress_status is not CONST_STOP:
@@ -535,6 +604,7 @@ class HandEyeTab(CalibrationTab):
 
         self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.handeye.PARM_LIDAR['CheckedSensorList'])
         self.ui.ResetResultsLabels(self.ui.handeye.PARM_LIDAR)
+        self.ui.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.ui.handeye.PARM_LIDAR['CheckedSensorList'])
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
                                                                                            self.ui.handeye.PARM_LIDAR,
@@ -673,7 +743,7 @@ class OptimizationTab(CalibrationTab):
     def StopCalibartion(self):
         self.progress_status = CONST_STOP
 
-        self.ui.thread.toggle_status()
+        self.ui.opti_thread.toggle_status()
 
         self.ui.ErrorPopUp('Please wait for stop the calibration')
 
@@ -1302,6 +1372,8 @@ class FormWidget(QWidget):
         super(FormWidget, self).__init__(parent)
         self.resize_count = 0
         self.thread = QThread.Thread()
+        self.handeye_thread = QThread.Thread()
+        self.opti_thread = QThread.Thread()
 
         self.config = v1_step1_configuration.Configuration()
         self.importing = v1_step2_import_data.Import(self.config)
@@ -1332,16 +1404,16 @@ class FormWidget(QWidget):
         self.tabs.setTabEnabled(CONST_CONFIG, True)
 
         self.tabs.addTab(self.importing_tab, '2. Import Data')
-        self.tabs.setTabEnabled(CONST_IMPORTDATA, True)
+        self.tabs.setTabEnabled(CONST_IMPORTDATA, False)
 
         self.tabs.addTab(self.handeye_tab, '3. HandEye')
-        self.tabs.setTabEnabled(CONST_HANDEYE, True)
+        self.tabs.setTabEnabled(CONST_HANDEYE, False)
 
         self.tabs.addTab(self.optimization_tab, '4. Optimization')
-        self.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
+        self.tabs.setTabEnabled(CONST_OPTIMIZATION, False)
 
         self.tabs.addTab(self.evaluation_tab, 'Evaluation')
-        self.tabs.setTabEnabled(CONST_EVALUATION, True)
+        self.tabs.setTabEnabled(CONST_EVALUATION, False)
 
         self.hbox.addWidget(self.tabs)
         self.setLayout(self.hbox)

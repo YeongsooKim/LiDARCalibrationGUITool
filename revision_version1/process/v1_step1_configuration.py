@@ -116,7 +116,7 @@ class Configuration:
         f.write('\n')
         f.write('[Evaluation]\n')
         f.write('SamplingInterval = 1\n')
-        f.write('VehicleSpeedThreshold = 0.0001\n')
+        f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')

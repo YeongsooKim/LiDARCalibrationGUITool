@@ -83,17 +83,25 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if not has_pointcloud_file:
             self.ui.ErrorPopUp('PointCloud.bin is missing')
 
+        self.label_edit.setText(self.path_file_str)
         self.GenerateCSVBtn()
-        if has_gnss_file and has_motion_file:
+        if has_gnss_file:
             self.gnss_button.setText('Gnss.csv 100%')
+        else:
+            self.gnss_button.setText('Gnss.csv 0%')
+
+        if has_motion_file:
             self.motion_button.setText('Motion.csv 100%')
-            self.label_edit.setText(self.path_file_str)
+        else:
+            self.motion_button.setText('Motion.csv 0%')
 
         self.GeneratePointCloudBtn()
 
-        if has_gnss_file and has_motion_file and has_pointcloud_file:
-            self.ui.importing.ParseGnss()
-            self.ui.importing.ParseMotion()
+        if (has_gnss_file or has_motion_file) and has_pointcloud_file:
+            if has_gnss_file:
+                self.ui.importing.ParseGnss()
+            if has_motion_file:
+                self.ui.importing.ParseMotion()
 
             self.ui.thread._status = True
             self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
