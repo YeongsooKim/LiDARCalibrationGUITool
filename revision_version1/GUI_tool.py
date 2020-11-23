@@ -418,6 +418,17 @@ class CalibrationTab(QWidget):
         #     self.ui.thread.emit_string.disconnect()
         # except:
         #     pass
+        #
+        # for target_clear in targets_clear:
+        #     target_clear()
+        #
+        # if calibration_id == CONST_HANDEYE:
+        #     self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
+        #     self.ui.thread.change_value.connect(progress_callbacks[1]) # progress_callback
+        # elif calibration_id == CONST_OPTIMIZATION:
+        #     self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
+        # self.ui.thread.end.connect(end_callback)
+        # self.ui.thread.start()
 
         if calibration_id == CONST_HANDEYE:
             self.ui.handeye_thread._status = True
@@ -789,7 +800,6 @@ class OptimizationTab(CalibrationTab):
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
         self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
-
 
         # Evaluation tab
 

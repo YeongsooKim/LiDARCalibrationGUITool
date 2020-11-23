@@ -42,13 +42,13 @@ class Optimization:
     # %% 3. Optimization
     ##############################################################################################################################
     def Calibration(self, thread, args):
+        mutex_unlock = False
         start_time = args[0]
         end_time = args[1]
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         df_info = self.importing.df_info
-
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
@@ -121,9 +121,11 @@ class Optimization:
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             # Exclude the principal sensor
             thread.mutex.lock()
+            mutex_unlock = False
             if idxSensor == PARM_LIDAR['PrincipalSensor']:
                 thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
                 thread.mutex.unlock()
+                mutex_unlock = True
                 continue
 
             # Get calibration data
@@ -177,5 +179,7 @@ class Optimization:
             self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
-        thread.mutex.unlock()
+        if not mutex_unlock:
+            thread.mutex.unlock()
+
         print("Complete optimization calibration")
