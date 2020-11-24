@@ -1249,7 +1249,9 @@ class MyApp(QMainWindow):
 
         is_pointcloud = False
         is_handeye = False
+        is_single_optimization = False
         is_multi_optimization = False
+        is_import = False
 
         for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
             if 'PrincipalSensor' in line:
@@ -1258,8 +1260,9 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'CheckedSensorList = ' + str(checked_sensor_list) + '\n')
             elif 'SensorList' in line:
                 line = line.replace(line, 'SensorList = ' + str(sensor_list) + '\n')
-            elif 'MinThresholdDist_m' in line:
+            elif '[PointCloud]' in line:
                 is_pointcloud = True
+            elif 'MinThresholdDist_m' in line:
                 line = line.replace(line, 'MinThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdDist_m']) + '\n')
             elif 'MaxThresholdDist_m' in line:
                 line = line.replace(line, 'MaxThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdDist_m']) + '\n')
@@ -1279,28 +1282,40 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
             elif ('VehicleSpeedThreshold' in line) and (is_multi_optimization == False):
                 line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
-            elif 'MaximumIteration' in line:
+            elif '[Import]' in line:
+                is_import = True
+            elif ('SamplingInterval' in line) and is_import:
+                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
+            elif ('VehicleSpeedThreshold' in line) and is_import:
+                line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
+            elif '[Handeye]' in line:
                 is_handeye = True
+            elif 'MaximumIteration' in line:
                 line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_HE['MaximumIteration']) + '\n')
             elif 'Tolerance' in line:
                 line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_HE['Tolerance']) + '\n')
-            elif ('OutlierDistance_m' in line) and (is_multi_optimization == False):
+            elif ('OutlierDistance_m' in line) and is_handeye:
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_HE['OutlierDistance_m']) + '\n')
             elif 'filter_HeadingThreshold' in line:
                 line = line.replace(line, 'filter_HeadingThreshold = ' + str(self.form_widget.config.PARM_HE['filter_HeadingThreshold']) + '\n')
             elif 'filter_DistanceThreshold' in line:
                 line = line.replace(line, 'filter_DistanceThreshold = ' + str(self.form_widget.config.PARM_HE['filter_DistanceThreshold']) + '\n')
-            elif 'PointSamplingRatio' in line:
+            elif '[SingleOptimization]' in line:
+                is_single_optimization = True
+            elif ('PointSamplingRatio' in line) and is_single_optimization:
+                line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_SO['PointSamplingRatio']) + '\n')
+            elif ('NumPointsPlaneModeling') in line and is_single_optimization:
+                line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_SO['NumPointsPlaneModeling']) + '\n')
+            elif ('OutlierDistance_m' in line) and is_single_optimization:
+                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_SO['OutlierDistance_m']) + '\n')
+            elif '[MultiOptimization]' in line:
                 is_multi_optimization = True
+            elif ('PointSamplingRatio' in line) and is_multi_optimization:
                 line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PointSamplingRatio']) + '\n')
-            elif 'NumPointsPlaneModeling' in line:
+            elif ('NumPointsPlaneModeling') in line and is_multi_optimization:
                 line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
-            elif ('OutlierDistance_m' in line) and (is_multi_optimization == True):
+            elif ('OutlierDistance_m' in line) and is_multi_optimization:
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
-            elif ('SamplingInterval' in line) and (is_multi_optimization == True):
-                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
-            elif ('VehicleSpeedThreshold' in line) and (is_multi_optimization == True):
-                line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
             sys.stdout.write(line)
         self.form_widget.value_changed = False
 

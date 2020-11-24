@@ -86,79 +86,21 @@ class Optimization:
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
+        if len(self.importing.PointCloudSensorList) == 1:
+            is_single_optimization = True
+        elif len(self.importing.PointCloudSensorList) > 1:
+            is_single_optimization = False
 
-        ##################
-        # Sampling the pose bsaed on pose sampling interval
-        num_pose = pose.shape[1]
-        interval = self.config.PARM_IM['SamplingInterval']
-        if interval < 1:
-            interval = 1
-        idx_sampling_pose = list(range(0, num_pose, interval))
-
-        ##################
-        # Accumulation of point cloud
-        accum_point_enup = np.empty((0, 4))
-        for idx_pose in idx_sampling_pose:
-            # Convert raw to enu
-            point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
-            point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param, pose[0:3, idx_pose])
-
-            # Add index
-            point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
-
-            # Accumulate the point cloud
-            accum_point_enup = np.vstack([accum_point_enup, point_enup])
-
-        ##################
-        # Generate nearest neighbors
-        nearest_neighbor = NearestNeighbors(n_neighbors=self.config.PARM_MO['NumPointsPlaneModeling'])
-        nearest_neighbor.fit(accum_point_enup)
-
-        # -----------------------------------------------------------------------------------------------------------------------------
-        # 3-2.  Optimization
-        # -----------------------------------------------------------------------------------------------------------------------------
-
-        for idxSensor in PARM_LIDAR['CheckedSensorList']:
-            # Exclude the principal sensor
+        if is_single_optimization:
             thread.mutex.lock()
-            mutex_unlock = False
-            if idxSensor == PARM_LIDAR['PrincipalSensor']:
-                thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
-                thread.mutex.unlock()
-                mutex_unlock = True
-                continue
-
-            # Get calibration data
-            calib_param = self.CalibrationParam[idxSensor]
-
-            # Remove rows by other sensors
-            strColIndex = 'PointCloud_' + str(idxSensor)
-
-            if not using_gnss_motion:
-                df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
-                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
-            elif using_gnss_motion:
-                df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
-                df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
-                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
-
-            ##### Arguments
-            # Get position
-            pose = df_one_info['east_m'].values
-            pose = np.vstack([pose, df_one_info['north_m'].values])
-            pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
-            pose = np.vstack([pose, df_one_info[strColIndex].values])
-
-            # Get Point cloud list
-            pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
             ##### cost function for optimization
             utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
             utils_cost_func.nFeval = 0
-            res = minimize(utils_cost_func.compute_multi_err,
+            res = minimize(utils_cost_func.compute_single_err,
                            calib_param[2],
-                           args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
-                                 self.config.PARM_IM, self.config.PARM_MO, thread),
+                           args=(calib_param[3], calib_param[4], pose, pointcloud,
+                                 self.config.PARM_IM, self.config.PARM_SO, thread),
                            thread=thread,
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
@@ -167,19 +109,113 @@ class Optimization:
 
             if not thread._status:
                 thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
-                break
             thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
 
-        self.calib_yaw.clear()
-        self.calib_x.clear()
-        self.calib_y.clear()
-        for idxSensor in PARM_LIDAR['CheckedSensorList']:
-            self.calib_yaw.append(self.CalibrationParam[idxSensor][2] * 180 / 3.141592)
-            self.calib_x.append(self.CalibrationParam[idxSensor][3])
-            self.calib_y.append(self.CalibrationParam[idxSensor][4])
+            self.calib_yaw.clear()
+            self.calib_x.clear()
+            self.calib_y.clear()
+            for idxSensor in PARM_LIDAR['CheckedSensorList']:
+                self.calib_yaw.append(self.CalibrationParam[idxSensor][2] * 180 / 3.141592)
+                self.calib_x.append(self.CalibrationParam[idxSensor][3])
+                self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
-        self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
-        if not mutex_unlock:
+            self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
             thread.mutex.unlock()
+            print("Complete single-optimization calibration")
+        else:
+            ##################
+            # Sampling the pose bsaed on pose sampling interval
+            num_pose = pose.shape[1]
+            interval = self.config.PARM_IM['SamplingInterval']
+            if interval < 1:
+                interval = 1
+            idx_sampling_pose = list(range(0, num_pose, interval))
 
-        print("Complete optimization calibration")
+            ##################
+            # Accumulation of point cloud
+            accum_point_enup = np.empty((0, 4))
+            for idx_pose in idx_sampling_pose:
+                # Convert raw to enu
+                point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param, pose[0:3, idx_pose])
+
+                # Add index
+                point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
+
+                # Accumulate the point cloud
+                accum_point_enup = np.vstack([accum_point_enup, point_enup])
+
+            ##################
+            # Generate nearest neighbors
+            nearest_neighbor = NearestNeighbors(n_neighbors=self.config.PARM_MO['NumPointsPlaneModeling'])
+            nearest_neighbor.fit(accum_point_enup)
+
+            # -----------------------------------------------------------------------------------------------------------------------------
+            # 3-2.  Optimization
+            # -----------------------------------------------------------------------------------------------------------------------------
+
+            for idxSensor in PARM_LIDAR['CheckedSensorList']:
+                # Exclude the principal sensor
+                thread.mutex.lock()
+                mutex_unlock = False
+                if idxSensor == PARM_LIDAR['PrincipalSensor']:
+                    thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
+                    thread.mutex.unlock()
+                    mutex_unlock = True
+                    continue
+
+                # Get calibration data
+                calib_param = self.CalibrationParam[idxSensor]
+
+                # Remove rows by other sensors
+                strColIndex = 'PointCloud_' + str(idxSensor)
+
+                if not using_gnss_motion:
+                    df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+                    df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+                elif using_gnss_motion:
+                    df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+                    df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
+                    df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+
+                ##### Arguments
+                # Get position
+                pose = df_one_info['east_m'].values
+                pose = np.vstack([pose, df_one_info['north_m'].values])
+                pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
+                pose = np.vstack([pose, df_one_info[strColIndex].values])
+
+                # Get Point cloud list
+                pointcloud = self.importing.PointCloudSensorList[idxSensor]
+
+                ##### cost function for optimization
+                utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
+                utils_cost_func.nFeval = 0
+                res = minimize(utils_cost_func.compute_multi_err,
+                               calib_param[2],
+                               args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
+                                     self.config.PARM_IM, self.config.PARM_MO, thread),
+                               thread=thread,
+                               method='Powell',
+                               options={'ftol': 1e-10, 'disp': True})
+                # set data
+                self.CalibrationParam[idxSensor][2] = float(res.x)
+
+                if not thread._status:
+                    thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
+                    break
+                thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
+
+            self.calib_yaw.clear()
+            self.calib_x.clear()
+            self.calib_y.clear()
+            for idxSensor in PARM_LIDAR['CheckedSensorList']:
+                self.calib_yaw.append(self.CalibrationParam[idxSensor][2] * 180 / 3.141592)
+                self.calib_x.append(self.CalibrationParam[idxSensor][3])
+                self.calib_y.append(self.CalibrationParam[idxSensor][4])
+
+            self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+            if not mutex_unlock:
+                thread.mutex.unlock()
+
+            print("Complete mutli-optimization calibration")

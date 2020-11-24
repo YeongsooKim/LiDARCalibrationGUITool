@@ -21,6 +21,7 @@ class Configuration:
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
         self.PARM_IM = {}
+        self.PARM_SO = {}
         self.PARM_MO = {}
         self.PARM_HE = {}
         self.PARM_EV = {}
@@ -60,7 +61,12 @@ class Configuration:
         self.PARM_HE['filter_HeadingThreshold'] = float(config_param['Handeye']['filter_HeadingThreshold'])
         self.PARM_HE['filter_DistanceThreshold'] = float(config_param['Handeye']['filter_DistanceThreshold'])
 
-        # Optimization
+        # Single Optimization
+        self.PARM_SO['PointSamplingRatio'] = float(config_param['SingleOptimization']['PointSamplingRatio'])
+        self.PARM_SO['NumPointsPlaneModeling'] = int(config_param['SingleOptimization']['NumPointsPlaneModeling'])
+        self.PARM_SO['OutlierDistance_m'] = float(config_param['SingleOptimization']['OutlierDistance_m'])
+
+        # Multi Optimization
         self.PARM_MO['PointSamplingRatio'] = float(config_param['MultiOptimization']['PointSamplingRatio'])
         self.PARM_MO['NumPointsPlaneModeling'] = int(config_param['MultiOptimization']['NumPointsPlaneModeling'])
         self.PARM_MO['OutlierDistance_m'] = float(config_param['MultiOptimization']['OutlierDistance_m'])
@@ -108,6 +114,11 @@ class Configuration:
         f.write('OutlierDistance_m = 0.5\n')
         f.write('filter_HeadingThreshold = 0.05\n')
         f.write('filter_DistanceThreshold = 0.05\n')
+        f.write('\n')
+        f.write('[SingleOptimization]\n')
+        f.write('PointSamplingRatio = 0.2\n')
+        f.write('NumPointsPlaneModeling = 10\n')
+        f.write('OutlierDistance_m = 5.\n')
         f.write('\n')
         f.write('[MultiOptimization]\n')
         f.write('PointSamplingRatio = 0.2\n')
