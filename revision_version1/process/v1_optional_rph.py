@@ -337,6 +337,7 @@ class RPH:
             estimate = []
             estimate.append(roll_deg[idxSensor])
             estimate.append(pitch_deg[idxSensor])
+            # estimate.append(height_deg)
             self.EstimateResult[idxSensor] = estimate
 
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)

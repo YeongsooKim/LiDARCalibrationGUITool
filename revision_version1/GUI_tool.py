@@ -242,7 +242,7 @@ class ImportDataTab(QWidget):
             self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION_TAB, True)
             self.ui.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
 
-    def InterationPercentage(self, percentage_dict):
+    def IterationPercentage(self, percentage_dict):
         idxSensor = list(percentage_dict.keys())[0]
         percentage = list(percentage_dict.values())[0]
         text = 'PointCloud {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
@@ -321,7 +321,8 @@ class RPHTab(QWidget):
     def Result_Layout(self):
         hbox = QHBoxLayout()
 
-        hbox.addWidget(self.Result_ResultData_Groupbox(), 50)
+        hbox.addWidget(self.Result_ResultData_Groupbox(), 70)
+        hbox.addWidget(self.Result_Apply_Groupbox(), 30)
 
         return hbox
 
@@ -411,6 +412,20 @@ class RPHTab(QWidget):
         groupbox.setLayout(hbox)
         return groupbox
 
+    def Result_Apply_Groupbox(self):
+        groupbox = QGroupBox()
+        hbox = QVBoxLayout(self)
+
+        self.check_box = QCheckBox('Apply RPH result to pointcloud', self)
+        self.check_box.setCheckState(False)
+        self.check_box.stateChanged.connect(self.ChangeCheckBox)
+        hbox.addWidget(self.check_box)
+
+        hbox.addStretch(1)
+
+        groupbox.setLayout(hbox)
+        return groupbox
+
     ## Callback func
 
     def EndImport(self):
@@ -443,7 +458,7 @@ class RPHTab(QWidget):
         except:
             pass
         try:
-            self.ui.rph_thread.interation_percentage.disconnect()
+            self.ui.rph_thread.iteration_percentage.disconnect()
         except:
             pass
         try:
@@ -466,11 +481,11 @@ class RPHTab(QWidget):
         self.ui.rph.complete_calibration = True
 
         # RPH tab
-
         ## Set 'RPH Result Data'
         for idxSensor in self.ui.rph.PARM_LIDAR['CheckedSensorList']:
             self.result_labels[idxSensor].label_edit_roll.setText(str(round(self.ui.rph.EstimateResult[idxSensor][0], 2)))
             self.result_labels[idxSensor].label_edit_pitch.setText(str(round(self.ui.rph.EstimateResult[idxSensor][1], 2)))
+            # self.result_labels[idxSensor].label_edit_pitch.setText(str(round(self.ui.rph.EstimateResult[idxSensor][2], 2)))
 
     def RadioButton(self):
         status = self.button_group.checkedId()
@@ -479,12 +494,15 @@ class RPHTab(QWidget):
         elif status == 2:  # Motion Data
             self.using_gnss_motion = True
 
-    def InterationPercentage(self, percentage_dict):
+    def IterationPercentage(self, percentage_dict):
         idxSensor = list(percentage_dict.keys())[0]
         percentage = list(percentage_dict.values())[0]
         text = 'PointCloud {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
 
         self.logging_file_path_layout.lidar_buttons[idxSensor].setText(text)
+
+    def ChangeCheckBox(self):
+        self.ui.mandatory_importing.Transformation(self.ui.rph.EstimateResult)
 
 class CalibrationTab(QWidget):
     def __init__(self, ui):
@@ -612,7 +630,7 @@ class CalibrationTab(QWidget):
         # except:
         #     pass
         # try:
-        #     self.ui.thread.interation_percentage.disconnect()
+        #     self.ui.thread.iteration_percentage.disconnect()
         # except:
         #     pass
         # try:
@@ -644,7 +662,7 @@ class CalibrationTab(QWidget):
             except:
                 pass
             try:
-                self.ui.handeye_thread.interation_percentage.disconnect()
+                self.ui.handeye_thread.iteration_percentage.disconnect()
             except:
                 pass
             try:
@@ -670,7 +688,7 @@ class CalibrationTab(QWidget):
             except:
                 pass
             try:
-                self.ui.opti_thread.interation_percentage.disconnect()
+                self.ui.opti_thread.iteration_percentage.disconnect()
             except:
                 pass
             try:
@@ -1281,7 +1299,7 @@ class EvaluationTab(QWidget):
         except:
             pass
         try:
-            self.ui.thread.interation_percentage.disconnect()
+            self.ui.thread.iteration_percentage.disconnect()
         except:
             pass
         try:
@@ -1744,17 +1762,18 @@ class FormWidget(QWidget):
         labels.clear()
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             if label_type is CONST_UNEDITABLE_LABEL:
-                if estimate_result is None:
+                if calibration_param is not None:
                     result_label = element.CalibrationResultLabel(idxSensor)
                     if calibration_param.get(idxSensor) is not None:
                         result_label.label_edit_x.setText(str(round(calibration_param[idxSensor][3], 2)))
                         result_label.label_edit_y.setText(str(round(calibration_param[idxSensor][4], 2)))
                         result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 2)))
-                elif calibration_param is None:
+                elif estimate_result is not None:
                     result_label = element.EstimateResultLabel(idxSensor)
                     if estimate_result.get(idxSensor) is not None:
                         result_label.label_edit_roll.setText(str(round(estimate_result[idxSensor][0], 2)))
                         result_label.label_edit_pitch.setText(str(round(estimate_result[idxSensor][1], 2)))
+                        # result_label.label_edit_height.setText(str(round(estimate_result[idxSensor][3], 2)))
             elif label_type is CONST_EVAULATION_LABEL:
                 result_label = element.EvaluationLable(idxSensor, self)
 

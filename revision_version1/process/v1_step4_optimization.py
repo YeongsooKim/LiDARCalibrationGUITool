@@ -48,7 +48,7 @@ class Optimization:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        df_info = self.importing.df_info
+        df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)

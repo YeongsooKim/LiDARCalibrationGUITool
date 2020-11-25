@@ -16,6 +16,9 @@ from process import utils_file
 from process import utils_pose
 from process import utils_pose_dr
 
+CONST_IMPORTDATA_TAB = 1
+CONST_RPH_TAB = 2
+
 class Import:
     def __init__(self, config):
         self.config = config
@@ -72,8 +75,9 @@ class Import:
 
         print('Parse Motion logging data')
 
-    def ParsePointCloud(self, thread):
+    def ParsePointCloud(self, thread, args):
         thread.mutex.lock()
+        gui_tab = args[0]
         # Parse Point Cloud
         PointCloudFileCnt = 0
         self.PointCloudSensorList = {}
@@ -104,14 +108,15 @@ class Import:
 
                 if epoch_percentage >= 99.8:
                     epoch_percentage = 100.0
-                thread.interation_percentage.emit({idxSensor : iteration_percentage})
+                thread.iteration_percentage.emit({idxSensor : iteration_percentage})
                 thread.change_value.emit(int(epoch_percentage))
 
                 # pbar.set_description('PointCloud_' + str(idxSensor) + '.bin')
 
-                if df_pointcloud['num_points'].values[i] == 0:
-                    index = index + 1
-                    continue
+                if gui_tab == CONST_RPH_TAB:
+                    if df_pointcloud['num_points'].values[i] == 0:
+                        index = index + 1
+                        continue
 
                 # Get point cloud
                 arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i], df_pointcloud['file_pointer'].values[i])
@@ -199,7 +204,7 @@ class Import:
         self.df_info = self.df_info.interpolate(
             method='linear')  # Linear interpolation in NaN
         self.df_info = self.df_info.dropna(how='any')  # not interpolated rows dropped
-
+        
         # Remove rows without num_points
         valid_info = []
         for i in list(self.df_info.columns.values):
@@ -213,3 +218,6 @@ class Import:
         del valid_info, non_valid_info
 
         print('Resample time')
+
+    def Transformation(self, rph):
+        pass

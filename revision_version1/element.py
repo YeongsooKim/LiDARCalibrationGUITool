@@ -16,6 +16,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
+CONST_IMPORTDATA_TAB = 1
+CONST_RPH_TAB = 2
+
 CONST_DISPLAY_HANDEYE = 0
 CONST_DISPLAY_OPTIMIZATION = 1
 
@@ -130,21 +133,21 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                 if has_motion_file:
                     self.ui.mandatory_importing.ParseMotion()
 
-                self.ui.thread.SetFunc(self.ui.mandatory_importing.ParsePointCloud)
+                self.ui.thread.SetFunc(self.ui.mandatory_importing.ParsePointCloud, [CONST_IMPORTDATA_TAB])
             elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
                 if has_gnss_file:
                     self.ui.optional_importing.ParseGnss()
                 if has_motion_file:
                     self.ui.optional_importing.ParseMotion()
 
-                self.ui.thread.SetFunc(self.ui.optional_importing.ParsePointCloud)
+                self.ui.thread.SetFunc(self.ui.optional_importing.ParsePointCloud, [CONST_RPH_TAB])
                 self.ui.thread._status = True
             try:
                 self.ui.thread.change_value.disconnect()
             except:
                 pass
             try:
-                self.ui.thread.interation_percentage.disconnect()
+                self.ui.thread.iteration_percentage.disconnect()
             except:
                 pass
             try:
@@ -158,10 +161,10 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
             self.ui.thread.change_value.connect(self.pbar.setValue)
             if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
-                self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
+                self.ui.thread.iteration_percentage.connect(self.ui.importing_tab.IterationPercentage)
                 self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
             elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
-                self.ui.thread.interation_percentage.connect(self.ui.rph_tab.InterationPercentage)
+                self.ui.thread.iteration_percentage.connect(self.ui.rph_tab.IterationPercentage)
                 self.ui.thread.end.connect(self.ui.rph_tab.EndImport)
             self.ui.thread.start()
 
@@ -853,6 +856,14 @@ class EstimateResultLabel(QVBoxLayout):
         self.label_edit_pitch.setText('0.0')
         self.label_edit_pitch.setStyleSheet("background-color: #F0F0F0;")
         self.hbox.addWidget(self.label_edit_pitch)
+
+        self.label_height = QLabel('height [deg]')
+        self.hbox.addWidget(self.label_height)
+        self.label_edit_height = QLineEdit()
+        self.label_edit_height.setReadOnly(True)
+        self.label_edit_height.setText('0.0')
+        self.label_edit_height.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_height)
 
         self.addLayout(self.hbox)
 
