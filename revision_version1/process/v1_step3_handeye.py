@@ -39,7 +39,6 @@ class HandEye:
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         df_info = self.importing.df_info
-        print(vehicle_speed_threshold)
 
         # Limit time
         df_info = df_info.drop(

@@ -18,6 +18,7 @@ import element
 from process import get_result
 from process import v1_step1_configuration
 from process import v1_step2_import_data
+from process import v1_optional_rph
 from process import v1_step3_handeye
 from process import v1_step4_optimization
 from process import v1_step5_evaluation
@@ -35,9 +36,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 CONST_CONFIG = 0
 CONST_IMPORTDATA = 1
-CONST_HANDEYE = 2
-CONST_OPTIMIZATION = 3
-CONST_EVALUATION = 4
+CONST_RPH = 2
+CONST_HANDEYE = 3
+CONST_OPTIMIZATION = 4
+CONST_EVALUATION = 5
 
 CONST_CALIBRATION_RESULT_TAB = 0
 CONST_HANDEYE_EVALUATION_TAB = 1
@@ -61,8 +63,6 @@ CONST_PLAY = 1
 CONST_PAUSE = 2
 
 CONST_CUSTOM = 1
-CONST_HANDEYE = 2
-CONST_OPTIMIZATION = 3
 
 class ConfigurationTab(QWidget):
     def __init__(self, ui):
@@ -235,6 +235,7 @@ class ImportDataTab(QWidget):
         if self.logging_file_path_layout.pbar.value() is not 100:
             self.ui.ErrorPopUp('Please import logging file path')
         else:
+            self.ui.tabs.setTabEnabled(CONST_RPH, True)
             self.ui.tabs.setTabEnabled(CONST_HANDEYE, True)
             self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION, True)
             self.ui.tabs.setCurrentIndex(CONST_HANDEYE)
@@ -430,6 +431,33 @@ class CalibrationTab(QWidget):
         # self.ui.thread.end.connect(end_callback)
         # self.ui.thread.start()
 
+        if calibration_id == CONST_RPH:
+            self.ui.rph_thread._status = True
+            self.ui.rph_thread.SetFunc(calibration,
+                                   [sensor_list, self.using_gnss_motion])
+            try:
+                self.ui.rph_thread.change_value.disconnect()
+            except:
+                pass
+            try:
+                self.ui.rph_thread.interation_percentage.disconnect()
+            except:
+                pass
+            try:
+                self.ui.rph_thread.end.disconnect()
+            except:
+                pass
+            try:
+                self.ui.rph_thread.emit_string.disconnect()
+            except:
+                pass
+
+            # self.ui.rph_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
+            # self.ui.rph_thread.change_value.connect(progress_callbacks[1]) # progress_callback
+
+            self.ui.rph_thread.end.connect(end_callback)
+            self.ui.rph_thread.start()
+
         if calibration_id == CONST_HANDEYE:
             self.ui.handeye_thread._status = True
             self.ui.handeye_thread.SetFunc(calibration,
@@ -494,6 +522,96 @@ class CalibrationTab(QWidget):
             self.using_gnss_motion = False
         elif status == 2:  # Motion Data
             self.using_gnss_motion = True
+
+class RPHTab(CalibrationTab):
+    def __init__(self, ui):
+        super().__init__(ui)
+
+    ## Groupbox
+    def Configuration_SetConfiguration_Groupbox(self):
+        groupbox = QGroupBox('Set Configuration')
+        vbox = QVBoxLayout()
+
+        liDAR_configuration_label = QLabel('[ RPH Configuration ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.minimum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Minimum Threshold X [m]", self.ui)
+        vbox.addLayout(self.minimum_threshold_layout_x)
+
+        self.maximum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Maximum Threshold X [m]", self.ui)
+        vbox.addLayout(self.maximum_threshold_layout_x)
+
+        self.minimum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Minimum Threshold Y [m]", self.ui)
+        vbox.addLayout(self.minimum_threshold_layout_y)
+
+        self.maximum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Maximum Threshold Y [m]", self.ui)
+        vbox.addLayout(self.maximum_threshold_layout_y)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Configuration_Calibration_Groupbox(self):
+        groupbox = QGroupBox('RPH Calibration')
+        vbox = QVBoxLayout(self)
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('Start')
+        btn.clicked.connect(lambda: self.StartCalibration(CONST_RPH,
+                                                          self.ui.rph.Calibration,
+                                                          self.ui.config.PARM_IM['VehicleSpeedThreshold'],
+                                                          self.ui.importing_tab.limit_time_layout.start_time,
+                                                          self.ui.importing_tab.limit_time_layout.end_time,
+                                                          self.ui.config.PARM_LIDAR,
+                                                          [],
+                                                          [],
+                                                          self.EndCalibration))
+        hbox.addWidget(btn)
+
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.Cancel)
+        hbox.addWidget(stop_btn)
+        vbox.addLayout(hbox)
+
+        self.label = QLabel('[ RPH Calibration Progress ]')
+        vbox.addWidget(self.label)
+
+        self.calibration_pbar = QProgressBar(self)
+        vbox.addWidget(self.calibration_pbar)
+
+        self.text_edit = QTextEdit()
+        vbox.addWidget(self.text_edit)
+
+        self.scroll_box = ScrollAreaV()
+        vbox.addWidget(self.scroll_box)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def Cancel(self):
+        self.progress_status = CONST_STOP
+        self.ui.rph_thread.toggle_status()
+
+    def ViewLiDAR(self):
+        if self.progress_status is not CONST_STOP:
+            return False
+        # self.ui.ViewLiDAR(self.ui.handeye.calib_x, self.ui.handeye.calib_y, self.ui.handeye.calib_yaw, self.ui.config.PARM_LIDAR)
+
+    def ViewPointCloud(self):
+        if self.progress_status is not CONST_STOP:
+            return False
+        # df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
+        #                                                                                    self.ui.handeye.PARM_LIDAR,
+        #                                                                                    self.ui.handeye.CalibrationParam,
+        #                                                                                    self.ui.importing_tab.limit_time_layout.start_time,
+        #                                                                                    self.ui.importing_tab.limit_time_layout.end_time)
+        #
+        #
+        # self.ui.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
+
+    def EndCalibration(self):
+        pass
 
 class HandEyeTab(CalibrationTab):
     def __init__(self, ui):
@@ -667,7 +785,6 @@ class HandEyeTab(CalibrationTab):
             self.ui.evaluation_tab.userinterface_labels[idxSensor].spinbox2.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
             self.ui.evaluation_tab.userinterface_labels[idxSensor].spinbox3.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
             self.ui.evaluation_tab.custom_calibration_param[idxSensor] = copy.deepcopy(self.ui.handeye.CalibrationParam[idxSensor])
-
 
     def CopyList(self, source, target):
         keys = list(source.keys())
@@ -1248,6 +1365,7 @@ class MyApp(QMainWindow):
                 sensor_list = sensor_list + ' ' + str(sensor_index)
 
         is_pointcloud = False
+        is_rph = False
         is_handeye = False
         is_single_optimization = False
         is_multi_optimization = False
@@ -1266,13 +1384,13 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'MinThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdDist_m']) + '\n')
             elif 'MaxThresholdDist_m' in line:
                 line = line.replace(line, 'MaxThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdDist_m']) + '\n')
-            elif 'MinThresholdX_m' in line:
+            elif ('MinThresholdX_m') in line and is_pointcloud:
                 line = line.replace(line, 'MinThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdX_m']) + '\n')
-            elif 'MaxThresholdX_m' in line:
+            elif ('MaxThresholdX_m') in line and is_pointcloud:
                 line = line.replace(line, 'MaxThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdX_m']) + '\n')
-            elif 'MinThresholdY_m' in line:
+            elif ('MinThresholdY_m') in line and is_pointcloud:
                 line = line.replace(line, 'MinThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdY_m']) + '\n')
-            elif 'MaxThresholdY_m' in line:
+            elif ('MaxThresholdY_m') in line and is_pointcloud:
                 line = line.replace(line, 'MaxThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdY_m']) + '\n')
             elif 'MinThresholdZ_m' in line:
                 line = line.replace(line, 'MinThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdZ_m']) + '\n')
@@ -1288,6 +1406,16 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
             elif ('VehicleSpeedThreshold' in line) and is_import:
                 line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
+            elif '[RPH]' in line:
+                is_rph = True
+            elif ('MinThresholdX_m') in line and is_rph:
+                line = line.replace(line, 'MinThresholdX_m = ' + str(self.form_widget.config.PARM_RPH['MinThresholdX_m']) + '\n')
+            elif ('MaxThresholdX_m') in line and is_rph:
+                line = line.replace(line, 'MaxThresholdX_m = ' + str(self.form_widget.config.PARM_RPH['MaxThresholdX_m']) + '\n')
+            elif ('MinThresholdY_m') in line and is_rph:
+                line = line.replace(line, 'MinThresholdY_m = ' + str(self.form_widget.config.PARM_RPH['MinThresholdY_m']) + '\n')
+            elif ('MaxThresholdY_m') in line and is_rph:
+                line = line.replace(line, 'MaxThresholdY_m = ' + str(self.form_widget.config.PARM_RPH['MaxThresholdY_m']) + '\n')
             elif '[Handeye]' in line:
                 is_handeye = True
             elif 'MaximumIteration' in line:
@@ -1397,11 +1525,13 @@ class FormWidget(QWidget):
         super(FormWidget, self).__init__(parent)
         self.resize_count = 0
         self.thread = QThread.Thread()
+        self.rph_thread = QThread.Thread()
         self.handeye_thread = QThread.Thread()
         self.opti_thread = QThread.Thread()
 
         self.config = v1_step1_configuration.Configuration()
         self.importing = v1_step2_import_data.Import(self.config)
+        self.rph = v1_optional_rph.RPH(self.config, self.importing)
         self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
         self.optimization = v1_step4_optimization.Optimization(self.config, self.importing)
         self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing)
@@ -1421,6 +1551,7 @@ class FormWidget(QWidget):
 
         self.config_tab = ConfigurationTab(self)
         self.importing_tab = ImportDataTab(self)
+        self.rph_tab = RPHTab(self)
         self.handeye_tab = HandEyeTab(self)
         self.optimization_tab = OptimizationTab(self)
         self.evaluation_tab = EvaluationTab(self)
@@ -1430,6 +1561,9 @@ class FormWidget(QWidget):
 
         self.tabs.addTab(self.importing_tab, '2. Import Data')
         self.tabs.setTabEnabled(CONST_IMPORTDATA, False)
+
+        self.tabs.addTab(self.rph_tab, '(optional) RPH')
+        self.tabs.setTabEnabled(CONST_RPH, False)
 
         self.tabs.addTab(self.handeye_tab, '3. HandEye')
         self.tabs.setTabEnabled(CONST_HANDEYE, False)
@@ -1465,6 +1599,13 @@ class FormWidget(QWidget):
         self.importing_tab.logging_file_path_layout.path_file_str = self.config.PATH['Logging_file_path']
         self.importing_tab.sampling_interval_layout.spin_box.setValue(PARM_IM['SamplingInterval'])
         self.importing_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_IM['VehicleSpeedThreshold'])
+
+        ### Setting rph tab
+        PARM_RPH = self.config.PARM_RPH
+        self.rph_tab.minimum_threshold_layout_x.double_spin_box.setValue(PARM_RPH['MinThresholdX_m'])
+        self.rph_tab.maximum_threshold_layout_x.double_spin_box.setValue(PARM_RPH['MaxThresholdX_m'])
+        self.rph_tab.minimum_threshold_layout_y.double_spin_box.setValue(PARM_RPH['MinThresholdY_m'])
+        self.rph_tab.maximum_threshold_layout_y.double_spin_box.setValue(PARM_RPH['MaxThresholdY_m'])
 
         ### Setting handeye tab
         PARM_HE = self.config.PARM_HE

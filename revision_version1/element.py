@@ -34,6 +34,32 @@ CONST_CUSTOM = 1
 CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
 
+CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE = 1
+CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE = 2
+CONST_CONFIG_MINIMUM_THRESHOLD_X = 3
+CONST_CONFIG_MAXIMUM_THRESHOLD_X = 4
+CONST_CONFIG_MINIMUM_THRESHOLD_Y = 5
+CONST_CONFIG_MAXIMUM_THRESHOLD_Y = 6
+CONST_CONFIG_MINIMUM_THRESHOLD_Z = 7
+CONST_CONFIG_MAXIMUM_THRESHOLD_Z = 8
+
+CONST_IMPORT_VEHICLE_MINIMUM_SPEED = 9
+
+CONST_RPH_MINIMUM_THRESHOLD_X = 10
+CONST_RPH_MAXIMUM_THRESHOLD_X = 11
+CONST_RPH_MINIMUM_THRESHOLD_Y = 12
+CONST_RPH_MAXIMUM_THRESHOLD_Y = 13
+
+CONST_HANDEYE_TOLERANCE = 14
+CONST_HANDEYE_OUTLIER_DISTANCE = 15
+CONST_HANDEYE_HEADING_THRESHOLD = 16
+CONST_HANDEYE_DISTANCE_THRESHOLD = 17
+
+CONST_OPTI_POINT_SAMPLING_RATIO = 18
+CONST_OPTI_OUTLIER_DISTANCE = 19
+
+CONST_EVAL_VEHICLE_MINIMUM_SPEED = 20
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     def __init__(self, label_str, ui):
         super().__init__()
@@ -350,11 +376,15 @@ class CheckButton(QVBoxLayout):
         self.callback()
 
 class SpinBoxLabelLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
+        self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
         self.ui = ui
+        print('Instance number: ' + str(self.id) + ', label string: ' + self.label_str)
 
+        SpinBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -443,12 +473,15 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.ui.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, string, ui):
         super().__init__()
+        self.id = DoubleSpinBoxLabelLayout.instance_number
         self.label_str = string
         self.ui = ui
         self.text = ''
 
+        DoubleSpinBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -472,41 +505,50 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
 
     def DoubleSpinBoxChanged(self):
         self.ui.value_changed = True
-        if self.label_str == 'Minimum Threshold Distance [m]':
+        if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
             self.ui.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Distance [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE:  # Configuration tab Maximum Threshold Distance [m]
             self.ui.config.PARM_PC['MaxThresholdDist_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold X [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_X:  # Configuration tab Minimum Threshold X [m]
             self.ui.config.PARM_PC['MinThresholdX_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold X [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_X:  # Configuration tab Maximum Threshold X [m]
             self.ui.config.PARM_PC['MaxThresholdX_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold Y [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Y:  # Configuration tab Minimum Threshold Y [m]
             self.ui.config.PARM_PC['MinThresholdY_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Y [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Y:  # Configuration tab Maximum Threshold Y [m]
             self.ui.config.PARM_PC['MaxThresholdY_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold Z [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Z [m]
             self.ui.config.PARM_PC['MinThresholdZ_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Z [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Distance [m]
             self.ui.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Vehicle Minimum Speed [km/h]':
+        elif self.id == CONST_IMPORT_VEHICLE_MINIMUM_SPEED :  # Import tab Vehicle Minimum Speed [km/h]
             self.ui.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Tolerance':
+        elif self.id == CONST_RPH_MINIMUM_THRESHOLD_X:  # RPH tab Minimum Threshold X [m]
+            self.ui.config.PARM_RPH['MinThresholdX_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MAXIMUM_THRESHOLD_X:  # RPH tab Maximum Threshold X [m]
+            self.ui.config.PARM_RPH['MaxThresholdX_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MINIMUM_THRESHOLD_Y:  # RPH tab Minimum Threshold Y [m]
+            self.ui.config.PARM_RPH['MinThresholdY_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MAXIMUM_THRESHOLD_Y:  # RPH tab Maximum Threshold Y [m]
+            self.ui.config.PARM_RPH['MaxThresholdY_m'] = self.double_spin_box.value()
+
+        elif self.id == CONST_HANDEYE_TOLERANCE:  # Handeye tab Tolerance
             self.ui.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
-        elif self.label_str == 'Outlier Distance [m]':
+        elif self.id == CONST_HANDEYE_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
             self.ui.config.PARM_HE['OutlierDistance_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Heading Threshold (filter)':
+        elif self.id == CONST_HANDEYE_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
             self.ui.config.PARM_HE['filter_HeadingThreshold'] = self.double_spin_box.value()
-        elif self.label_str == 'Distance Threshold (filter)':
+        elif self.id == CONST_HANDEYE_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
             self.ui.config.PARM_HE['filter_DistanceThreshold'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Point Sampling Ratio':
+        elif self.id == CONST_OPTI_POINT_SAMPLING_RATIO:  # Optimization tab Point Sampling Ratio
             self.ui.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
-        elif self.label_str == 'Outlier Distance [m]':
+        elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # Optimization tab Outlier Distance [m]
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Eval Vehicle Minimum Speed [km/h]':
+        elif self.id == CONST_EVAL_VEHICLE_MINIMUM_SPEED:  # Evaluation tab Eval Vehicle Minimum Speed [km/h]
             self.ui.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):
