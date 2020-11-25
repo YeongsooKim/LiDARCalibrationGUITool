@@ -13,7 +13,6 @@ import configparser
 import math
 import numpy as np
 import scipy.optimize
-# import pcl
 
 
 # User defined modules
@@ -47,9 +46,9 @@ class RPH:
         self.result_calibration_config_file = ''
 
         # Parameter
-        self.CalibrationParam = {}
+        self.EstimateResult = {}
 
-    def fitPLaneLTSQ(XYZ):
+    def fitPLaneLTSQ(self, XYZ):
         # Fits a plane to a point cloud,
         # Where Z = aX + bY + c        ----Eqn #1
         # Rearanging Eqn1: aX + bY -Z +c =0
@@ -66,7 +65,7 @@ class RPH:
         normal = normal / nn
         return normal
 
-    def fitPlaneSVD(XYZ):
+    def fitPlaneSVD(self, XYZ):
         [rows, cols] = XYZ.shape
         # Set up constraint equations of the form  AB = 0,
         # where B is a column vector of the plane coefficients
@@ -79,7 +78,7 @@ class RPH:
         B = B / nn
         return B[0:3]
 
-    def fitPlaneEigen(XYZ):
+    def fitPlaneEigen(self, XYZ):
         # Works, in this case but don't understand!
         average = sum(XYZ) / XYZ.shape[0]
         covariant = np.cov(XYZ - average)
@@ -90,7 +89,7 @@ class RPH:
         nn = np.linalg.norm(normal)
         return normal / nn
 
-    def fitPlaneSolve(XYZ):
+    def fitPlaneSolve(self, XYZ):
         X = XYZ[:, 0]
         Y = XYZ[:, 1]
         Z = XYZ[:, 2]
@@ -104,7 +103,7 @@ class RPH:
         normal = normal / nn
         return normal.ravel()
 
-    def fitPlaneOptimize(XYZ):
+    def fitPlaneOptimize(self, XYZ):
         def residiuals(parameter, f, x, y):
             return [(f[i] - model(parameter, x[i], y[i])) for i in range(len(f))]
 
@@ -122,73 +121,7 @@ class RPH:
         normal = normal / nn
         return normal
 
-    # def Plane_model_segmentation():
-    #
-    #     ###
-    #     cloud = pcl.PointCloud()
-    #
-    #     points = np.zeros((15, 3), dtype=np.float32)
-    #     RAND_MAX = 1024.0
-    #     for i in range(0, 15):
-    #         points[i][0] = 1024 * random.random() / (RAND_MAX + 1.0)
-    #         points[i][1] = 1024 * random.random() / (RAND_MAX + 1.0)
-    #         points[i][2] = 1.0
-    #
-    #     points[0][2] = 2.0
-    #     points[3][2] = -2.0
-    #     points[6][2] = 4.0
-    #
-    #     cloud.from_array(points)
-    #
-    #     #   std::cerr << "Point cloud data: " << cloud->points.size () << " points" << std::endl;
-    #     #   for (size_t i = 0; i < cloud->points.size (); ++i)
-    #     #     std::cerr << "    " << cloud->points[i].x << " "
-    #     #                         << cloud->points[i].y << " "
-    #     #                         << cloud->points[i].z << std::endl;
-    #     #
-    #     print('Point cloud data: ' + str(cloud.size) + ' points')
-    #     for i in range(0, cloud.size):
-    #         print('x: ' + str(cloud[i][0]) + ', y : ' +
-    #               str(cloud[i][1]) + ', z : ' + str(cloud[i][2]))
-    #
-    #     seg = cloud.make_segmenter_normals(ksearch=50)
-    #     seg.set_optimize_coefficients(True)
-    #     seg.set_model_type(pcl.SACMODEL_NORMAL_PLANE)
-    #     seg.set_method_type(pcl.SAC_RANSAC)
-    #     seg.set_distance_threshold(0.01)
-    #     seg.set_normal_distance_weight(0.01)
-    #     seg.set_max_iterations(100)
-    #     indices, coefficients = seg.segment()
-    #
-    #     #   if (inliers->indices.size () == 0)
-    #     #   {
-    #     #     PCL_ERROR ("Could not estimate a planar model for the given dataset.");
-    #     #     return (-1);
-    #     #   }
-    #     #   std::cerr << "Model coefficients: " << coefficients->values[0] << " "
-    #     #                                       << coefficients->values[1] << " "
-    #     #                                       << coefficients->values[2] << " "
-    #     #                                       << coefficients->values[3] << std::endl;
-    #     ###
-    #     if len(indices) == 0:
-    #         print('Could not estimate a planar model for the given dataset.')
-    #         exit(0)
-    #
-    #     print('Model coefficients: ' + str(coefficients[0]) + ' ' + str(
-    #         coefficients[1]) + ' ' + str(coefficients[2]) + ' ' + str(coefficients[3]))
-    #
-    #     #   std::cerr << "Model inliers: " << inliers->indices.size () << std::endl;
-    #     #   for (size_t i = 0; i < inliers->indices.size (); ++i)
-    #     #     std::cerr << inliers->indices[i] << "    " << cloud->points[inliers->indices[i]].x << " "
-    #     #                                                << cloud->points[inliers->indices[i]].y << " "
-    #     #                                                << cloud->points[inliers->indices[i]].z << std::endl;
-    #     ###
-    #     print('Model inliers: ' + str(len(indices)))
-    #     for i in range(0, len(indices)):
-    #         print(str(indices[i]) + ', x: ' + str(cloud[indices[i]][0]) + ', y : ' +
-    #               str(cloud[indices[i]][1]) + ', z : ' + str(cloud[indices[i]][2]))
-
-    def find_plane(pcd):
+    def find_plane(self, pcd):
         # xyz = np.asarray(pcd.points)
         xyz = np.asarray(pcd)
 
@@ -204,7 +137,7 @@ class RPH:
         print(a, b, d)
         return a, b, d  # Z = aX + bY + d
 
-    def angle_rotate(a, b, d):
+    def angle_rotate(self, a, b, d):
         x = np.arange(30)
         y = np.arange(30)
         X, Y = np.meshgrid(x, y)
@@ -212,7 +145,7 @@ class RPH:
         rad = math.atan2(Y[1][0] - Y[0][0], (Z[1][0] - Z[0][0]))
         return rad - math.pi
 
-    def show_graph(X, Y, Z):
+    def show_graph(self, X, Y, Z):
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         ax.plot_surface(X, Y, Z)
@@ -402,5 +335,11 @@ class RPH:
 
             thread.emit_string.emit('Complete estimate lidar {} calibration'.format(idxSensor))
 
+            estimate = []
+            estimate.append(roll_deg[idxSensor])
+            estimate.append(pitch_deg[idxSensor])
+            self.EstimateResult[idxSensor] = estimate
 
+        self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
         thread.mutex.unlock()
+        print('Complete Estimating RPH')

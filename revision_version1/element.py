@@ -24,12 +24,6 @@ CONST_RED = 1
 CONST_LIDAR = 0
 CONST_GNSS = 1
 
-CONST_CONFIG = 0
-CONST_IMPORTDATA = 1
-CONST_HANDEYE = 2
-CONST_OPTIMIZATION = 3
-CONST_EVALUATION = 4
-
 CONST_CUSTOM = 1
 CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
@@ -60,15 +54,21 @@ CONST_OPTI_OUTLIER_DISTANCE = 19
 
 CONST_EVAL_VEHICLE_MINIMUM_SPEED = 20
 
+CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT = 1
+CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT = 2
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
+        self.id = FileInputWithCheckBtnLayout.instance_number
         self.label_str = label_str
         self.path_file_str = ''
         self.ui = ui
         self.parsed_bin = ''
         self.END_LINE_INDEX = 15
 
+        FileInputWithCheckBtnLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -124,13 +124,21 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.GeneratePointCloudBtn()
 
         if (has_gnss_file or has_motion_file) and has_pointcloud_file:
-            if has_gnss_file:
-                self.ui.importing.ParseGnss()
-            if has_motion_file:
-                self.ui.importing.ParseMotion()
+            if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                if has_gnss_file:
+                    self.ui.mandatory_importing.ParseGnss()
+                if has_motion_file:
+                    self.ui.mandatory_importing.ParseMotion()
 
-            self.ui.thread._status = True
-            self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
+                self.ui.thread.SetFunc(self.ui.mandatory_importing.ParsePointCloud)
+            elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                if has_gnss_file:
+                    self.ui.optional_importing.ParseGnss()
+                if has_motion_file:
+                    self.ui.optional_importing.ParseMotion()
+
+                self.ui.thread.SetFunc(self.ui.optional_importing.ParsePointCloud)
+                self.ui.thread._status = True
             try:
                 self.ui.thread.change_value.disconnect()
             except:
@@ -149,8 +157,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                 pass
 
             self.ui.thread.change_value.connect(self.pbar.setValue)
-            self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
-            self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
+            if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
+                self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
+            elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                self.ui.thread.interation_percentage.connect(self.ui.rph_tab.InterationPercentage)
+                self.ui.thread.end.connect(self.ui.rph_tab.EndImport)
             self.ui.thread.start()
 
         self.ui.config_tab.is_lidar_num_changed = False
@@ -181,60 +193,117 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         QMessageBox.information(widget, 'Information', error_message)
 
     def CheckGnssFile(self):
-        self.ui.importing.gnss_logging_file = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
-        has_gnss_file = True
-        if not os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
-            has_gnss_file = False
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+            has_gnss_file = True
+            if not os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Gnss.csv') == True:
+                has_gnss_file = False
 
-        has_motion_file = True
-        if not os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv') == True:
-            has_motion_file = False
+            has_motion_file = True
+            if not os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Motion.csv') == True:
+                has_motion_file = False
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.gnss_scroll_box.layout)
+            has_gnss_file = True
+            if not os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Gnss.csv') == True:
+                has_gnss_file = False
+
+            has_motion_file = True
+            if not os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Motion.csv') == True:
+                has_motion_file = False
 
         return has_gnss_file, has_motion_file
 
     def CheckPointCloudFile(self):
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
-        has_pointcloud_file = True
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            if not os.path.isfile(self.ui.importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
-                has_pointcloud_file = False
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+            has_pointcloud_file = True
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if not os.path.isfile(self.ui.mandatory_importing.point_cloud_logging_path + '/PointCloud_' + str(
+                        idxSensor) + '.bin') == True:
+                    has_pointcloud_file = False
+
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.lidar_scroll_box.layout)
+            has_pointcloud_file = True
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if not os.path.isfile(self.ui.optional_importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
+                    has_pointcloud_file = False
 
         return has_pointcloud_file
 
     def GenerateCSVBtn(self):
-        self.ui.importing.gnss_logging_file = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
-            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
-        else:
-            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+            if os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Gnss.csv') == True:
+                self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            else:
+                self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
 
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv') == True:
-            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
-        else:
-            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            if os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Motion.csv') == True:
+                self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            else:
+                self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.gnss_scroll_box.layout)
+            if os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Gnss.csv') == True:
+                self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            else:
+                self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+
+            if os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Motion.csv') == True:
+                self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            else:
+                self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
 
     def GeneratePointCloudBtn(self):
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
-        self.lidar_buttons = {}
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            if os.path.isfile(self.ui.importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
-                ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'])
-                self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
-            else:
-                ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR, self.ui.config.PATH['Image_path'])
-                self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+            self.lidar_buttons = {}
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if os.path.isfile(self.ui.mandatory_importing.point_cloud_logging_path + '/PointCloud_' + str(
+                        idxSensor) + '.bin') == True:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
+                                 self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+                else:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
+                                 self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.lidar_scroll_box.layout)
+            self.lidar_buttons = {}
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if os.path.isfile(self.ui.optional_importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.rph_tab.lidar_scroll_box.layout.addWidget(btn)
+                else:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR, self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.rph_tab.lidar_scroll_box.layout.addWidget(btn)
 
 class CheckBoxListLayout(QVBoxLayout):
     instance_num = 1
@@ -382,7 +451,6 @@ class SpinBoxLabelLayout(QVBoxLayout):
         self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
         self.ui = ui
-        print('Instance number: ' + str(self.id) + ', label string: ' + self.label_str)
 
         SpinBoxLabelLayout.instance_number += 1
         self.InitUi()
@@ -457,7 +525,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
 
-            ## Add Reset result label in handeye tab, optimization tab and evaulation tab
+            ## Add Reset result label in rph tab, handeye tab, optimization tab and evaulation tab
             self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
 
         elif self.label_str == 'Sampling Interval [Count]':
@@ -758,6 +826,35 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180.0
 
         self.ui.evaluation_tab.DisplayCalibrationGraph()
+
+class EstimateResultLabel(QVBoxLayout):
+    def __init__(self, idxSensor):
+        super().__init__()
+        self.idxSensor = idxSensor
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.label = QLabel('LiDAR {}'.format(self.idxSensor))
+        self.addWidget(self.label)
+        self.hbox = QHBoxLayout()
+        self.label_roll = QLabel('roll [deg]')
+        self.hbox.addWidget(self.label_roll)
+        self.label_edit_roll = QLineEdit()
+        self.label_edit_roll.setReadOnly(True)
+        self.label_edit_roll.setText('0.0')
+        self.label_edit_roll.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_roll)
+
+        self.label_pitch = QLabel('pitch [deg]')
+        self.hbox.addWidget(self.label_pitch)
+        self.label_edit_pitch = QLineEdit()
+        self.label_edit_pitch.setReadOnly(True)
+        self.label_edit_pitch.setText('0.0')
+        self.label_edit_pitch.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_pitch)
+
+        self.addLayout(self.hbox)
 
 class CalibrationResultLabel(QVBoxLayout):
     def __init__(self, idxSensor):

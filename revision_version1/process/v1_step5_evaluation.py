@@ -26,6 +26,13 @@ class Evaluation:
         end_time = args[1]
         PARM_LIDAR = args[2]
         CalibrationParam = copy.deepcopy(args[3])
+
+        print("evaluation")
+        print(start_time)
+        print(end_time)
+        print(PARM_LIDAR)
+        print(CalibrationParam)
+
         # Get calibration data
         tmp_df_info = copy.deepcopy(self.importing.df_info)
 
