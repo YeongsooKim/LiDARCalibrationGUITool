@@ -906,7 +906,6 @@ class CalibrationResultEditLabel2(QVBoxLayout):
     def InitUi(self):
         self.addLayout(self.layer1())
         self.addLayout(self.layer2())
-        self.addLayout(self.layer3())
 
     def layer1(self):
         hbox = QHBoxLayout()
@@ -921,37 +920,6 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         return hbox
 
     def layer2(self):
-        hbox = QHBoxLayout()
-        label = QLabel('Roll [deg]')
-        hbox.addWidget(label)
-
-        self.double_spin_box_roll = QDoubleSpinBox()
-        self.double_spin_box_roll.setSingleStep(0.01)
-        self.double_spin_box_roll.setMaximum(10000.0)
-        self.double_spin_box_roll.setMinimum(-10000.0)
-        hbox.addWidget(self.double_spin_box_roll)
-
-        label = QLabel('Pitch [deg]')
-        hbox.addWidget(label)
-
-        self.double_spin_box_pitch = QDoubleSpinBox()
-        self.double_spin_box_pitch.setSingleStep(0.01)
-        self.double_spin_box_pitch.setMaximum(10000.0)
-        self.double_spin_box_pitch.setMinimum(-10000.0)
-        hbox.addWidget(self.double_spin_box_pitch)
-
-        label = QLabel('Yaw [deg]')
-        hbox.addWidget(label)
-
-        self.double_spin_box_yaw = QDoubleSpinBox()
-        self.double_spin_box_yaw.setSingleStep(0.01)
-        self.double_spin_box_yaw.setMaximum(10000.0)
-        self.double_spin_box_yaw.setMinimum(-10000.0)
-        hbox.addWidget(self.double_spin_box_yaw)
-
-        return hbox
-
-    def layer3(self):
         hbox = QHBoxLayout()
         label = QLabel('X [m]')
         hbox.addWidget(label)
@@ -971,39 +939,33 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         self.double_spin_box_y.setMinimum(-10000.0)
         hbox.addWidget(self.double_spin_box_y)
 
-        label = QLabel('Z [m]')
+        label = QLabel('Yaw [deg]')
         hbox.addWidget(label)
 
-        self.double_spin_box_z = QDoubleSpinBox()
-        self.double_spin_box_z.setSingleStep(0.01)
-        self.double_spin_box_z.setMaximum(10000.0)
-        self.double_spin_box_z.setMinimum(-10000.0)
-        hbox.addWidget(self.double_spin_box_z)
+        self.double_spin_box_yaw = QDoubleSpinBox()
+        self.double_spin_box_yaw.setSingleStep(0.01)
+        self.double_spin_box_yaw.setMaximum(10000.0)
+        self.double_spin_box_yaw.setMinimum(-10000.0)
+        hbox.addWidget(self.double_spin_box_yaw)
+
         return hbox
 
     def SetCaliPARM(self):
         if self.calibration_param.get(self.idxSensor) == None:
             return False
 
-        roll_deg = self.double_spin_box_roll.value()
-        pitch_deg = self.double_spin_box_pitch.value()
-        yaw_deg = self.double_spin_box_yaw.value()
         x = self.double_spin_box_x.value()
         y = self.double_spin_box_y.value()
-        z = self.double_spin_box_z.value()
-        self.calibration_param[self.idxSensor][0] = roll_deg * math.pi / 180.0
-        self.calibration_param[self.idxSensor][1] = pitch_deg * math.pi / 180.0
+        yaw_deg = self.double_spin_box_yaw.value()
         self.calibration_param[self.idxSensor][2] = yaw_deg * math.pi / 180.0
         self.calibration_param[self.idxSensor][3] = x
         self.calibration_param[self.idxSensor][4] = y
-        self.calibration_param[self.idxSensor][5] = z
 
-        self.ui.optimization.initial_calibration_param[self.idxSensor] = copy.deepcopy(self.calibration_param[self.idxSensor])
+        self.ui.optimization.CalibrationParam[self.idxSensor] = copy.deepcopy(self.calibration_param[self.idxSensor])
 
         lidar = 'Set Lidar {} initial value\n'.format(self.idxSensor)
-        roll_pitch_yaw = 'Roll: ' + str(round(roll_deg, 2)) + ' [Deg], Pitch: ' + str(round(pitch_deg, 2)) + ' [Deg], Yaw: ' + str(round(yaw_deg, 2)) + ' [Deg]\n'
-        x_y_z = 'X: ' + str(round(x, 2)) + ' [m], Y: ' + str(round(y, 2)) + ' [m], Z: ' + str(round(z, 2)) + ' [m]\n'
-        message = lidar + roll_pitch_yaw + x_y_z
+        changed_value = 'X: ' + str(round(x, 2)) + ' [m], Y: ' + str(round(y, 2)) + ' [m], Yaw: ' + str(round(yaw_deg, 2)) + ' [Deg]\n'
+        message = lidar + changed_value
 
         self.PopUp(message)
 

@@ -828,7 +828,6 @@ class HandEyeTab(CalibrationTab):
                                                                                            copy.deepcopy(self.ui.importing_tab.limit_time_layout.start_time),
                                                                                            copy.deepcopy(self.ui.importing_tab.limit_time_layout.end_time))
         # Handeye tab
-
         ## Set 'Result Calibration Data'
         for idxSensor in self.ui.handeye.PARM_LIDAR['CheckedSensorList']:
             self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 2)))
@@ -848,22 +847,17 @@ class HandEyeTab(CalibrationTab):
 
 
         # Optimization tab
-
         ## Set 'Optimization Initial Value'
         for idxSensor in self.ui.handeye.PARM_LIDAR['CheckedSensorList']:
-            self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_roll.setValue(self.ui.handeye.CalibrationParam[idxSensor][0] * 180 / math.pi)
-            self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_pitch.setValue(self.ui.handeye.CalibrationParam[idxSensor][1] * 180 / math.pi)
-            self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_x.setValue(self.ui.handeye.CalibrationParam[idxSensor][3])
             self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_y.setValue(self.ui.handeye.CalibrationParam[idxSensor][4])
-            self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_z.setValue(self.ui.handeye.CalibrationParam[idxSensor][5])
+            self.ui.optimization_tab.handeye_result_labels[idxSensor].double_spin_box_yaw.setValue(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi)
 
         ## Transfer
         self.ui.optimization.CalibrationParam = copy.deepcopy(self.ui.handeye.CalibrationParam)
 
 
         # Evaluation tab
-
         ## Set 'Select The Method'
         for idxSensor in self.ui.handeye.PARM_LIDAR['CheckedSensorList']:
             self.ui.evaluation_tab.userinterface_labels[idxSensor].button_group.button(CONST_HANDEYE).setChecked(True)
@@ -1737,13 +1731,13 @@ class FormWidget(QWidget):
                                calibration_param=self.handeye.CalibrationParam)
 
         # reset optimization initial value of handeye
-        self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.optimization_tab.optimization_initial_value_tab.user_define_scroll_box.layout,
-                               self.optimization_tab.user_define_initial_labels,
-                               calibration_param=self.config.CalibrationParam)
-        # reset optimization initial value of custom
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.optimization_tab.optimization_initial_value_tab.handeye_scroll_box.layout,
                                self.optimization_tab.handeye_result_labels,
                                calibration_param=self.optimization_tab.edit_handeye_calibration_parm)
+        # reset optimization initial value of custom
+        self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.optimization_tab.optimization_initial_value_tab.user_define_scroll_box.layout,
+                               self.optimization_tab.user_define_initial_labels,
+                               calibration_param=self.config.CalibrationParam)
 
     def ResetResultsLabel(self, label_type, PARM_LIDAR, layout, labels, calibration_param=None, estimate_result=None):
         self.RemoveLayout(layout)
@@ -1767,12 +1761,9 @@ class FormWidget(QWidget):
             elif label_type is CONST_EDITABLE_LABEL2:
                 result_label = element.CalibrationResultEditLabel2(idxSensor, calibration_param, self)
                 if calibration_param.get(idxSensor) is not None:
-                    result_label.double_spin_box_roll.setValue(calibration_param[idxSensor][0] * 180.0 / math.pi)
-                    result_label.double_spin_box_pitch.setValue(calibration_param[idxSensor][1] * 180.0 / math.pi)
-                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180.0 / math.pi)
                     result_label.double_spin_box_x.setValue(calibration_param[idxSensor][3])
                     result_label.double_spin_box_y.setValue(calibration_param[idxSensor][4])
-                    result_label.double_spin_box_z.setValue(calibration_param[idxSensor][5])
+                    result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180.0 / math.pi)
             labels[idxSensor] = result_label
             layout.addLayout(result_label)
         layout.addStretch(1)
