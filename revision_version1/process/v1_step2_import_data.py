@@ -28,6 +28,7 @@ class Import:
         self.DefaultStartTime = 0.0
         self.DefaultEndTime = 0.0
         self.PointCloudSensorList = {}
+        self.is_complete = False
 
         # Progress display
         self.progress = 0.0
@@ -108,11 +109,13 @@ class Import:
 
                 # pbar.set_description('PointCloud_' + str(idxSensor) + '.bin')
 
+                if df_pointcloud['num_points'].values[i] == 0:
+                    index = index + 1
+                    continue
+
                 # Get point cloud
-                arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i],
-                                                      df_pointcloud['file_pointer'].values[i])
-                tmpXYZ = np.sqrt(
-                    np.power(arrPoint[:, 0:1], 2) + np.power(arrPoint[:, 1:2], 2) + np.power(arrPoint[:, 2:3], 2))
+                arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i], df_pointcloud['file_pointer'].values[i])
+                tmpXYZ = np.sqrt(np.power(arrPoint[:, 0:1], 2) + np.power(arrPoint[:, 1:2], 2) + np.power(arrPoint[:, 2:3], 2))
 
                 # Check parameter
                 remove_filter = tmpXYZ < float(self.config.PARM_PC['MinThresholdDist_m'])
@@ -145,6 +148,8 @@ class Import:
             self.df_info = pd.concat([self.df_info, df_pointcloud_idx], axis=1)
 
             p_index = p_index + 1.0
+
+            self.is_complete = True
 
         self.text_pointcloud = df_pointcloud
         # -----------------------------------------------------------------------------------------------------------------------------

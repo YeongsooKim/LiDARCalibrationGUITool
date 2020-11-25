@@ -24,25 +24,51 @@ CONST_RED = 1
 CONST_LIDAR = 0
 CONST_GNSS = 1
 
-CONST_CONFIG = 0
-CONST_IMPORTDATA = 1
-CONST_HANDEYE = 2
-CONST_OPTIMIZATION = 3
-CONST_EVALUATION = 4
-
 CONST_CUSTOM = 1
 CONST_HANDEYE = 2
 CONST_OPTIMIZATION = 3
 
+CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE = 1
+CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE = 2
+CONST_CONFIG_MINIMUM_THRESHOLD_X = 3
+CONST_CONFIG_MAXIMUM_THRESHOLD_X = 4
+CONST_CONFIG_MINIMUM_THRESHOLD_Y = 5
+CONST_CONFIG_MAXIMUM_THRESHOLD_Y = 6
+CONST_CONFIG_MINIMUM_THRESHOLD_Z = 7
+CONST_CONFIG_MAXIMUM_THRESHOLD_Z = 8
+
+CONST_IMPORT_VEHICLE_MINIMUM_SPEED = 9
+
+CONST_RPH_MINIMUM_THRESHOLD_X = 10
+CONST_RPH_MAXIMUM_THRESHOLD_X = 11
+CONST_RPH_MINIMUM_THRESHOLD_Y = 12
+CONST_RPH_MAXIMUM_THRESHOLD_Y = 13
+
+CONST_HANDEYE_TOLERANCE = 14
+CONST_HANDEYE_OUTLIER_DISTANCE = 15
+CONST_HANDEYE_HEADING_THRESHOLD = 16
+CONST_HANDEYE_DISTANCE_THRESHOLD = 17
+
+CONST_OPTI_POINT_SAMPLING_RATIO = 18
+CONST_OPTI_OUTLIER_DISTANCE = 19
+
+CONST_EVAL_VEHICLE_MINIMUM_SPEED = 20
+
+CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT = 1
+CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT = 2
+
 class FileInputWithCheckBtnLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
+        self.id = FileInputWithCheckBtnLayout.instance_number
         self.label_str = label_str
         self.path_file_str = ''
         self.ui = ui
         self.parsed_bin = ''
         self.END_LINE_INDEX = 15
 
+        FileInputWithCheckBtnLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -73,19 +99,46 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.label_edit.setText(self.path_file_str)
 
     def ImportFile(self):
-        has_file = self.CheckGnssFile()
-        if has_file:
-            self.ui.importing.ParseGnss()
+        has_gnss_file, has_motion_file = self.CheckGnssFile()
+        has_pointcloud_file = self.CheckPointCloudFile()
+
+        if not has_gnss_file:
+            self.ui.ErrorPopUp('Gnss.csv is missing')
+        if not has_motion_file:
+            self.ui.ErrorPopUp('Motion.csv is missing')
+        if not has_pointcloud_file:
+            self.ui.ErrorPopUp('PointCloud.bin is missing')
+
+        self.label_edit.setText(self.path_file_str)
+        self.GenerateCSVBtn()
+        if has_gnss_file:
             self.gnss_button.setText('Gnss.csv 100%')
+        else:
+            self.gnss_button.setText('Gnss.csv 0%')
 
-            self.ui.importing.ParseMotion()
+        if has_motion_file:
             self.motion_button.setText('Motion.csv 100%')
-            self.label_edit.setText(self.path_file_str)
+        else:
+            self.motion_button.setText('Motion.csv 0%')
 
-        has_file = self.CheckPointCloudFile()
-        if has_file:
-            self.ui.thread._status = True
-            self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
+        self.GeneratePointCloudBtn()
+
+        if (has_gnss_file or has_motion_file) and has_pointcloud_file:
+            if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                if has_gnss_file:
+                    self.ui.mandatory_importing.ParseGnss()
+                if has_motion_file:
+                    self.ui.mandatory_importing.ParseMotion()
+
+                self.ui.thread.SetFunc(self.ui.mandatory_importing.ParsePointCloud)
+            elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                if has_gnss_file:
+                    self.ui.optional_importing.ParseGnss()
+                if has_motion_file:
+                    self.ui.optional_importing.ParseMotion()
+
+                self.ui.thread.SetFunc(self.ui.optional_importing.ParsePointCloud)
+                self.ui.thread._status = True
             try:
                 self.ui.thread.change_value.disconnect()
             except:
@@ -104,8 +157,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                 pass
 
             self.ui.thread.change_value.connect(self.pbar.setValue)
-            self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
-            self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
+            if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                self.ui.thread.interation_percentage.connect(self.ui.importing_tab.InterationPercentage)
+                self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
+            elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+                self.ui.thread.interation_percentage.connect(self.ui.rph_tab.InterationPercentage)
+                self.ui.thread.end.connect(self.ui.rph_tab.EndImport)
             self.ui.thread.start()
 
         self.ui.config_tab.is_lidar_num_changed = False
@@ -136,74 +193,117 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         QMessageBox.information(widget, 'Information', error_message)
 
     def CheckGnssFile(self):
-        self.ui.importing.gnss_logging_file = self.path_file_str
-        self.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
-        has_gnss_file = True
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
-            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
-        else:
-            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
-            has_gnss_file = False
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+            has_gnss_file = True
+            if not os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Gnss.csv') == True:
+                has_gnss_file = False
 
-        has_motion_file = True
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv') == True:
-            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
-        else:
-            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
-            has_motion_file = False
+            has_motion_file = True
+            if not os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Motion.csv') == True:
+                has_motion_file = False
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.gnss_scroll_box.layout)
+            has_gnss_file = True
+            if not os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Gnss.csv') == True:
+                has_gnss_file = False
 
-        if has_gnss_file and has_motion_file:
-            return True
-        else:
-            return False
+            has_motion_file = True
+            if not os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Motion.csv') == True:
+                has_motion_file = False
+
+        return has_gnss_file, has_motion_file
 
     def CheckPointCloudFile(self):
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
-        self.exist_arr = []
-        self.lidar_buttons = {}
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            if os.path.isfile(
-                    self.ui.importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
-                ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
-                             self.ui.config.PATH['Image_path'])
-                self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+            has_pointcloud_file = True
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if not os.path.isfile(self.ui.mandatory_importing.point_cloud_logging_path + '/PointCloud_' + str(
+                        idxSensor) + '.bin') == True:
+                    has_pointcloud_file = False
 
-                ## Error check
-                self.exist_arr.append(1)
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.lidar_scroll_box.layout)
+            has_pointcloud_file = True
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if not os.path.isfile(self.ui.optional_importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
+                    has_pointcloud_file = False
+
+        return has_pointcloud_file
+
+    def GenerateCSVBtn(self):
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
+            if os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Gnss.csv') == True:
+                self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
             else:
-                ## Add button
-                btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
-                             self.ui.config.PATH['Image_path'])
-                self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+                self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
 
-                ## Error check
-                self.exist_arr.append(0)
-
-        non_error = True
-        for i in self.exist_arr:
-            non_error = non_error * i
-
-        return non_error
-
-    def RemoveLayout(self, target):
-        while target.count():
-            item = target.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+            if os.path.isfile(self.ui.mandatory_importing.gnss_logging_file + '/Motion.csv') == True:
+                self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
             else:
-                self.RemoveLayout(item)
+                self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.gnss_logging_file = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.gnss_scroll_box.layout)
+            if os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Gnss.csv') == True:
+                self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            else:
+                self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
 
-        layout = target.itemAt(0)
-        target.removeItem(layout)
+            if os.path.isfile(self.ui.optional_importing.gnss_logging_file + '/Motion.csv') == True:
+                self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            else:
+                self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
+                self.ui.rph_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+
+    def GeneratePointCloudBtn(self):
+        if self.id == CONST_IMPORT_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.mandatory_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+            self.lidar_buttons = {}
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if os.path.isfile(self.ui.mandatory_importing.point_cloud_logging_path + '/PointCloud_' + str(
+                        idxSensor) + '.bin') == True:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
+                                 self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+                else:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
+                                 self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+        elif self.id == CONST_RPH_FILE_INPUT_WITH_CHECK_BTN_LAYOUT:
+            self.ui.optional_importing.point_cloud_logging_path = self.path_file_str
+            self.ui.RemoveLayout(self.ui.rph_tab.lidar_scroll_box.layout)
+            self.lidar_buttons = {}
+            for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
+                if os.path.isfile(self.ui.optional_importing.point_cloud_logging_path + '/PointCloud_' + str(idxSensor) + '.bin') == True:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR, self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.rph_tab.lidar_scroll_box.layout.addWidget(btn)
+                else:
+                    ## Add button
+                    btn = Button('PointCloud {}'.format(idxSensor), CONST_RED, CONST_LIDAR, self.ui.config.PATH['Image_path'])
+                    self.lidar_buttons[idxSensor] = btn
+                    self.ui.rph_tab.lidar_scroll_box.layout.addWidget(btn)
 
 class CheckBoxListLayout(QVBoxLayout):
     instance_num = 1
@@ -236,7 +336,7 @@ class CheckBoxListLayout(QVBoxLayout):
         self.LiDAR_list.clear()
         self.lidar_buttons.clear()
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
-            self.RemoveLayout(self.config_scroll_box.layout)
+            self.ui.RemoveLayout(self.config_scroll_box.layout)
         else:
             listItems = self.listWidget.count()
             if not listItems == 0:
@@ -314,22 +414,10 @@ class CheckBoxListLayout(QVBoxLayout):
                 self.ui.config.PARM_LIDAR['PrincipalSensor'] = None
 
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-            self.ui.ResetResultsLabels()
+            self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
 
     def SetPrincipalSensor(self):
         self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
-
-    def RemoveLayout(self, target):
-        while target.count():
-            item = target.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-            else:
-                self.RemoveLayout(item)
-
-        layout = target.itemAt(0)
-        target.removeItem(layout)
 
 class CheckButton(QVBoxLayout):
     def __init__(self, click_status, label_str, color, btn_type, image_path, callback=None):
@@ -357,11 +445,14 @@ class CheckButton(QVBoxLayout):
         self.callback()
 
 class SpinBoxLabelLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
+        self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
         self.ui = ui
 
+        SpinBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -434,8 +525,8 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
             self.ui.optimization_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
 
-            ## Add Reset result label in handeye tab, optimization tab and evaulation tab
-            self.ui.ResetResultsLabels()
+            ## Add Reset result label in rph tab, handeye tab, optimization tab and evaulation tab
+            self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
 
         elif self.label_str == 'Sampling Interval [Count]':
             self.ui.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
@@ -450,12 +541,15 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.ui.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
+    instance_number = 1
     def __init__(self, string, ui):
         super().__init__()
+        self.id = DoubleSpinBoxLabelLayout.instance_number
         self.label_str = string
         self.ui = ui
         self.text = ''
 
+        DoubleSpinBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -469,15 +563,9 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         self.double_spin_box = QDoubleSpinBox()
         self.double_spin_box.setSingleStep(0.01)
         self.double_spin_box.setMaximum(1000.0)
-        if self.label_str == 'Heading Threshold (filter)':
-            self.double_spin_box.setMinimum(-1000.0)
         if self.label_str == 'Tolerance':
             self.double_spin_box. setDecimals(12)
-        if self.label_str == 'Minimum Speed [s]':
-            self.double_spin_box.setDecimals(10)
-        if self.label_str == 'Eval Minimum Speed [s]':
-            self.double_spin_box.setDecimals(10)
-        self.double_spin_box.setMinimum(0.0)
+        self.double_spin_box.setMinimum(-1000.0)
         self.double_spin_box.valueChanged.connect(self.DoubleSpinBoxChanged)
         self.h_box.addWidget(self.double_spin_box)
 
@@ -485,42 +573,51 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
 
     def DoubleSpinBoxChanged(self):
         self.ui.value_changed = True
-        if self.label_str == 'Minimum Threshold Distance [m]':
+        if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
             self.ui.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Distance [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE:  # Configuration tab Maximum Threshold Distance [m]
             self.ui.config.PARM_PC['MaxThresholdDist_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold X [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_X:  # Configuration tab Minimum Threshold X [m]
             self.ui.config.PARM_PC['MinThresholdX_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold X [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_X:  # Configuration tab Maximum Threshold X [m]
             self.ui.config.PARM_PC['MaxThresholdX_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold Y [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Y:  # Configuration tab Minimum Threshold Y [m]
             self.ui.config.PARM_PC['MinThresholdY_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Y [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Y:  # Configuration tab Maximum Threshold Y [m]
             self.ui.config.PARM_PC['MaxThresholdY_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Minimum Threshold Z [m]':
+        elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Z [m]
             self.ui.config.PARM_PC['MinThresholdZ_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Maximum Threshold Z [m]':
+        elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Distance [m]
             self.ui.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Minimum Speed [s]':
-            self.ui.config.PARM_IM['TimeSpeedThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_IMPORT_VEHICLE_MINIMUM_SPEED :  # Import tab Vehicle Minimum Speed [km/h]
+            self.ui.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Tolerance':
+        elif self.id == CONST_RPH_MINIMUM_THRESHOLD_X:  # RPH tab Minimum Threshold X [m]
+            self.ui.config.PARM_RPH['MinThresholdX_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MAXIMUM_THRESHOLD_X:  # RPH tab Maximum Threshold X [m]
+            self.ui.config.PARM_RPH['MaxThresholdX_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MINIMUM_THRESHOLD_Y:  # RPH tab Minimum Threshold Y [m]
+            self.ui.config.PARM_RPH['MinThresholdY_m'] = self.double_spin_box.value()
+        elif self.id == CONST_RPH_MAXIMUM_THRESHOLD_Y:  # RPH tab Maximum Threshold Y [m]
+            self.ui.config.PARM_RPH['MaxThresholdY_m'] = self.double_spin_box.value()
+
+        elif self.id == CONST_HANDEYE_TOLERANCE:  # Handeye tab Tolerance
             self.ui.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
-        elif self.label_str == 'Outlier Distance [m]':
+        elif self.id == CONST_HANDEYE_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
             self.ui.config.PARM_HE['OutlierDistance_m'] = self.double_spin_box.value()
-        elif self.label_str == 'Heading Threshold (filter)':
+        elif self.id == CONST_HANDEYE_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
             self.ui.config.PARM_HE['filter_HeadingThreshold'] = self.double_spin_box.value()
-        elif self.label_str == 'Distance Threshold (filter)':
+        elif self.id == CONST_HANDEYE_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
             self.ui.config.PARM_HE['filter_DistanceThreshold'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Point Sampling Ratio':
+        elif self.id == CONST_OPTI_POINT_SAMPLING_RATIO:  # Optimization tab Point Sampling Ratio
             self.ui.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
-        elif self.label_str == 'Outlier Distance [m]':
+        elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # Optimization tab Outlier Distance [m]
             self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
-        elif self.label_str == 'Eval Minimum Speed [s]':
-            self.ui.config.PARM_EV['TimeSpeedThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_EVAL_VEHICLE_MINIMUM_SPEED:  # Evaluation tab Eval Vehicle Minimum Speed [km/h]
+            self.ui.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):
     instance_num = 1
@@ -730,6 +827,35 @@ class CalibrationResultEditLabel(QVBoxLayout):
 
         self.ui.evaluation_tab.DisplayCalibrationGraph()
 
+class EstimateResultLabel(QVBoxLayout):
+    def __init__(self, idxSensor):
+        super().__init__()
+        self.idxSensor = idxSensor
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.label = QLabel('LiDAR {}'.format(self.idxSensor))
+        self.addWidget(self.label)
+        self.hbox = QHBoxLayout()
+        self.label_roll = QLabel('roll [deg]')
+        self.hbox.addWidget(self.label_roll)
+        self.label_edit_roll = QLineEdit()
+        self.label_edit_roll.setReadOnly(True)
+        self.label_edit_roll.setText('0.0')
+        self.label_edit_roll.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_roll)
+
+        self.label_pitch = QLabel('pitch [deg]')
+        self.hbox.addWidget(self.label_pitch)
+        self.label_edit_pitch = QLineEdit()
+        self.label_edit_pitch.setReadOnly(True)
+        self.label_edit_pitch.setText('0.0')
+        self.label_edit_pitch.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_pitch)
+
+        self.addLayout(self.hbox)
+
 class CalibrationResultLabel(QVBoxLayout):
     def __init__(self, idxSensor):
         super().__init__()
@@ -740,13 +866,13 @@ class CalibrationResultLabel(QVBoxLayout):
     def InitUi(self):
         self.label = QLabel('LiDAR {}'.format(self.idxSensor))
         self.addWidget(self.label)
-
         self.hbox = QHBoxLayout()
         self.label_x = QLabel('x [m]')
         self.hbox.addWidget(self.label_x)
         self.label_edit_x = QLineEdit()
         self.label_edit_x.setReadOnly(True)
         self.label_edit_x.setText('0.0')
+        self.label_edit_x.setStyleSheet("background-color: #F0F0F0;")
         self.hbox.addWidget(self.label_edit_x)
 
         self.label_y = QLabel('y [m]')
@@ -754,6 +880,7 @@ class CalibrationResultLabel(QVBoxLayout):
         self.label_edit_y = QLineEdit()
         self.label_edit_y.setReadOnly(True)
         self.label_edit_y.setText('0.0')
+        self.label_edit_y.setStyleSheet("background-color: #F0F0F0;")
         self.hbox.addWidget(self.label_edit_y)
 
         self.label_yaw = QLabel('yaw [deg]')
@@ -761,6 +888,7 @@ class CalibrationResultLabel(QVBoxLayout):
         self.label_edit_yaw = QLineEdit()
         self.label_edit_yaw.setReadOnly(True)
         self.label_edit_yaw.setText('0.0')
+        self.label_edit_yaw.setStyleSheet("background-color: #F0F0F0;")
         self.hbox.addWidget(self.label_edit_yaw)
 
         self.addLayout(self.hbox)
@@ -941,9 +1069,6 @@ class EvaluationLable(QHBoxLayout):
     def __init__(self, idxSensor, ui):
         super().__init__()
         self.prev_checkID = CONST_HANDEYE
-        self.x = 0.0 # [m]
-        self.y = 0.0 # [m]
-        self.yaw = 0.0 # [deg]
 
         self.idxSensor = idxSensor
         self.ui = ui
@@ -982,6 +1107,7 @@ class EvaluationLable(QHBoxLayout):
         self.spinbox1.setSingleStep(0.01)
         self.spinbox1.setMaximum(1000.0)
         self.spinbox1.setMinimum(-1000.0)
+        self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
         self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.spinbox1.valueChanged.connect(self.DoubleSpinBoxChanged1)
         self.addWidget(self.spinbox1)
@@ -992,6 +1118,7 @@ class EvaluationLable(QHBoxLayout):
         self.spinbox2.setSingleStep(0.01)
         self.spinbox2.setMaximum(1000.0)
         self.spinbox2.setMinimum(-1000.0)
+        self.spinbox2.setStyleSheet("background-color: #F0F0F0;")
         self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.spinbox2.valueChanged.connect(self.DoubleSpinBoxChanged2)
         self.addWidget(self.spinbox2)
@@ -1002,6 +1129,7 @@ class EvaluationLable(QHBoxLayout):
         self.spinbox3.setSingleStep(0.01)
         self.spinbox3.setMaximum(1000.0)
         self.spinbox3.setMinimum(-1000.0)
+        self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
         self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.spinbox3.valueChanged.connect(self.DoubleSpinBoxChanged3)
         self.addWidget(self.spinbox3)
@@ -1038,17 +1166,23 @@ class EvaluationLable(QHBoxLayout):
 
         if status == CONST_CUSTOM:
             self.spinbox1.setReadOnly(False)
+            self.spinbox1.setStyleSheet("background-color: #FFFFFF;")
             self.spinbox1.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
             self.spinbox2.setReadOnly(False)
+            self.spinbox2.setStyleSheet("background-color: #FFFFFF;")
             self.spinbox2.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
             self.spinbox3.setReadOnly(False)
+            self.spinbox3.setStyleSheet("background-color: #FFFFFF;")
             self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
         else:
             self.spinbox1.setReadOnly(True)
+            self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
             self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
             self.spinbox2.setReadOnly(True)
+            self.spinbox2.setStyleSheet("background-color: #F0F0F0;")
             self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
             self.spinbox3.setReadOnly(True)
+            self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
             self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
             

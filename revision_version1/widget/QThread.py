@@ -20,6 +20,7 @@ class Thread(QThread):
         self.mutex = QMutex()
         self._status = True
         self.error = False
+        self.pause = False
 
     def __del__(self):
         self.wait()
@@ -39,6 +40,24 @@ class Thread(QThread):
         self._status = not self._status
         if self._status:
             self.cond.wakeAll()
+
+
+    def Pause(self):
+        self.cond.wait(self.mutex)
+        print("test")
+
+    def IsPaused(self):
+        try:
+            self.mutex.lock()
+            return False
+        finally:
+            self.mutex.unlock()
+
+
+    def Resume(self):
+        self.cond.wakeOne()
+
+
 
     def Stop(self):
         self.terminate()

@@ -7,7 +7,7 @@ from sklearn.neighbors import NearestNeighbors
 global strFile
 global nFeval
 
-def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM, PARM_MO):
+def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM, PARM_SO, thread):
     ##################
     #Global variables
     global strFile
@@ -63,12 +63,12 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
          exc_point = accum_point_enup[accum_point_enup[:,3] != idx_pose,0:3]
 
          # Generate nearest neighbors
-         nearest_neighbor_plane = NearestNeighbors(n_neighbors=PARM_MO['NumPointsPlaneModeling'])
+         nearest_neighbor_plane = NearestNeighbors(n_neighbors=PARM_SO['NumPointsPlaneModeling'])
          nearest_neighbor_plane.fit(sel_point)
 
          # Sampling excepted point cloud
          num_point = exc_point.shape[0]
-         interval = int(1./PARM_MO['PointSamplingRatio'])
+         interval = int(1./PARM_SO['PointSamplingRatio'])
          if interval < 1:
              interval = 1
          idx_sampling_point = list(range(0, num_point, interval))
@@ -87,7 +87,7 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
          for i in list(range(closest_indices.shape[0])):
              plane_point = []
              for j in list(range(closest_indices[i].shape[0])):
-                 if closest_distances[i][j] <  PARM_MO['OutlierDistance_m']:
+                 if closest_distances[i][j] < PARM_SO['OutlierDistance_m']:
                      plane_point.append(sel_point[closest_indices[i][j]])
              plane_point = np.array(plane_point)
              if plane_point.shape[0] < 4:
@@ -107,9 +107,11 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
 
     # Condition that the number of pose err is low
     if len(pose_err) < 1:
-        err = compute_single_err(CalibH_rad[0], CalibX_m, CalibY_m, pose, pointcloud, PARM_MO)
+        err = compute_single_err(CalibH_rad[0], CalibX_m, CalibY_m, pose, pointcloud, PARM_IM, PARM_SO, thread)
     else:
         err = np.mean(np.array(pose_err))
+
+    thread.emit_string.emit('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
 
     # print
     print('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
@@ -165,7 +167,7 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
         accum_point_enup = np.vstack([accum_point_enup, point_enup])
 
     ##################
-		 # pose based matching
+    # pose based matching
     # Sampling excepted point cloud
     num_point = accum_point_enup.shape[0]
     interval = int(1./PARM_MO['PointSamplingRatio'])

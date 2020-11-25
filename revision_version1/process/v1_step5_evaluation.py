@@ -26,6 +26,13 @@ class Evaluation:
         end_time = args[1]
         PARM_LIDAR = args[2]
         CalibrationParam = copy.deepcopy(args[3])
+
+        print("evaluation")
+        print(start_time)
+        print(end_time)
+        print(PARM_LIDAR)
+        print(CalibrationParam)
+
         # Get calibration data
         tmp_df_info = copy.deepcopy(self.importing.df_info)
 
@@ -215,7 +222,7 @@ class Evaluation:
                 HDMap_veh_pcd = o3d.geometry.PointCloud()
                 HDMap_veh_pcd.points = o3d.utility.Vector3dVector(HDMap_veh)
 
-                HDMap_veh_pcd = HDMap_veh_pcd.voxel_down_sample(voxel_size=0.1)  # using voxel grid filter
+                HDMap_veh_pcd = o3d.geometry.voxel_down_sample(HDMap_veh_pcd, voxel_size=0.1) # using voxel grid filter
 
                 HDMap_veh = np.asarray(HDMap_veh_pcd.points)
 
@@ -267,6 +274,25 @@ class Evaluation:
                 # idx.append(i)
                 # str_idx.append(num2str(i))
                 index += 1
+
+                if not thread._status:
+                    evaluated_lidar = {}
+                    not_evaluated_lidar = {}
+
+                    curr_index = PARM_LIDAR['CheckedSensorList'].index(idxSensor)
+
+                    evaluated_lidar['CheckedSensorList'] = []
+                    not_evaluated_lidar['CheckedSensorList'] = []
+
+                    for sensor_id in PARM_LIDAR['CheckedSensorList']:
+                        if PARM_LIDAR['CheckedSensorList'].index(sensor_id) <= curr_index:
+                            evaluated_lidar['CheckedSensorList'].append(sensor_id)
+                        else:
+                            not_evaluated_lidar['CheckedSensorList'].append(sensor_id)
+
+                    PARM_LIDAR = copy.deepcopy(evaluated_lidar)
+                    break
+
             ref_sensor_localization[idxSensor] = ref_each_localization
             pred_sensor_localization[idxSensor] = pred_each_localization
             error_sensor_localization[idxSensor] = error_each_localization
@@ -275,8 +301,15 @@ class Evaluation:
             yaw_sensor_localization[idxSensor] = yaw_each_localization
 
             p_index = p_index + 1.0
-
+            if not thread._status:
+                thread.emit_string.emit('Interrupted evaluating lidar {} calibration'.format(idxSensor))
+                break
+            thread.emit_string.emit('Complete evaluating lidar {} calibration'.format(idxSensor))
         # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
+
+        if not thread._status:
+            for idxSensor in not_evaluated_lidar['CheckedSensorList']:
+                thread.emit_string.emit('Never evaluating lidar {} calibration'.format(idxSensor))
 
         RMSE_x = {}
         rmse_x = []
@@ -312,7 +345,6 @@ class Evaluation:
             LIDARList[idxSensor] = 'LiDAR_' + str(idxSensor)
             lidarlist.append('LiDAR_' + str(idxSensor))
 
-        df_info, Map, PARM_LIDAR
         self.df_info = copy.deepcopy(df_info)
         self.Map = copy.deepcopy(Map)
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
@@ -343,4 +375,4 @@ class Evaluation:
             if height > max_height:
                 max_height = height
 
-        return height
+        return max_height

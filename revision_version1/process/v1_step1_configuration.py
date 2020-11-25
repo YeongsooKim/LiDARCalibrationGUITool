@@ -14,6 +14,7 @@ class Configuration:
     configuration_path = 'common/configuration/'
     logging_data_path = 'common/logging_data/'
     image_path = 'common/image/'
+    rph_logging_data_path = 'common/logging_data/rph_logging_data/'
 
     def __init__(self):
         # Path and file
@@ -21,8 +22,10 @@ class Configuration:
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
         self.PARM_IM = {}
-        self.PARM_MO = {}
+        self.PARM_RPH = {}
         self.PARM_HE = {}
+        self.PARM_SO = {}
+        self.PARM_MO = {}
         self.PARM_EV = {}
         self.PATH = {}
         self.CalibrationParam = {}
@@ -51,7 +54,13 @@ class Configuration:
 
         # Import
         self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
-        self.PARM_IM['TimeSpeedThreshold'] = float(config_param['Import']['TimeSpeedThreshold'])
+        self.PARM_IM['VehicleSpeedThreshold'] = float(config_param['Import']['VehicleSpeedThreshold'])
+
+        # Roll, Pitch, Height
+        self.PARM_RPH['MinThresholdX_m'] = float(config_param['RPH']['MinThresholdX_m'])
+        self.PARM_RPH['MaxThresholdX_m'] = float(config_param['RPH']['MaxThresholdX_m'])
+        self.PARM_RPH['MinThresholdY_m'] = float(config_param['RPH']['MinThresholdY_m'])
+        self.PARM_RPH['MaxThresholdY_m'] = float(config_param['RPH']['MaxThresholdY_m'])
 
         # Handeye
         self.PARM_HE['MaximumIteration'] = int(config_param['Handeye']['MaximumIteration'])
@@ -60,19 +69,25 @@ class Configuration:
         self.PARM_HE['filter_HeadingThreshold'] = float(config_param['Handeye']['filter_HeadingThreshold'])
         self.PARM_HE['filter_DistanceThreshold'] = float(config_param['Handeye']['filter_DistanceThreshold'])
 
-        # Optimization
+        # Single Optimization
+        self.PARM_SO['PointSamplingRatio'] = float(config_param['SingleOptimization']['PointSamplingRatio'])
+        self.PARM_SO['NumPointsPlaneModeling'] = int(config_param['SingleOptimization']['NumPointsPlaneModeling'])
+        self.PARM_SO['OutlierDistance_m'] = float(config_param['SingleOptimization']['OutlierDistance_m'])
+
+        # Multi Optimization
         self.PARM_MO['PointSamplingRatio'] = float(config_param['MultiOptimization']['PointSamplingRatio'])
         self.PARM_MO['NumPointsPlaneModeling'] = int(config_param['MultiOptimization']['NumPointsPlaneModeling'])
         self.PARM_MO['OutlierDistance_m'] = float(config_param['MultiOptimization']['OutlierDistance_m'])
 
         # Evaluation
         self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
-        self.PARM_EV['TimeSpeedThreshold'] = float(config_param['Evaluation']['TimeSpeedThreshold'])
+        self.PARM_EV['VehicleSpeedThreshold'] = float(config_param['Evaluation']['VehicleSpeedThreshold'])
 
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
         self.PATH['Logging_file_path'] = config_param['Path']['Logging_file_path']
         self.PATH['Image_path'] = config_param['Path']['Image_path']
+        self.PATH['RPH_Logging_file_path'] = config_param['Path']['RPH_Logging_file_path']
 
         print('Initialize configuration parameter')
 
@@ -100,7 +115,13 @@ class Configuration:
         f.write('\n')
         f.write('[Import]\n')
         f.write('SamplingInterval = 1\n')
-        f.write('TimeSpeedThreshold = 0.0001\n')
+        f.write('VehicleSpeedThreshold = 1.0\n')
+        f.write('\n')
+        f.write('[RPH]\n')
+        f.write('MinThresholdX_m = -10.0\n')
+        f.write('MaxThresholdX_m = 10.0\n')
+        f.write('MinThresholdY_m = -3.0\n')
+        f.write('MaxThresholdY_m = 3.0\n')
         f.write('\n')
         f.write('[Handeye]\n')
         f.write('MaximumIteration = 100\n')
@@ -109,6 +130,11 @@ class Configuration:
         f.write('filter_HeadingThreshold = 0.05\n')
         f.write('filter_DistanceThreshold = 0.05\n')
         f.write('\n')
+        f.write('[SingleOptimization]\n')
+        f.write('PointSamplingRatio = 0.2\n')
+        f.write('NumPointsPlaneModeling = 10\n')
+        f.write('OutlierDistance_m = 5.\n')
+        f.write('\n')
         f.write('[MultiOptimization]\n')
         f.write('PointSamplingRatio = 0.2\n')
         f.write('NumPointsPlaneModeling = 10\n')
@@ -116,12 +142,13 @@ class Configuration:
         f.write('\n')
         f.write('[Evaluation]\n')
         f.write('SamplingInterval = 1\n')
-        f.write('TimeSpeedThreshold = 0.0001\n')
+        f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
         f.write('Logging_file_path = ' + self.path + '/' + self.logging_data_path + '\n')
         f.write('Image_path = ' + self.path + '/' + self.image_path + '\n')
+        f.write('RPH_Logging_file_path = ' + self.path + '/' + self.rph_logging_data_path + '\n')
         f.close()
 
         print('Write default configuration parameter in ' + file)
