@@ -419,9 +419,6 @@ class RPHTab(QWidget):
         parsed_pandas_dataframe = self.ui.optional_importing.text_pointcloud
         self.logging_file_path_layout.parsed_bin = parsed_pandas_dataframe.to_string()
 
-        default_start_time = self.ui.optional_importing.DefaultStartTime
-        default_end_time = self.ui.optional_importing.DefaultEndTime
-
     def StartCalibration(self, calibration, sensor_list, targets_clear, progress_callbacks, end_callback):
         if self.ui.config_tab.is_lidar_num_changed == True:
             self.ui.ErrorPopUp('Please import after changing lidar number')
