@@ -26,6 +26,7 @@ class Evaluation:
         end_time = args[1]
         PARM_LIDAR = args[2]
         CalibrationParam = copy.deepcopy(args[3])
+        using_gnss_motion = args[4]
 
         print("evaluation")
         print(start_time)
@@ -34,7 +35,10 @@ class Evaluation:
         print(CalibrationParam)
 
         # Get calibration data
-        tmp_df_info = copy.deepcopy(self.importing.df_info)
+        if not using_gnss_motion:
+            tmp_df_info = copy.deepcopy(self.importing.df_gnss)
+        if using_gnss_motion:
+            tmp_df_info = copy.deepcopy(self.importing.df_motion)
 
         # Limit time
         df_info = tmp_df_info.drop(
@@ -76,10 +80,14 @@ class Evaluation:
                                 [0, 0, 1]])
 
             # Remove rows by other sensors
-            strColIndex = 'PointCloud_' + str(idxSensor)  # PointCloud_n 이름 생성
+            strColIndex = 'XYZRGB_' + str(idxSensor)  # PointCloud_n 이름 생성
             LiDAR_list[idxSensor] = strColIndex
+            if not using_gnss_motion:
+                df_info['dr_east_m'] = df_info['east_m']
+                df_info['dr_north_m'] = df_info['north_m']
+                df_info['dr_heading'] = df_info['heading']
             df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading',
-                                   strColIndex]]  # df_info의 'east','north','heading',...,PointCloud 하나씩 분리해서 저장
+                                   strColIndex]]  # df_info의 'east','north','heading',...,XYZRGB 하나씩 분리해서 저장
             df_one_info = df_one_info.drop(df_info[(df_one_info[
                                                         strColIndex].values == 0)].index)  # df_one_info에서 strColIndex(PointCloud_n)의 value가 0인 값들 다 제외 --> 값이 있는 애들만 남겨놓음
 
@@ -358,11 +366,11 @@ class Evaluation:
     def AutoLabel(self, rects, ax):
         """Attach a text label above each bar in *rects*, displaying its height."""
         for rect in rects:
-            height = round(rect.get_height(), 2)
+            height = round(rect.get_height(), 4)
             ax.annotate('{}'.format(height),
                         xy=(rect.get_x() + rect.get_width() / 2, height),
                         xytext=(0, 3),  # 3 points vertical offset
-                        rotation=0,
+                        rotation=90,
                         size=8,
                         textcoords="offset points",
                         ha='center', va='bottom')

@@ -38,13 +38,17 @@ class HandEye:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        df_info = self.importing.df_info
+        if not using_gnss_motion:
+            df_info = copy.deepcopy(self.importing.df_gnss)
+        elif using_gnss_motion:
+            df_info = copy.deepcopy(self.importing.df_motion)
 
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
-        df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+        if using_gnss_motion:
+            df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1. Match the point cloud based on ICP
@@ -58,15 +62,15 @@ class HandEye:
             diff_gnss_xyzdh = []
 
             # Remove rows by other sensors
-            strColIndex = 'PointCloud_' + str(idxSensor)
+            strColIndex = 'XYZRGB_' + str(idxSensor)
 
             if not using_gnss_motion:
                 df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
-                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
             elif using_gnss_motion:
                 df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
                 df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
-                df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+
+            df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
             # Sampling based on interval
             df_sampled_info = df_one_info.iloc[::self.config.PARM_IM['SamplingInterval'], :]
@@ -97,7 +101,7 @@ class HandEye:
                     epoch_percentage = 100.0
                 thread.change_value.emit(int(epoch_percentage))
 
-                pbar.set_description("PointCloud_" + str(idxSensor))
+                pbar.set_description("XYZRGB_" + str(idxSensor))
                 # Get point clouds
                 pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]

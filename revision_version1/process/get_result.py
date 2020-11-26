@@ -19,7 +19,7 @@ from process import utils_pointcloud
 def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
-    tmp_df_info = copy.deepcopy(importing.df_info)
+    tmp_df_info = copy.deepcopy(importing.df_gnss)
 
     # Limit time
     df_info = tmp_df_info.drop(
@@ -33,7 +33,7 @@ def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time)
 
         ##################
         # Remove rows by other sensors
-        strColIndex = 'PointCloud_' + str(idxSensor)
+        strColIndex = 'XYZRGB_' + str(idxSensor)
         df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
@@ -81,7 +81,7 @@ def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time)
     #     result_config = configparser.ConfigParser()
     #     for idxSensor in self.CalibrationParam:
     #         # Section Name
-    #         section_name = 'PointCloud_' + str(idxSensor)
+    #         section_name = 'XYZRGB_' + str(idxSensor)
     #
     #         # Save parameter
     #         result_config[section_name] = {}
