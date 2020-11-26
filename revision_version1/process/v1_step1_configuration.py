@@ -14,7 +14,6 @@ class Configuration:
     configuration_path = 'common/configuration/'
     logging_data_path = 'common/logging_data/'
     image_path = 'common/image/'
-    rph_logging_data_path = 'common/logging_data/rph_logging_data/'
 
     def __init__(self):
         # Path and file
@@ -22,7 +21,6 @@ class Configuration:
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
         self.PARM_IM = {}
-        self.PARM_RPH = {}
         self.PARM_HE = {}
         self.PARM_SO = {}
         self.PARM_MO = {}
@@ -56,12 +54,6 @@ class Configuration:
         self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
         self.PARM_IM['VehicleSpeedThreshold'] = float(config_param['Import']['VehicleSpeedThreshold'])
 
-        # Roll, Pitch, Height
-        self.PARM_RPH['MinThresholdX_m'] = float(config_param['RPH']['MinThresholdX_m'])
-        self.PARM_RPH['MaxThresholdX_m'] = float(config_param['RPH']['MaxThresholdX_m'])
-        self.PARM_RPH['MinThresholdY_m'] = float(config_param['RPH']['MinThresholdY_m'])
-        self.PARM_RPH['MaxThresholdY_m'] = float(config_param['RPH']['MaxThresholdY_m'])
-
         # Handeye
         self.PARM_HE['MaximumIteration'] = int(config_param['Handeye']['MaximumIteration'])
         self.PARM_HE['Tolerance'] = float(config_param['Handeye']['Tolerance'])
@@ -87,7 +79,6 @@ class Configuration:
         self.PATH['Configuration'] = config_param['Path']['Configuration']
         self.PATH['Logging_file_path'] = config_param['Path']['Logging_file_path']
         self.PATH['Image_path'] = config_param['Path']['Image_path']
-        self.PATH['RPH_Logging_file_path'] = config_param['Path']['RPH_Logging_file_path']
 
         print('Initialize configuration parameter')
 
@@ -117,12 +108,6 @@ class Configuration:
         f.write('SamplingInterval = 1\n')
         f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
-        f.write('[RPH]\n')
-        f.write('MinThresholdX_m = -10.0\n')
-        f.write('MaxThresholdX_m = 10.0\n')
-        f.write('MinThresholdY_m = -3.0\n')
-        f.write('MaxThresholdY_m = 3.0\n')
-        f.write('\n')
         f.write('[Handeye]\n')
         f.write('MaximumIteration = 100\n')
         f.write('Tolerance = 0.0000001\n')
@@ -148,7 +133,6 @@ class Configuration:
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
         f.write('Logging_file_path = ' + self.path + '/' + self.logging_data_path + '\n')
         f.write('Image_path = ' + self.path + '/' + self.image_path + '\n')
-        f.write('RPH_Logging_file_path = ' + self.path + '/' + self.rph_logging_data_path + '\n')
         f.close()
 
         print('Write default configuration parameter in ' + file)

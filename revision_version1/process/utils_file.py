@@ -145,7 +145,7 @@ def parse_gnss_csv_df(file, usecols):
         df_gnss['timestamp'] = df_gnss['timestamp'] / 1e6
     return df_gnss
 
-# Parse PointCloud.bin
+# Parse XYZRGB.bin
 def parse_pointcloud_bin_np(file):
     data_list = []
     # Open file
@@ -176,7 +176,7 @@ def parse_pointcloud_bin_np(file):
 
     return data_list
 
-# Parse PointCloud.bin
+# Parse XYZRGB.bin
 def parse_pointcloud_bin_df(file):
     ArrayPointCloud = np.array(parse_pointcloud_bin_np(file))
     df_pointcloud = pd.DataFrame(ArrayPointCloud, columns=['timestamp', 'num_points', 'file_pointer'])

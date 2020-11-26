@@ -18,7 +18,6 @@ import element
 from process import get_result
 from process import v1_step1_configuration
 from process import v1_step2_import_data
-from process import v1_optional_rph
 from process import v1_step3_handeye
 from process import v1_step4_optimization
 from process import v1_step5_evaluation
@@ -34,16 +33,12 @@ import tkinter as Tk
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
+## tab
 CONST_CONFIG_TAB = 0
 CONST_IMPORTDATA_TAB = 1
-CONST_RPH_TAB = 2
-CONST_HANDEYE_TAB = 3
-CONST_OPTIMIZATION_TAB = 4
-CONST_EVALUATION_TAB = 5
-
-CONST_CALIBRATION_RESULT_TAB = 0
-CONST_HANDEYE_EVALUATION_TAB = 1
-CONST_OPTIMIZATION_EVALUATION_TAB = 2
+CONST_HANDEYE_TAB = 2
+CONST_OPTIMIZATION_TAB = 3
+CONST_EVALUATION_TAB = 4
 
 CONST_DISPLAY_HANDEYE = 0
 CONST_DISPLAY_OPTIMIZATION = 1
@@ -234,10 +229,9 @@ class ImportDataTab(QWidget):
     ## Callback func
 
     def NextBtn(self):
-        if self.ui.mandatory_importing.is_complete == False:
+        if self.ui.importing.is_complete == False:
             self.ui.ErrorPopUp('Please import logging file path')
         else:
-            self.ui.tabs.setTabEnabled(CONST_RPH_TAB, True)
             self.ui.tabs.setTabEnabled(CONST_HANDEYE_TAB, True)
             self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION_TAB, True)
             self.ui.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
@@ -245,20 +239,28 @@ class ImportDataTab(QWidget):
     def IterationPercentage(self, percentage_dict):
         idxSensor = list(percentage_dict.keys())[0]
         percentage = list(percentage_dict.values())[0]
-        text = 'PointCloud {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
+        text = 'XYZRGB {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
 
         self.logging_file_path_layout.lidar_buttons[idxSensor].setText(text)
 
     def EndImport(self):
-        self.ui.mandatory_importing.ResampleTime()
-
-        parsed_pandas_dataframe = self.ui.mandatory_importing.text_pointcloud
+        parsed_pandas_dataframe = self.ui.importing.text_pointcloud
         self.logging_file_path_layout.parsed_bin = parsed_pandas_dataframe.to_string()
 
-        default_start_time = self.ui.mandatory_importing.DefaultStartTime
-        default_end_time = self.ui.mandatory_importing.DefaultEndTime
+        default_start_time = self.ui.importing.DefaultStartTime
+        default_end_time = self.ui.importing.DefaultEndTime
 
         # Import tab
+        ## Set Configuration
+        if self.ui.importing.has_motion_file == False:
+            self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
+            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color: #F0F0F0;")
+            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        elif self.ui.importing.has_motion_file:
+            self.time_speed_threshold_layout.double_spin_box.setReadOnly(False)
+            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color:white")
+            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+
         ## set slider default time
         self.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
         self.limit_time_layout.start_time_layout.slider.setMinimum(default_start_time)
@@ -284,226 +286,6 @@ class ImportDataTab(QWidget):
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.minimum())
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
 
-class RPHTab(QWidget):
-    def __init__(self, ui):
-        super().__init__()
-        self.using_gnss_motion = False
-        self.ui = ui
-
-        self.progress_status = CONST_STOP
-        self.result_labels = {}
-
-        self.initUi()
-
-    def initUi(self):
-        main_vbox = QVBoxLayout()
-
-        self.config_widget = QWidget()
-        self.config_widget.setLayout(self.Configuration_Layout())
-        main_vbox.addWidget(self.config_widget)
-        # main_vbox.addWidget(self.config_widget, 25)
-
-        self.result_widget = QWidget()
-        self.result_widget.setLayout(self.Result_Layout())
-        main_vbox.addWidget(self.result_widget)
-        # main_vbox.addWidget(self.result_widget, 75)
-        self.setLayout(main_vbox)
-
-    ## Layout
-    def Configuration_Layout(self):
-        self.configuration_hbox = QHBoxLayout()
-
-        self.configuration_hbox.addWidget(self.Configuration_Import_Groupbox())
-        self.configuration_hbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
-
-        return self.configuration_hbox
-
-    def Result_Layout(self):
-        hbox = QHBoxLayout()
-
-        hbox.addWidget(self.Result_ResultData_Groupbox(), 70)
-        hbox.addWidget(self.Result_Apply_Groupbox(), 30)
-
-        return hbox
-
-    ## Groupbox
-    def Configuration_Import_Groupbox(self):
-        groupbox = QGroupBox('Import Logging Data')
-        self.logging_vbox = QVBoxLayout()
-
-        self.logging_file_path_layout = element.FileInputWithCheckBtnLayout('Select Logging File Path', self.ui)
-        self.logging_vbox.addLayout(self.logging_file_path_layout)
-
-        label = QLabel('[ csv File List ]')
-        self.logging_vbox.addWidget(label)
-
-        self.gnss_scroll_box = ScrollAreaH()
-        self.logging_vbox.addWidget(self.gnss_scroll_box)
-
-        label = QLabel('[ bin File List ]')
-        self.logging_vbox.addWidget(label)
-
-        self.lidar_scroll_box = ScrollAreaH()
-        self.logging_vbox.addWidget(self.lidar_scroll_box)
-
-        groupbox.setLayout(self.logging_vbox)
-        return groupbox
-
-    def Configuration_SetConfiguration_Groupbox(self):
-        groupbox = QGroupBox('Set Configuration')
-        vbox = QVBoxLayout()
-
-        liDAR_configuration_label = QLabel('[ RPH Configuration ]', self)
-        vbox.addWidget(liDAR_configuration_label)
-
-        self.minimum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Minimum Threshold X [m]", self.ui)
-        vbox.addLayout(self.minimum_threshold_layout_x)
-
-        self.maximum_threshold_layout_x = element.DoubleSpinBoxLabelLayout("Maximum Threshold X [m]", self.ui)
-        vbox.addLayout(self.maximum_threshold_layout_x)
-
-        self.minimum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Minimum Threshold Y [m]", self.ui)
-        vbox.addLayout(self.minimum_threshold_layout_y)
-
-        self.maximum_threshold_layout_y = element.DoubleSpinBoxLabelLayout("Maximum Threshold Y [m]", self.ui)
-        vbox.addLayout(self.maximum_threshold_layout_y)
-
-        hbox = QHBoxLayout()
-        label = QLabel('Used Data')
-        hbox.addWidget(label, 50)
-
-        # button for Handeye calibration
-        self.button_group = QButtonGroup()
-        rbn1 = QRadioButton('GNSS Data')
-        rbn1.setChecked(True)
-        rbn1.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn1, 25)
-        self.button_group.addButton(rbn1, 1)
-
-        # button for optimization calibration
-        rbn2 = QRadioButton('Motion Data')
-        rbn2.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn2, 25)
-        self.button_group.addButton(rbn2, 2)
-        vbox.addLayout(hbox)
-
-        hbox2 = QHBoxLayout()
-        btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartCalibration(self.ui.rph.Calibration,
-                                                          self.ui.config.PARM_LIDAR,
-                                                          [],
-                                                          [],
-                                                          self.EndCalibration))
-        hbox2.addWidget(btn)
-        vbox.addLayout(hbox2)
-
-        vbox.addStretch(1)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Result_ResultData_Groupbox(self):
-        groupbox = QGroupBox('RPH Result Data')
-        hbox = QVBoxLayout(self)
-
-        self.scroll_box = ScrollAreaV()
-        hbox.addWidget(self.scroll_box, 50)
-
-        groupbox.setLayout(hbox)
-        return groupbox
-
-    def Result_Apply_Groupbox(self):
-        groupbox = QGroupBox()
-        hbox = QVBoxLayout(self)
-
-        self.check_box = QCheckBox('Apply RPH result to pointcloud', self)
-        self.check_box.setCheckState(False)
-        self.check_box.stateChanged.connect(self.ChangeCheckBox)
-        hbox.addWidget(self.check_box)
-
-        hbox.addStretch(1)
-
-        groupbox.setLayout(hbox)
-        return groupbox
-
-    ## Callback func
-
-    def EndImport(self):
-        self.ui.optional_importing.ResampleTime()
-
-        parsed_pandas_dataframe = self.ui.optional_importing.text_pointcloud
-        self.logging_file_path_layout.parsed_bin = parsed_pandas_dataframe.to_string()
-
-    def StartCalibration(self, calibration, sensor_list, targets_clear, progress_callbacks, end_callback):
-        if self.ui.config_tab.is_lidar_num_changed == True:
-            self.ui.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_STOP:
-            return False
-        self.progress_status = CONST_PLAY
-
-        for idxSensor in sensor_list['CheckedSensorList']:
-            if self.ui.optional_importing.PointCloudSensorList.get(idxSensor) is None:
-                self.ui.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
-
-        for target_clear in targets_clear:
-            target_clear()
-
-        self.ui.rph_thread._status = True
-        self.ui.rph_thread.SetFunc(calibration,
-                               [sensor_list, self.using_gnss_motion])
-        try:
-            self.ui.rph_thread.change_value.disconnect()
-        except:
-            pass
-        try:
-            self.ui.rph_thread.iteration_percentage.disconnect()
-        except:
-            pass
-        try:
-            self.ui.rph_thread.end.disconnect()
-        except:
-            pass
-        try:
-            self.ui.rph_thread.emit_string.disconnect()
-        except:
-            pass
-
-        # self.ui.rph_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-        # self.ui.rph_thread.change_value.connect(progress_callbacks[1]) # progress_callback
-
-        self.ui.rph_thread.end.connect(end_callback)
-        self.ui.rph_thread.start()
-
-    def EndCalibration(self):
-        self.progress_status = CONST_STOP
-        self.ui.rph.complete_calibration = True
-
-        # RPH tab
-        ## Set 'RPH Result Data'
-        for idxSensor in self.ui.rph.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_roll.setText(str(round(self.ui.rph.EstimateResult[idxSensor][0], 2)))
-            self.result_labels[idxSensor].label_edit_pitch.setText(str(round(self.ui.rph.EstimateResult[idxSensor][1], 2)))
-            # self.result_labels[idxSensor].label_edit_pitch.setText(str(round(self.ui.rph.EstimateResult[idxSensor][2], 2)))
-
-    def RadioButton(self):
-        status = self.button_group.checkedId()
-        if status == 1:  # GNSS Data
-            self.using_gnss_motion = False
-        elif status == 2:  # Motion Data
-            self.using_gnss_motion = True
-
-    def IterationPercentage(self, percentage_dict):
-        idxSensor = list(percentage_dict.keys())[0]
-        percentage = list(percentage_dict.values())[0]
-        text = 'PointCloud {}'.format(idxSensor) + ' ' + str(int(percentage)) + '%'
-
-        self.logging_file_path_layout.lidar_buttons[idxSensor].setText(text)
-
-    def ChangeCheckBox(self):
-        self.ui.mandatory_importing.Transformation(self.ui.rph.EstimateResult)
-
 class CalibrationTab(QWidget):
     def __init__(self, ui):
         super().__init__()
@@ -512,6 +294,7 @@ class CalibrationTab(QWidget):
 
         self.progress_status = CONST_STOP
         self.result_labels = {}
+        self.prev_checkID = 1
 
         self.initUi()
 
@@ -613,7 +396,7 @@ class CalibrationTab(QWidget):
         self.progress_status = CONST_PLAY
 
         for idxSensor in sensor_list['CheckedSensorList']:
-            if self.ui.mandatory_importing.PointCloudSensorList.get(idxSensor) is None:
+            if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.ui.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
                 return False
 
@@ -622,36 +405,6 @@ class CalibrationTab(QWidget):
 
         for target_clear in targets_clear:
             target_clear()
-
-        # self.ui.thread._status = True
-        # self.ui.thread.SetFunc(calibration, [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
-        # try:
-        #     self.ui.thread.change_value.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.thread.iteration_percentage.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.thread.end.disconnect()
-        # except:
-        #     pass
-        # try:
-        #     self.ui.thread.emit_string.disconnect()
-        # except:
-        #     pass
-        #
-        # for target_clear in targets_clear:
-        #     target_clear()
-        #
-        # if calibration_id == CONST_HANDEYE:
-        #     self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-        #     self.ui.thread.change_value.connect(progress_callbacks[1]) # progress_callback
-        # elif calibration_id == CONST_OPTIMIZATION:
-        #     self.ui.thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-        # self.ui.thread.end.connect(end_callback)
-        # self.ui.thread.start()
 
         if calibration_id == CONST_HANDEYE:
             self.ui.handeye_thread._status = True
@@ -716,7 +469,12 @@ class CalibrationTab(QWidget):
         if status == 1:  # GNSS Data
             self.using_gnss_motion = False
         elif status == 2:  # Motion Data
+            if self.ui.importing.has_motion_file == False:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please import Motion.csv')
+                return False
             self.using_gnss_motion = True
+        self.prev_checkID = self.button_group.checkedId()
 
 class HandEyeTab(CalibrationTab):
     def __init__(self, ui):
@@ -822,7 +580,7 @@ class HandEyeTab(CalibrationTab):
     def ViewPointCloud(self):
         if self.progress_status is not CONST_STOP:
             return False
-        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.mandatory_importing,
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
                                                                                            self.ui.handeye.PARM_LIDAR,
                                                                                            self.ui.handeye.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -840,17 +598,17 @@ class HandEyeTab(CalibrationTab):
         self.ui.ResetResultsLabels(self.ui.handeye.PARM_LIDAR)
         self.ui.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.ui.handeye.PARM_LIDAR['CheckedSensorList'])
 
-        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.mandatory_importing,
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
                                                                                            self.ui.handeye.PARM_LIDAR,
                                                                                            self.ui.handeye.CalibrationParam,
-                                                                                           copy.deepcopy(self.ui.importing_tab.limit_time_layout.start_time),
-                                                                                           copy.deepcopy(self.ui.importing_tab.limit_time_layout.end_time))
+                                                                                           self.ui.importing_tab.limit_time_layout.start_time,
+                                                                                           self.ui.importing_tab.limit_time_layout.end_time)
         # Handeye tab
         ## Set 'Result Calibration Data'
         for idxSensor in self.ui.handeye.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 2)))
-            self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][4], 2)))
-            self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+            self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 4)))
+            self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][4], 4)))
+            self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, 4)))
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
@@ -982,7 +740,7 @@ class OptimizationTab(CalibrationTab):
     def ViewPointCloud(self):
         if self.progress_status is not CONST_STOP:
             return False
-        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.mandatory_importing,
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
                                                                                            self.ui.optimization.PARM_LIDAR,
                                                                                            self.ui.optimization.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -995,7 +753,7 @@ class OptimizationTab(CalibrationTab):
         self.ui.tabs.setTabEnabled(CONST_OPTIMIZATION_TAB, True)
         self.ui.optimization.complete_calibration = True
 
-        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.mandatory_importing,
+        df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
                                                                                            self.ui.optimization.PARM_LIDAR,
                                                                                            self.ui.optimization.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -1248,7 +1006,7 @@ class EvaluationTab(QWidget):
                 return False
 
         for idxSensor in self.eval_lidar['CheckedSensorList']:
-            if self.ui.mandatory_importing.PointCloudSensorList.get(idxSensor) is None:
+            if self.ui.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.ui.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
                 return False
         if self.evaluation_status is not CONST_STOP:
@@ -1293,7 +1051,13 @@ class EvaluationTab(QWidget):
 
     def StartEvaluation(self, start_time, end_time, sensor_list, calibration_param, targets_clear, text_edit_callback, progress_callback, end_callback):
         self.ui.thread._status = True
-        self.ui.thread.SetFunc(self.ui.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param])
+
+        if self.ui.handeye.complete_calibration:
+            using_gnss_motion = self.ui.handeye_tab.using_gnss_motion
+        elif self.ui.optimization.complete_calibration:
+            using_gnss_motion = self.ui.optimization_tab.using_gnss_motion
+
+        self.ui.thread.SetFunc(self.ui.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param, using_gnss_motion])
         try:
             self.ui.thread.change_value.disconnect()
         except:
@@ -1464,7 +1228,6 @@ class MyApp(QMainWindow):
                 sensor_list = sensor_list + ' ' + str(sensor_index)
 
         is_pointcloud = False
-        is_rph = False
         is_handeye = False
         is_single_optimization = False
         is_multi_optimization = False
@@ -1505,16 +1268,6 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
             elif ('VehicleSpeedThreshold' in line) and is_import:
                 line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
-            elif '[RPH]' in line:
-                is_rph = True
-            elif ('MinThresholdX_m') in line and is_rph:
-                line = line.replace(line, 'MinThresholdX_m = ' + str(self.form_widget.config.PARM_RPH['MinThresholdX_m']) + '\n')
-            elif ('MaxThresholdX_m') in line and is_rph:
-                line = line.replace(line, 'MaxThresholdX_m = ' + str(self.form_widget.config.PARM_RPH['MaxThresholdX_m']) + '\n')
-            elif ('MinThresholdY_m') in line and is_rph:
-                line = line.replace(line, 'MinThresholdY_m = ' + str(self.form_widget.config.PARM_RPH['MinThresholdY_m']) + '\n')
-            elif ('MaxThresholdY_m') in line and is_rph:
-                line = line.replace(line, 'MaxThresholdY_m = ' + str(self.form_widget.config.PARM_RPH['MaxThresholdY_m']) + '\n')
             elif '[Handeye]' in line:
                 is_handeye = True
             elif 'MaximumIteration' in line:
@@ -1624,17 +1377,14 @@ class FormWidget(QWidget):
         super(FormWidget, self).__init__(parent)
         self.resize_count = 0
         self.thread = QThread.Thread()
-        self.rph_thread = QThread.Thread()
         self.handeye_thread = QThread.Thread()
         self.opti_thread = QThread.Thread()
 
         self.config = v1_step1_configuration.Configuration()
-        self.mandatory_importing = v1_step2_import_data.Import(self.config)
-        self.optional_importing = v1_step2_import_data.Import(self.config)
-        self.rph = v1_optional_rph.RPH(self.config, self.optional_importing)
-        self.handeye = v1_step3_handeye.HandEye(self.config, self.mandatory_importing)
-        self.optimization = v1_step4_optimization.Optimization(self.config, self.mandatory_importing)
-        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.mandatory_importing)
+        self.importing = v1_step2_import_data.Import(self.config)
+        self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
+        self.optimization = v1_step4_optimization.Optimization(self.config, self.importing)
+        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing)
         self.config.WriteDefaultFile()
         self.config.InitConfiguration()
 
@@ -1651,7 +1401,6 @@ class FormWidget(QWidget):
 
         self.config_tab = ConfigurationTab(self)
         self.importing_tab = ImportDataTab(self)
-        self.rph_tab = RPHTab(self)
         self.handeye_tab = HandEyeTab(self)
         self.optimization_tab = OptimizationTab(self)
         self.evaluation_tab = EvaluationTab(self)
@@ -1661,9 +1410,6 @@ class FormWidget(QWidget):
 
         self.tabs.addTab(self.importing_tab, '2. Import Data')
         self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, False)
-
-        self.tabs.addTab(self.rph_tab, '(optional) RPH')
-        self.tabs.setTabEnabled(CONST_RPH_TAB, False)
 
         self.tabs.addTab(self.handeye_tab, '3. HandEye')
         self.tabs.setTabEnabled(CONST_HANDEYE_TAB, False)
@@ -1700,15 +1446,6 @@ class FormWidget(QWidget):
         self.importing_tab.sampling_interval_layout.spin_box.setValue(PARM_IM['SamplingInterval'])
         self.importing_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_IM['VehicleSpeedThreshold'])
 
-        ### Setting rph tab
-        PARM_RPH = self.config.PARM_RPH
-        self.rph_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['RPH_Logging_file_path'])
-        self.rph_tab.logging_file_path_layout.path_file_str = self.config.PATH['RPH_Logging_file_path']
-        self.rph_tab.minimum_threshold_layout_x.double_spin_box.setValue(PARM_RPH['MinThresholdX_m'])
-        self.rph_tab.maximum_threshold_layout_x.double_spin_box.setValue(PARM_RPH['MaxThresholdX_m'])
-        self.rph_tab.minimum_threshold_layout_y.double_spin_box.setValue(PARM_RPH['MinThresholdY_m'])
-        self.rph_tab.maximum_threshold_layout_y.double_spin_box.setValue(PARM_RPH['MaxThresholdY_m'])
-
         ### Setting handeye tab
         PARM_HE = self.config.PARM_HE
         self.handeye_tab.maximum_interation_layout.spin_box.setValue(PARM_HE['MaximumIteration'])
@@ -1733,47 +1470,37 @@ class FormWidget(QWidget):
         print('Set all tab\'s configuration')
 
     def ResetResultsLabels(self, PARM_LIDAR):
-        # reset rph calibration result
-        self.ResetResultsLabel(CONST_UNEDITABLE_LABEL, PARM_LIDAR, self.rph_tab.scroll_box.layout, self.rph_tab.result_labels,
-                               estimate_result=self.rph.EstimateResult)
         # reset handeye calibration result
         self.ResetResultsLabel(CONST_UNEDITABLE_LABEL, PARM_LIDAR, self.handeye_tab.scroll_box.layout, self.handeye_tab.result_labels,
-                               calibration_param=self.handeye.CalibrationParam)
+                               self.handeye.CalibrationParam)
         # reset optimization calibration result
         self.ResetResultsLabel(CONST_UNEDITABLE_LABEL, PARM_LIDAR, self.optimization_tab.scroll_box.layout, self.optimization_tab.result_labels,
-                               calibration_param=self.optimization.CalibrationParam)
+                               self.optimization.CalibrationParam)
 
         # reset evaluation select method
         self.ResetResultsLabel(CONST_EVAULATION_LABEL, PARM_LIDAR, self.evaluation_tab.scroll_box.layout,
                                self.evaluation_tab.userinterface_labels,
-                               calibration_param=self.handeye.CalibrationParam)
+                               self.handeye.CalibrationParam)
 
         # reset optimization initial value of handeye
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.optimization_tab.optimization_initial_value_tab.handeye_scroll_box.layout,
                                self.optimization_tab.handeye_result_labels,
-                               calibration_param=self.optimization_tab.edit_handeye_calibration_parm)
+                               self.optimization_tab.edit_handeye_calibration_parm)
         # reset optimization initial value of custom
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.optimization_tab.optimization_initial_value_tab.user_define_scroll_box.layout,
                                self.optimization_tab.user_define_initial_labels,
-                               calibration_param=self.config.CalibrationParam)
+                               self.config.CalibrationParam)
 
-    def ResetResultsLabel(self, label_type, PARM_LIDAR, layout, labels, calibration_param=None, estimate_result=None):
+    def ResetResultsLabel(self, label_type, PARM_LIDAR, layout, labels, calibration_param):
         self.RemoveLayout(layout)
         labels.clear()
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             if label_type is CONST_UNEDITABLE_LABEL:
-                if calibration_param is not None:
-                    result_label = element.CalibrationResultLabel(idxSensor)
-                    if calibration_param.get(idxSensor) is not None:
-                        result_label.label_edit_x.setText(str(round(calibration_param[idxSensor][3], 2)))
-                        result_label.label_edit_y.setText(str(round(calibration_param[idxSensor][4], 2)))
-                        result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 2)))
-                elif estimate_result is not None:
-                    result_label = element.EstimateResultLabel(idxSensor)
-                    if estimate_result.get(idxSensor) is not None:
-                        result_label.label_edit_roll.setText(str(round(estimate_result[idxSensor][0], 2)))
-                        result_label.label_edit_pitch.setText(str(round(estimate_result[idxSensor][1], 2)))
-                        # result_label.label_edit_height.setText(str(round(estimate_result[idxSensor][3], 2)))
+                result_label = element.CalibrationResultLabel(idxSensor)
+                if calibration_param.get(idxSensor) is not None:
+                    result_label.label_edit_x.setText(str(round(calibration_param[idxSensor][3], 4)))
+                    result_label.label_edit_y.setText(str(round(calibration_param[idxSensor][4], 4)))
+                    result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 4)))
             elif label_type is CONST_EVAULATION_LABEL:
                 result_label = element.EvaluationLable(idxSensor, self)
 
@@ -1839,14 +1566,14 @@ class FormWidget(QWidget):
             ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i]) % len(self.color_list)],
                        edgecolor='none', alpha=0.5)
 
-            s = 'x[m]: ' + str(round(calib_x[i], 2)) + '\ny[m]: ' + str(round(calib_y[i], 2)) + '\nyaw[deg]: ' + str(
-                round(calib_yaw[i], 2))
+            s = 'x[m]: ' + str(round(calib_x[i], 4)) + '\ny[m]: ' + str(round(calib_y[i], 4)) + '\nyaw[deg]: ' + str(
+                round(calib_yaw[i], 4))
 
             if canvas is None:
                 if calib_y[i] > 0:
-                    ax.text(x, y + 300, s, fontsize=10)
+                    ax.text(x, y + 300, s, fontsize=7)
                 else:
-                    ax.text(x, y - 70, s, fontsize=10)
+                    ax.text(x, y - 70, s, fontsize=7)
 
             ax.arrow(x, y, 100 * np.cos((calib_yaw[i] + 90) * np.pi / 180),
                      -100 * np.sin((calib_yaw[i] + 90) * np.pi / 180), head_width=10,
@@ -1889,15 +1616,16 @@ class FormWidget(QWidget):
         row = str(math.ceil(lidar_num / 2))
         fig = plt.figure(figsize=(20, 20))
 
+        if ax is not None:
+            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
         for i in range(len(PARM_LIDAR['CheckedSensorList'])):
             idxSensor = list(PARM_LIDAR['CheckedSensorList'])
             if canvas is None:
                 plot_num_str = column + row + str(i + 1)
                 ax = fig.add_subplot(int(plot_num_str))
+                ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
 
-            strColIndex = 'PointCloud_' + str(idxSensor[i])
-
-            ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
+            strColIndex = 'XYZRGB_' + str(idxSensor[i])
             ax.plot(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], ',',
                     color=self.color_list[(idxSensor[i]) % len(self.color_list)], label=strColIndex)
 
@@ -1940,7 +1668,7 @@ class FormWidget(QWidget):
         xy_ax.set_xticklabels(lidarlist)
         xy_ax.set_xlabel('LiDAR List')
         xy_ax.set_ylabel('RMSE [m]')
-        xy_ax.set_title('RMSE x, y')
+        # xy_ax.set_title('RMSE x, y')
         xy_ax.legend()
 
         rect_yaw = yaw_ax.bar(index[:sensor_num], rmse_yaw[:sensor_num], bar_width / 2., alpha=opacity, color="g", label='RMSE yaw')
@@ -1952,7 +1680,7 @@ class FormWidget(QWidget):
         yaw_ax.set_xticklabels(lidarlist)
         yaw_ax.set_xlabel('LiDAR List')
         yaw_ax.set_ylabel('RMSE [deg]')
-        yaw_ax.set_title('RMSE yaw')
+        # yaw_ax.set_title('RMSE yaw')
         yaw_ax.legend()
         canvas.draw()
 

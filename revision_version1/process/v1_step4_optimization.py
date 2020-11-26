@@ -70,7 +70,7 @@ class Optimization:
 
         ##################
         # Remove rows by other sensors
-        strColIndex = 'PointCloud_' + str(idxSensor)
+        strColIndex = 'XYZRGB_' + str(idxSensor)
         df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
@@ -95,7 +95,7 @@ class Optimization:
             thread.mutex.lock()
 
             ##### cost function for optimization
-            utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
+            utils_cost_func.strFile = 'XYZRGB_' + str(idxSensor)
             utils_cost_func.nFeval = 0
             res = minimize(utils_cost_func.compute_single_err,
                            calib_param[2],
@@ -168,7 +168,7 @@ class Optimization:
                 calib_param = self.CalibrationParam[idxSensor]
 
                 # Remove rows by other sensors
-                strColIndex = 'PointCloud_' + str(idxSensor)
+                strColIndex = 'XYZRGB_' + str(idxSensor)
 
                 if not using_gnss_motion:
                     df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
@@ -189,7 +189,7 @@ class Optimization:
                 pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
                 ##### cost function for optimization
-                utils_cost_func.strFile = 'PointCloud_' + str(idxSensor)
+                utils_cost_func.strFile = 'XYZRGB_' + str(idxSensor)
                 utils_cost_func.nFeval = 0
                 res = minimize(utils_cost_func.compute_multi_err,
                                calib_param[2],

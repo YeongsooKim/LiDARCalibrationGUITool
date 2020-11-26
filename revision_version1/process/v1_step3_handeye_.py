@@ -58,7 +58,7 @@ class HandEye:
             diff_gnss_xyzdh = []
 
             # Remove rows by other sensors
-            strColIndex = 'PointCloud_' + str(idxSensor)
+            strColIndex = 'XYZRGB_' + str(idxSensor)
 
             if not using_gnss_motion:
                 df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
@@ -96,7 +96,7 @@ class HandEye:
                     epoch_percentage = 100.0
                 thread.change_value.emit(int(epoch_percentage))
 
-                pbar.set_description("PointCloud_" + str(idxSensor))
+                pbar.set_description("XYZRGB_" + str(idxSensor))
                 # Get point clouds
                 pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
