@@ -35,10 +35,7 @@ class Evaluation:
         print(CalibrationParam)
 
         # Get calibration data
-        if not using_gnss_motion:
-            tmp_df_info = copy.deepcopy(self.importing.df_gnss)
-        if using_gnss_motion:
-            tmp_df_info = copy.deepcopy(self.importing.df_motion)
+        tmp_df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
         df_info = tmp_df_info.drop(
@@ -121,8 +118,7 @@ class Evaluation:
                 # Get point clouds
                 map_pointcloud = {}
 
-                map_pointcloud = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[
-                                                                         j])]  # df_sampled_info의 i번째 값(PointCloud index)에 맞는 pointcloud 데이터 PointCloudSensorList에서 불러옴
+                map_pointcloud = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]  # df_sampled_info의 i번째 값(PointCloud index)에 맞는 pointcloud 데이터 PointCloudSensorList에서 불러옴
                 map_pointcloud[:, 2] = 1  # pointcloud의 z값 1로 projection (homogeneous form)
 
                 # if pointcloud.shape[0] < 1:

@@ -55,7 +55,7 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
         accum_point_enup = np.vstack([accum_point_enup, point_enup])
 
     ##################
-		 # pose based matching
+    # pose based matching
     pose_err = []
     for idx_pose in idx_sampling_pose:
          # Split the selected and excepted point cloud

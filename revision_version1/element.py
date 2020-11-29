@@ -99,7 +99,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if not self.ui.importing.has_gnss_file:
             self.ui.ErrorPopUp('Gnss.csv is missing')
         if not self.ui.importing.has_motion_file:
-            self.ui.ErrorPopUp('Motion.csv is missing')
+            self.ui.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
         if not has_pointcloud_file:
             self.ui.ErrorPopUp('XYZRGB.bin is missing')
 

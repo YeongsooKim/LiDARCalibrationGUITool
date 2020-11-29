@@ -53,7 +53,8 @@ class Optimization:
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
-        df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+        if using_gnss_motion:
+            df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
 
         ##############################################################################################################################
         # %% 3. Multiple optimization
@@ -92,6 +93,7 @@ class Optimization:
             is_single_optimization = False
 
         if is_single_optimization:
+            print('single')
             thread.mutex.lock()
 
             ##### cost function for optimization
@@ -123,6 +125,7 @@ class Optimization:
             thread.mutex.unlock()
             print("Complete single-optimization calibration")
         else:
+            print('multi 1')
             ##################
             # Sampling the pose bsaed on pose sampling interval
             num_pose = pose.shape[1]
@@ -198,6 +201,7 @@ class Optimization:
                                thread=thread,
                                method='Powell',
                                options={'ftol': 1e-10, 'disp': True})
+                print('multi 2')
                 # set data
                 self.CalibrationParam[idxSensor][2] = float(res.x)
 

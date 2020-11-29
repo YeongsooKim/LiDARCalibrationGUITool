@@ -19,7 +19,7 @@ from process import utils_pointcloud
 def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
-    tmp_df_info = copy.deepcopy(importing.df_gnss)
+    tmp_df_info = copy.deepcopy(importing.df_info)
 
     # Limit time
     df_info = tmp_df_info.drop(

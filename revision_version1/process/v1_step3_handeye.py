@@ -38,10 +38,7 @@ class HandEye:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        if not using_gnss_motion:
-            df_info = copy.deepcopy(self.importing.df_gnss)
-        elif using_gnss_motion:
-            df_info = copy.deepcopy(self.importing.df_motion)
+        df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
         df_info = df_info.drop(
