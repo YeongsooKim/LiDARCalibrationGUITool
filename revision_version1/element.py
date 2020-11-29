@@ -99,7 +99,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if not self.ui.importing.has_gnss_file:
             self.ui.ErrorPopUp('Gnss.csv is missing')
         if not self.ui.importing.has_motion_file:
-            self.ui.ErrorPopUp('Motion.csv is missing')
+            self.ui.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
         if not has_pointcloud_file:
             self.ui.ErrorPopUp('XYZRGB.bin is missing')
 
@@ -693,6 +693,73 @@ class SlideLabelLayout(QGridLayout):
         self.double_spin_box.editingFinished.connect(self.parent.DoubleSpinBoxChanged)
         self.prev_double_spin_box_value = self.double_spin_box.value()
         self.addWidget(self.double_spin_box, 1, 1)
+
+class GnssInitEditLabel(QVBoxLayout):
+    instance_number = 1
+    def __init__(self, ui):
+        super().__init__()
+        self.id = GnssInitEditLabel.instance_number
+        self.ui = ui
+
+        self.init_east_m = 0.
+        self.init_north_m = 0.
+        self.init_heading_deg = 0.
+
+        GnssInitEditLabel.instance_number += 1
+        self.InitUi()
+
+    def InitUi(self):
+        vbox = QVBoxLayout()
+
+        self.label = QLabel('Initial Value is Gnss init value')
+        vbox.addWidget(self.label)
+
+        hbox = QHBoxLayout()
+
+        label_east = QLabel('east [m]')
+        hbox.addWidget(label_east)
+        self.double_spin_box_east = QDoubleSpinBox()
+        self.double_spin_box_east.setSingleStep(0.01)
+        self.double_spin_box_east.setMaximum(10000.0)
+        self.double_spin_box_east.setMinimum(-10000.0)
+        self.double_spin_box_east.editingFinished.connect(self.DoubleSpinBoxEastChanged)
+        hbox.addWidget(self.double_spin_box_east)
+        hbox.addStretch(1)
+
+        label_north = QLabel('north [m]')
+        hbox.addWidget(label_north)
+        self.double_spin_box_north = QDoubleSpinBox()
+        self.double_spin_box_north.setSingleStep(0.01)
+        self.double_spin_box_north.setMaximum(10000.0)
+        self.double_spin_box_north.setMinimum(-10000.0)
+        self.double_spin_box_north.editingFinished.connect(self.DoubleSpinBoxNorthChanged)
+        hbox.addWidget(self.double_spin_box_north)
+        hbox.addStretch(1)
+
+        label_heading = QLabel('heading [deg]')
+        hbox.addWidget(label_heading)
+        self.double_spin_box_heading = QDoubleSpinBox()
+        self.double_spin_box_heading.setSingleStep(0.01)
+        self.double_spin_box_heading.setMaximum(10000.0)
+        self.double_spin_box_heading.setMinimum(-10000.0)
+        self.double_spin_box_heading.editingFinished.connect(self.DoubleSpinBoxHeadingChanged)
+        hbox.addWidget(self.double_spin_box_heading)
+        hbox.addStretch(1)
+
+        vbox.addLayout(hbox)
+        self.addLayout(vbox)
+
+    def DoubleSpinBoxEastChanged(self):
+        init_east_m = self.double_spin_box_east.value()
+        self.ui.importing.init[0] = init_east_m
+
+    def DoubleSpinBoxNorthChanged(self):
+        init_north_m = self.double_spin_box_north.value()
+        self.ui.importing.init[1] = init_north_m
+
+    def DoubleSpinBoxHeadingChanged(self):
+        init_heading_m = self.double_spin_box_heading.value()
+        self.ui.importing.init[2] = init_heading_m
 
 class CalibrationResultEditLabel(QVBoxLayout):
     def __init__(self, id, idxSensor, calibration_param, ui):

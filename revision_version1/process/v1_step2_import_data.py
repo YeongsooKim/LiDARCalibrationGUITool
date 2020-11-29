@@ -31,6 +31,7 @@ class Import:
         self.has_gnss_file = False
         self.has_motion_file = False
         self.is_complete = False
+        self.init = [0., 0., 0.]
 
         # Progress display
         self.progress = 0.0
@@ -53,6 +54,7 @@ class Import:
         self.df_gnss = utils_pose.get_gnss_enu(self.df_gnss, RefWGS84)
         self.df_gnss = self.df_gnss.set_index('timestamp')
         self.df_gnss = self.df_gnss.dropna(how='any')
+        self.df_info = self.df_gnss
 
         print('Parse Gnss logging data')
 
@@ -65,13 +67,21 @@ class Import:
 
         df_motion = df_motion.set_index('timestamp')
         df_motion['yaw_rate'] = df_motion['yaw_rate'] * 180 / np.pi
-        init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
-                self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
-        df_motion = df_motion.dropna(how='any')
-        df_motion = utils_pose_dr.get_motion_enu(df_motion, init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
-        # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
-        self.df_motion = pd.concat([self.df_gnss, df_motion], axis=1)
+        try:
+            self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
+                    self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
+            df_motion = df_motion.dropna(how='any')
+            df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+            # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+            self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
+        except:
+            df_motion = df_motion.dropna(how='any')
+            df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+            # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+            self.df_info = df_motion
 
         print('Parse Motion logging data')
 
@@ -142,9 +152,7 @@ class Import:
             pointcloud_data = {'timestamp': pointcloud_timestamp, 'XYZRGB_' + str(idxSensor): pointcloud_index}
             df_pointcloud_idx = pd.DataFrame(pointcloud_data)
             df_pointcloud_idx = df_pointcloud_idx.set_index('timestamp')
-            self.df_gnss = pd.concat([self.df_gnss, df_pointcloud_idx], axis=1)
-            if self.has_motion_file:
-                self.df_motion = pd.concat([self.df_motion, df_pointcloud_idx], axis=1)
+            self.df_info = pd.concat([self.df_info, df_pointcloud_idx], axis=1)
 
             p_index = p_index + 1.0
 
@@ -155,50 +163,31 @@ class Import:
         # 2-2. Resample time
         # -----------------------------------------------------------------------------------------------------------------------------
         # Interpolation
-        for i in list(self.df_gnss.columns.values):
+        for i in list(self.df_info.columns.values):
             if i[-1].isdigit():
-                self.df_gnss[i].fillna(0, inplace=True)
-        self.df_gnss = self.df_gnss.interpolate(method='linear')  # Linear interpolation in NaN
-        self.df_gnss = self.df_gnss.dropna(how='any')  # not interpolated rows dropped
-
-        if self.has_motion_file:
-            for i in list(self.df_motion.columns.values):
-                if i[-1].isdigit():
-                    self.df_gnss[i].fillna(0, inplace=True)
-            self.df_motion = self.df_motion.interpolate(method='linear')  # Linear interpolation in NaN
-            self.df_motion = self.df_motion.dropna(how='any')  # not interpolated rows dropped
+                self.df_info[i].fillna(0, inplace=True)
+        self.df_info = self.df_info.interpolate(method='linear')  # Linear interpolation in NaN
+        self.df_info = self.df_info.dropna(how='any')  # not interpolated rows dropped
 
         # Remove rows without num_points
         valid_info = []
-        for i in list(self.df_gnss.columns.values):
+        for i in list(self.df_info.columns.values):
             if i[-1].isdigit():
                 if len(valid_info) == 0:
-                    valid_info = self.df_gnss[i].values != 0
+                    valid_info = self.df_info[i].values != 0
                 else:
-                    valid_info = valid_info | (self.df_gnss[i].values != 0)
+                    valid_info = valid_info | (self.df_info[i].values != 0)
         non_valid_info = ~valid_info
-        self.df_gnss = self.df_gnss.drop(self.df_gnss[non_valid_info].index)
+        self.df_info = self.df_info.drop(self.df_info[non_valid_info].index)
         del valid_info, non_valid_info
-
-        if self.has_motion_file:
-            valid_info = []
-            for i in list(self.df_motion.columns.values):
-                if i[-1].isdigit():
-                    if len(valid_info) == 0:
-                        valid_info = self.df_motion[i].values != 0
-                    else:
-                        valid_info = valid_info | (self.df_motion[i].values != 0)
-            non_valid_info = ~valid_info
-            self.df_motion = self.df_motion.drop(self.df_motion[non_valid_info].index)
-            del valid_info, non_valid_info
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 2-3. Limit time data
         # -----------------------------------------------------------------------------------------------------------------------------
 
         # Set using time
-        self.DefaultStartTime = self.df_gnss.index.values[1]
-        self.DefaultEndTime = self.df_gnss.index.values[len(self.df_gnss.index.values) - 1]
+        self.DefaultStartTime = self.df_info.index.values[1]
+        self.DefaultEndTime = self.df_info.index.values[len(self.df_info.index.values) - 1]
 
         thread.msleep(1)
         thread.mutex.unlock()

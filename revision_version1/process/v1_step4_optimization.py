@@ -42,6 +42,7 @@ class Optimization:
     # %% 3. Optimization
     ##############################################################################################################################
     def Calibration(self, thread, args):
+        thread.emit_string.emit(str('Start optimization calibration'))
         mutex_unlock = False
         start_time = args[0]
         end_time = args[1]
@@ -53,7 +54,8 @@ class Optimization:
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
-        df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+        if using_gnss_motion:
+            df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
 
         ##############################################################################################################################
         # %% 3. Multiple optimization
@@ -71,7 +73,13 @@ class Optimization:
         ##################
         # Remove rows by other sensors
         strColIndex = 'XYZRGB_' + str(idxSensor)
-        df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+
+        if not using_gnss_motion:
+            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+        elif using_gnss_motion:
+            df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+            df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
+                               inplace=True)
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
         ##################
@@ -206,6 +214,9 @@ class Optimization:
                     break
                 thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
 
+                thread.mutex.unlock()
+                mutex_unlock = True
+
             self.calib_yaw.clear()
             self.calib_x.clear()
             self.calib_y.clear()
@@ -217,5 +228,6 @@ class Optimization:
             self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
             if not mutex_unlock:
                 thread.mutex.unlock()
+                mutex_unlock = True
 
             print("Complete mutli-optimization calibration")
