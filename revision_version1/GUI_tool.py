@@ -275,7 +275,7 @@ class ImportDataTab(QWidget):
             self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.init[0])
             self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.init[1])
             self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.init[2])
-            
+
             self.time_speed_threshold_layout.double_spin_box.setReadOnly(False)
             self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color:white")
             self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
