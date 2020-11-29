@@ -42,6 +42,7 @@ class Optimization:
     # %% 3. Optimization
     ##############################################################################################################################
     def Calibration(self, thread, args):
+        thread.emit_string.emit(str('Start optimization calibration'))
         mutex_unlock = False
         start_time = args[0]
         end_time = args[1]
@@ -72,7 +73,13 @@ class Optimization:
         ##################
         # Remove rows by other sensors
         strColIndex = 'XYZRGB_' + str(idxSensor)
-        df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+
+        if not using_gnss_motion:
+            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+        elif using_gnss_motion:
+            df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+            df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
+                               inplace=True)
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
         ##################
@@ -93,7 +100,6 @@ class Optimization:
             is_single_optimization = False
 
         if is_single_optimization:
-            print('single')
             thread.mutex.lock()
 
             ##### cost function for optimization
@@ -125,7 +131,6 @@ class Optimization:
             thread.mutex.unlock()
             print("Complete single-optimization calibration")
         else:
-            print('multi 1')
             ##################
             # Sampling the pose bsaed on pose sampling interval
             num_pose = pose.shape[1]
@@ -201,7 +206,6 @@ class Optimization:
                                thread=thread,
                                method='Powell',
                                options={'ftol': 1e-10, 'disp': True})
-                print('multi 2')
                 # set data
                 self.CalibrationParam[idxSensor][2] = float(res.x)
 
@@ -209,6 +213,9 @@ class Optimization:
                     thread.emit_string.emit(str('Stop LiDAR {} calibration'.format(idxSensor)))
                     break
                 thread.emit_string.emit(str('Complete LiDAR {} calibration'.format(idxSensor)))
+
+                thread.mutex.unlock()
+                mutex_unlock = True
 
             self.calib_yaw.clear()
             self.calib_x.clear()
@@ -221,5 +228,6 @@ class Optimization:
             self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
             if not mutex_unlock:
                 thread.mutex.unlock()
+                mutex_unlock = True
 
             print("Complete mutli-optimization calibration")

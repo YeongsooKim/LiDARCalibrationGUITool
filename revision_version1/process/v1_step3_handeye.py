@@ -32,6 +32,7 @@ class HandEye:
     # %% 3. Handeye
     ##############################################################################################################################
     def Calibration(self, thread, args):
+        thread.emit_string.emit(str('Start handeye calibration'))
         thread.mutex.lock()
         start_time = args[0]
         end_time = args[1]

@@ -31,6 +31,7 @@ class Import:
         self.has_gnss_file = False
         self.has_motion_file = False
         self.is_complete = False
+        self.init = [0., 0., 0.]
 
         # Progress display
         self.progress = 0.0
@@ -66,13 +67,21 @@ class Import:
 
         df_motion = df_motion.set_index('timestamp')
         df_motion['yaw_rate'] = df_motion['yaw_rate'] * 180 / np.pi
-        init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
-                self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
-        df_motion = df_motion.dropna(how='any')
-        df_motion = utils_pose_dr.get_motion_enu(df_motion, init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
-        # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
-        self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
+        try:
+            self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
+                    self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
+            df_motion = df_motion.dropna(how='any')
+            df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+            # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+            self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
+        except:
+            df_motion = df_motion.dropna(how='any')
+            df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+            # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+            self.df_info = df_motion
 
         print('Parse Motion logging data')
 

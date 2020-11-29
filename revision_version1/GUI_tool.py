@@ -166,6 +166,7 @@ class ImportDataTab(QWidget):
         main_vbox = QVBoxLayout()
 
         main_vbox.addWidget(self.Main_LoggingData_Groupbox())
+        main_vbox.addWidget(self.Main_GnssInit_Groupbox())
         main_vbox.addStretch(1)
 
         hbox = QHBoxLayout()
@@ -201,6 +202,16 @@ class ImportDataTab(QWidget):
         self.logging_vbox.addWidget(self.lidar_scroll_box)
 
         groupbox.setLayout(self.logging_vbox)
+        return groupbox
+
+    def Main_GnssInit_Groupbox(self):
+        groupbox = QGroupBox('Set Gnss Initial Value')
+        vbox = QVBoxLayout()
+
+        self.init_gnss_value_layout = element.GnssInitEditLabel(self.ui)
+        vbox.addLayout(self.init_gnss_value_layout)
+
+        groupbox.setLayout(vbox)
         return groupbox
 
     def Main_Set_Configuration_Groupbox(self):
@@ -252,14 +263,36 @@ class ImportDataTab(QWidget):
 
         # Import tab
         ## Set Configuration
-        if self.ui.importing.has_motion_file == False:
+        if not self.ui.importing.has_motion_file:
             self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
             self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color: #F0F0F0;")
             self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
+            self.ui.handeye_tab.using_gnss_motion = False
+            self.ui.handeye_tab.button_group.button(1).setChecked(True)
+            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
         elif self.ui.importing.has_motion_file:
+            self.init_gnss_value_layout.label.setText('Initial Value is custom init value')
+            self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.init[0])
+            self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.init[1])
+            self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.init[2])
+            
             self.time_speed_threshold_layout.double_spin_box.setReadOnly(False)
             self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color:white")
             self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+
+        if not self.ui.importing.has_gnss_file:
+            self.ui.handeye_tab.using_gnss_motion = True
+            self.ui.handeye_tab.button_group.button(2).setChecked(True)
+            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
+            self.ui.optimization_tab.using_gnss_motion = True
+            self.ui.optimization_tab.button_group.button(2).setChecked(True)
+            self.ui.optimization_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
+        elif self.ui.importing.has_gnss_file:
+            self.init_gnss_value_layout.label.setText('Initial Value is Gnss init value')
+            self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.df_gnss['east_m'].values[0])
+            self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.df_gnss['north_m'].values[0])
+            self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.df_gnss['heading'].values[0])
+
 
         ## set slider default time
         self.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
@@ -273,6 +306,10 @@ class ImportDataTab(QWidget):
         self.limit_time_layout.start_time_layout.slider.setValue(self.limit_time_layout.end_time_layout.slider.minimum())
         self.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
 
+        ## set slider and double_spin_box value start, end time
+        self.limit_time_layout.start_time = default_start_time
+        self.limit_time_layout.end_time = default_end_time
+
         # Evaluation tab
         ## set slider default time
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
@@ -285,6 +322,10 @@ class ImportDataTab(QWidget):
         self.ui.evaluation_tab.limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.minimum())
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+
+        ## set slider and double_spin_box value start, end time
+        self.ui.evaluation_tab.start_time = default_start_time
+        self.ui.evaluation_tab.end_time = default_end_time
 
 class CalibrationTab(QWidget):
     def __init__(self, ui):
@@ -467,6 +508,10 @@ class CalibrationTab(QWidget):
     def RadioButton(self):
         status = self.button_group.checkedId()
         if status == 1:  # GNSS Data
+            if self.ui.importing.has_gnss_file == False:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.ui.ErrorPopUp('Please import Gnss.csv')
+                return False
             self.using_gnss_motion = False
         elif status == 2:  # Motion Data
             if self.ui.importing.has_motion_file == False:
@@ -581,6 +626,7 @@ class HandEyeTab(CalibrationTab):
         if self.progress_status is not CONST_STOP:
             return False
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
+                                                                                           self.ui.handeye_tab.using_gnss_motion,
                                                                                            self.ui.handeye.PARM_LIDAR,
                                                                                            self.ui.handeye.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -599,6 +645,7 @@ class HandEyeTab(CalibrationTab):
         self.ui.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.ui.handeye.PARM_LIDAR['CheckedSensorList'])
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
+                                                                                           self.ui.handeye_tab.using_gnss_motion,
                                                                                            self.ui.handeye.PARM_LIDAR,
                                                                                            self.ui.handeye.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -741,6 +788,7 @@ class OptimizationTab(CalibrationTab):
         if self.progress_status is not CONST_STOP:
             return False
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
+                                                                                           self.ui.optimization_tab.using_gnss_motion,
                                                                                            self.ui.optimization.PARM_LIDAR,
                                                                                            self.ui.optimization.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,
@@ -754,6 +802,7 @@ class OptimizationTab(CalibrationTab):
         self.ui.optimization.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
+                                                                                           self.ui.optimization_tab.using_gnss_motion,
                                                                                            self.ui.optimization.PARM_LIDAR,
                                                                                            self.ui.optimization.CalibrationParam,
                                                                                            self.ui.importing_tab.limit_time_layout.start_time,

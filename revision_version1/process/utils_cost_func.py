@@ -35,7 +35,7 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
     ##################
     # Sampling the pose bsaed on pose sampling interval
     num_pose = len(east)
-    interval = PARM_IM['SamplingInterval']
+    interval = PARM_IM['SamplingInterval'] * 10
     if interval < 1:
         interval = 1
     idx_sampling_pose = list(range(0, num_pose, interval))
@@ -147,7 +147,7 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
     ##################
     # Sampling the pose bsaed on pose sampling interval
     num_pose = len(east)
-    interval = PARM_IM['SamplingInterval']
+    interval = PARM_IM['SamplingInterval'] * 10
     if interval < 1:
         interval = 1
     idx_sampling_pose = list(range(0, num_pose, interval))

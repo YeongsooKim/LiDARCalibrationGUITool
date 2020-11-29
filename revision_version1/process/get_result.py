@@ -16,7 +16,7 @@ import copy
 from process import utils_pointcloud
 
     # Paramet
-def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time):
+def GetPlotParam(importing, using_gnss_motion, PARM_LIDAR, calibration_param, start_time, end_time):
     ##################
     # Get calibration data
     tmp_df_info = copy.deepcopy(importing.df_info)
@@ -34,8 +34,21 @@ def GetPlotParam(importing, PARM_LIDAR, calibration_param, start_time, end_time)
         ##################
         # Remove rows by other sensors
         strColIndex = 'XYZRGB_' + str(idxSensor)
+
+        if using_gnss_motion:
+            df_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"}, inplace=True)
+
         df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+
+        # if not using_gnss_motion:
+        #     df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+        # elif using_gnss_motion:
+        #     df_info
+        #     df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+        #     df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
+        #                        inplace=True)
+        # df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
         ##################
         ##### Arguments
