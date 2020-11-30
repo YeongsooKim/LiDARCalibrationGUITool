@@ -19,7 +19,7 @@ from process import utils_pointcloud
 from process import utils_cost_func
 import copy
 
-class Optimization:
+class Unsupervised:
     def __init__(self, config, importing):
         self.config = config
         self.importing = importing
