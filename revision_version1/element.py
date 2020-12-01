@@ -90,8 +90,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.label_edit.setText(self.path_file_str)
 
     def ImportFile(self):
-        self.ui.importing.has_gnss_file = False
-        self.ui.importing.has_motion_file = False
+        self.ui.importing.Clear()
         self.CheckGnssFile()
         has_pointcloud_file = self.CheckPointCloudFile()
 
@@ -694,71 +693,74 @@ class SlideLabelLayout(QGridLayout):
         self.addWidget(self.double_spin_box, 1, 1)
 
 class GnssInitEditLabel(QVBoxLayout):
-    instance_number = 1
-    def __init__(self, ui):
+    def __init__(self, string, ui, ):
         super().__init__()
-        self.id = GnssInitEditLabel.instance_number
+        self.string = string
         self.ui = ui
 
-        self.init_east_m = 0.
-        self.init_north_m = 0.
-        self.init_heading_deg = 0.
+        self.east_m = 0.
+        self.north_m = 0.
+        self.heading_deg = 0.
 
-        GnssInitEditLabel.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
         vbox = QVBoxLayout()
 
-        self.label = QLabel('Initial Value is Gnss init value')
-        vbox.addWidget(self.label)
-
         hbox = QHBoxLayout()
+        self.label = QLabel(self.string)
+        hbox.addWidget(self.label, 25)
 
-        label_east = QLabel('east [m]')
-        hbox.addWidget(label_east)
         self.double_spin_box_east = QDoubleSpinBox()
         self.double_spin_box_east.setSingleStep(0.01)
         self.double_spin_box_east.setMaximum(10000.0)
         self.double_spin_box_east.setMinimum(-10000.0)
+        if self.string == 'Gnss Initial Value':
+            self.double_spin_box_east.setReadOnly(True)
+            self.double_spin_box_east.setStyleSheet("background-color: #F0F0F0;")
+            self.double_spin_box_east.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.double_spin_box_east.editingFinished.connect(self.DoubleSpinBoxEastChanged)
-        hbox.addWidget(self.double_spin_box_east)
-        hbox.addStretch(1)
+        hbox.addWidget(self.double_spin_box_east, 25)
 
-        label_north = QLabel('north [m]')
-        hbox.addWidget(label_north)
         self.double_spin_box_north = QDoubleSpinBox()
         self.double_spin_box_north.setSingleStep(0.01)
         self.double_spin_box_north.setMaximum(10000.0)
         self.double_spin_box_north.setMinimum(-10000.0)
+        if self.string == 'Gnss Initial Value':
+            self.double_spin_box_north.setReadOnly(True)
+            self.double_spin_box_north.setStyleSheet("background-color: #F0F0F0;")
+            self.double_spin_box_north.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.double_spin_box_north.editingFinished.connect(self.DoubleSpinBoxNorthChanged)
-        hbox.addWidget(self.double_spin_box_north)
-        hbox.addStretch(1)
+        hbox.addWidget(self.double_spin_box_north, 25)
 
-        label_heading = QLabel('heading [deg]')
-        hbox.addWidget(label_heading)
         self.double_spin_box_heading = QDoubleSpinBox()
         self.double_spin_box_heading.setSingleStep(0.01)
         self.double_spin_box_heading.setMaximum(10000.0)
         self.double_spin_box_heading.setMinimum(-10000.0)
+        if self.string == 'Gnss Initial Value':
+            self.double_spin_box_heading.setReadOnly(True)
+            self.double_spin_box_heading.setStyleSheet("background-color: #F0F0F0;")
+            self.double_spin_box_heading.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.double_spin_box_heading.editingFinished.connect(self.DoubleSpinBoxHeadingChanged)
-        hbox.addWidget(self.double_spin_box_heading)
-        hbox.addStretch(1)
+        hbox.addWidget(self.double_spin_box_heading, 25)
 
         vbox.addLayout(hbox)
         self.addLayout(vbox)
 
     def DoubleSpinBoxEastChanged(self):
-        init_east_m = self.double_spin_box_east.value()
-        self.ui.importing.init[0] = init_east_m
+        self.east_m = self.double_spin_box_east.value()
+        init = [self.east_m, self.north_m, self.heading_deg]
+        self.ui.importing.ChangeInitValue(init)
 
     def DoubleSpinBoxNorthChanged(self):
-        init_north_m = self.double_spin_box_north.value()
-        self.ui.importing.init[1] = init_north_m
+        self.north_m = self.double_spin_box_north.value()
+        init = [self.east_m, self.north_m, self.heading_deg]
+        self.ui.importing.ChangeInitValue(init)
 
     def DoubleSpinBoxHeadingChanged(self):
-        init_heading_m = self.double_spin_box_heading.value()
-        self.ui.importing.init[2] = init_heading_m
+        self.heading_deg = self.double_spin_box_heading.value()
+        init = [self.east_m, self.north_m, self.heading_deg]
+        self.ui.importing.ChangeInitValue(init)
 
 class CalibrationResultEditLabel(QVBoxLayout):
     def __init__(self, id, idxSensor, calibration_param, ui):
