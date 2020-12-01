@@ -24,7 +24,7 @@ from process import v1_step5_evaluation
 from widget.QButton import *
 from widget import QThread
 from widget.QScrollarea import *
-from random import *
+from PyQt5.QtGui import *
 
 import pylab as pl
 import numpy as np
@@ -1163,6 +1163,7 @@ class MyApp(QMainWindow):
     def __init__(self, parent=None):
         super(MyApp, self).__init__(parent)
         self.form_widget = FormWidget(self)
+        self.setWindowIcon(QIcon(self.form_widget.config.PATH['Image_path'] + 'exe_icon.ico'))
 
         self.InitUi()
 
