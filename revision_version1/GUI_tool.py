@@ -164,8 +164,12 @@ class ImportDataTab(QWidget):
         main_vbox = QVBoxLayout()
 
         main_vbox.addWidget(self.Main_LoggingData_Groupbox())
-        main_vbox.addWidget(self.Main_GnssInit_Groupbox())
-        main_vbox.addStretch(1)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.Main_GnssInit_Groupbox(), 35)
+        hbox.addWidget(self.Main_Empty_Groupbox(), 65)
+        main_vbox.addLayout(hbox)
+        main_vbox.addStretch(0.5)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.Main_Set_Configuration_Groupbox(), 25)
@@ -203,13 +207,29 @@ class ImportDataTab(QWidget):
         return groupbox
 
     def Main_GnssInit_Groupbox(self):
-        groupbox = QGroupBox('Set Gnss Initial Value')
+        groupbox = QGroupBox('Set Initial Value')
         vbox = QVBoxLayout()
 
-        self.init_gnss_value_layout = element.GnssInitEditLabel(self.ui)
-        vbox.addLayout(self.init_gnss_value_layout)
+        hbox = QHBoxLayout()
+        label = QLabel()
+        hbox.addWidget(label, 25)
+        label = QLabel('East [m]')
+        hbox.addWidget(label, 25)
+        label = QLabel('North [m]')
+        hbox.addWidget(label, 25)
+        label = QLabel('Heading [deg]')
+        hbox.addWidget(label, 25)
+        vbox.addLayout(hbox)
+
+        self.scroll_box = ScrollAreaV()
+        vbox.addWidget(self.scroll_box)
 
         groupbox.setLayout(vbox)
+        return groupbox
+
+    def Main_Empty_Groupbox(self):
+        groupbox = QGroupBox()
+
         return groupbox
 
     def Main_Set_Configuration_Groupbox(self):
@@ -261,36 +281,52 @@ class ImportDataTab(QWidget):
 
         # Import tab
         ## Set Configuration
-        if not self.ui.importing.has_motion_file:
-            self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
-            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color: #F0F0F0;")
-            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
-            self.ui.handeye_tab.using_gnss_motion = False
-            self.ui.handeye_tab.button_group.button(1).setChecked(True)
-            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
-        elif self.ui.importing.has_motion_file:
-            self.init_gnss_value_layout.label.setText('Initial Value is custom init value')
-            self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.init[0])
-            self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.init[1])
-            self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.init[2])
+        self.ui.RemoveLayout(self.scroll_box.layout)
 
-            self.time_speed_threshold_layout.double_spin_box.setReadOnly(False)
-            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color:white")
-            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
-
-        if not self.ui.importing.has_gnss_file:
-            self.ui.handeye_tab.using_gnss_motion = True
-            self.ui.handeye_tab.button_group.button(2).setChecked(True)
-            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
-            self.ui.unsupervised_tab.using_gnss_motion = True
-            self.ui.unsupervised_tab.button_group.button(2).setChecked(True)
-            self.ui.unsupervised_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
-        elif self.ui.importing.has_gnss_file:
-            self.init_gnss_value_layout.label.setText('Initial Value is Gnss init value')
+        if self.ui.importing.has_gnss_file:
+            self.init_gnss_value_layout = element.GnssInitEditLabel('Gnss Initial Value', self.ui)
             self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.df_gnss['east_m'].values[0])
             self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.df_gnss['north_m'].values[0])
             self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.df_gnss['heading'].values[0])
+            self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
+        elif not self.ui.importing.has_gnss_file:
+            ## Set button status in handeye_tab
+            self.ui.handeye_tab.using_gnss_motion = True
+            self.ui.handeye_tab.button_group.button(2).setChecked(True)
+            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
 
+            ## Set button status in unsupervised_tab
+            self.ui.unsupervised_tab.using_gnss_motion = True
+            self.ui.unsupervised_tab.button_group.button(2).setChecked(True)
+            self.ui.unsupervised_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
+
+        if self.ui.importing.has_motion_file:
+            ## Set intial value
+            self.init_motion_value_layout = element.GnssInitEditLabel('Motion Initial Value', self.ui)
+            self.init_motion_value_layout.double_spin_box_east.setValue(self.ui.importing.init[0])
+            self.init_motion_value_layout.double_spin_box_north.setValue(self.ui.importing.init[1])
+            self.init_motion_value_layout.double_spin_box_heading.setValue(self.ui.importing.init[2])
+            self.scroll_box.layout.addLayout(self.init_motion_value_layout)
+
+            ## Change time_speed_threshold_layout status
+            self.time_speed_threshold_layout.double_spin_box.setReadOnly(False)
+            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color:white")
+            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+        elif not self.ui.importing.has_motion_file:
+            ## Set button status in handeye_tab
+            self.ui.handeye_tab.using_gnss_motion = False
+            self.ui.handeye_tab.button_group.button(1).setChecked(True)
+            self.ui.handeye_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
+
+            ## Setbutton status in unsupervised_tab
+            self.ui.unsupervised_tab.using_gnss_motion = False
+            self.ui.unsupervised_tab.button_group.button(1).setChecked(True)
+            self.ui.unsupervised_tab.prev_checkID = self.ui.handeye_tab.button_group.checkedId()
+
+            ## Change time_speed_threshold_layout status
+            self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
+            self.time_speed_threshold_layout.double_spin_box.setStyleSheet("background-color: #F0F0F0;")
+            self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
         ## set slider default time
         self.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 # Additional modules
 from tqdm import tqdm
+import copy
 
 # User defined modules
 from process import utils_file
@@ -31,7 +32,10 @@ class Import:
         self.has_gnss_file = False
         self.has_motion_file = False
         self.is_complete = False
+        self.df_gnss = None
         self.init = [0., 0., 0.]
+        self.df_motion = None
+        self.df_pointcloud_idx = {}
 
         # Progress display
         self.progress = 0.0
@@ -61,23 +65,23 @@ class Import:
     def ParseMotion(self):
         motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # 사용할 column 'timestamp','speed_x','yaw_rate'으로 설정
         motion_file = self.gnss_logging_file + '/Motion.csv'
-        df_motion = utils_file.parse_motion_csv_df(motion_file,
+        self.df_motion = utils_file.parse_motion_csv_df(motion_file,
                                                    motion_usecols)  # motion file, motion usecols 입력으로 넣어 motion file parsing
-        # df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
+        # self.df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
 
-        df_motion = df_motion.set_index('timestamp')
-        df_motion['yaw_rate'] = df_motion['yaw_rate'] * 180 / np.pi
+        self.df_motion = self.df_motion.set_index('timestamp')
+        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi
 
         try:
             self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
                     self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
-            df_motion = df_motion.dropna(how='any')
+            df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
             self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
         except:
-            df_motion = df_motion.dropna(how='any')
+            df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
@@ -150,9 +154,9 @@ class Import:
 
             # Generate data frame
             pointcloud_data = {'timestamp': pointcloud_timestamp, 'XYZRGB_' + str(idxSensor): pointcloud_index}
-            df_pointcloud_idx = pd.DataFrame(pointcloud_data)
-            df_pointcloud_idx = df_pointcloud_idx.set_index('timestamp')
-            self.df_info = pd.concat([self.df_info, df_pointcloud_idx], axis=1)
+            self.df_pointcloud_idx[idxSensor] = pd.DataFrame(pointcloud_data)
+            self.df_pointcloud_idx[idxSensor] = self.df_pointcloud_idx[idxSensor].set_index('timestamp')
+            self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
 
             p_index = p_index + 1.0
 
@@ -193,3 +197,48 @@ class Import:
         thread.mutex.unlock()
 
         print('Parse pointcloud logging data')
+
+    def ChangeInitValue(self, init_value):
+        self.init = init_value
+        df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
+        df_motion = utils_pose_dr.get_motion_enu(df_motion, init_value)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+        # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
+
+        self.df_info = df_motion
+
+        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+            self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
+
+        # -----------------------------------------------------------------------------------------------------------------------------
+        # 2-2. Resample time
+        # -----------------------------------------------------------------------------------------------------------------------------
+        # Interpolation
+        for i in list(self.df_info.columns.values):
+            if i[-1].isdigit():
+                self.df_info[i].fillna(0, inplace=True)
+        self.df_info = self.df_info.interpolate(method='linear')  # Linear interpolation in NaN
+        self.df_info = self.df_info.dropna(how='any')  # not interpolated rows dropped
+
+        # Remove rows without num_points
+        valid_info = []
+        for i in list(self.df_info.columns.values):
+            if i[-1].isdigit():
+                if len(valid_info) == 0:
+                    valid_info = self.df_info[i].values != 0
+                else:
+                    valid_info = valid_info | (self.df_info[i].values != 0)
+        non_valid_info = ~valid_info
+        self.df_info = self.df_info.drop(self.df_info[non_valid_info].index)
+        del valid_info, non_valid_info
+            
+    def Clear(self):
+        self.DefaultStartTime = 0.0
+        self.DefaultEndTime = 0.0
+        self.PointCloudSensorList = {}
+        self.has_gnss_file = False
+        self.has_motion_file = False
+        self.is_complete = False
+        self.df_gnss = None
+        self.init = [0., 0., 0.]
+        self.df_motion = None
+        self.df_pointcloud_idx = {}
