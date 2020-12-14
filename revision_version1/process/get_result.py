@@ -41,18 +41,15 @@ def GetPlotParam(importing, using_gnss_motion, PARM_LIDAR, calibration_param, st
         df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
-        # if not using_gnss_motion:
-        #     df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
-        # elif using_gnss_motion:
-        #     df_info
-        #     df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
-        #     df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
-        #                        inplace=True)
-        # df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
 
         ##################
         ##### Arguments
         # Get position
+        # print("df_one_info['east_m']: " + str(df_one_info['east_m']))
+        # print("df_one_info['north_m']: " + str(df_one_info['north_m']))
+        # print("df_one_info['heading']: " + str(df_one_info['heading']))
+        # print("df_one_info[strColIndex].values: " + str(df_one_info[strColIndex].values))
+
         pose = df_one_info['east_m'].values
         pose = np.vstack([pose, df_one_info['north_m'].values])
         pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])

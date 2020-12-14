@@ -193,6 +193,8 @@ class Import:
         self.DefaultStartTime = self.df_info.index.values[1]
         self.DefaultEndTime = self.df_info.index.values[len(self.df_info.index.values) - 1]
 
+        print(self.df_info)
+
         thread.msleep(1)
         thread.mutex.unlock()
 

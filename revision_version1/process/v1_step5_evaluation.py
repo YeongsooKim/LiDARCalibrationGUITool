@@ -28,12 +28,6 @@ class Evaluation:
         CalibrationParam = copy.deepcopy(args[3])
         using_gnss_motion = args[4]
 
-        print("evaluation")
-        print(start_time)
-        print(end_time)
-        print(PARM_LIDAR)
-        print(CalibrationParam)
-
         # Get calibration data
         tmp_df_info = copy.deepcopy(self.importing.df_info)
 
@@ -79,12 +73,17 @@ class Evaluation:
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)  # PointCloud_n 이름 생성
             LiDAR_list[idxSensor] = strColIndex
-            if not using_gnss_motion:
+
+            if not self.importing.has_gnss_file:
+                df_info['east_m'] = df_info['dr_east_m']
+                df_info['north_m'] = df_info['dr_north_m']
+                df_info['heading'] = df_info['dr_heading']
+            if not self.importing.has_motion_file:
                 df_info['dr_east_m'] = df_info['east_m']
                 df_info['dr_north_m'] = df_info['north_m']
                 df_info['dr_heading'] = df_info['heading']
-            df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading',
-                                   strColIndex]]  # df_info의 'east','north','heading',...,XYZRGB 하나씩 분리해서 저장
+
+            df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]  # df_info의 'east','north','heading',...,XYZRGB 하나씩 분리해서 저장
             df_one_info = df_one_info.drop(df_info[(df_one_info[
                                                         strColIndex].values == 0)].index)  # df_one_info에서 strColIndex(PointCloud_n)의 value가 0인 값들 다 제외 --> 값이 있는 애들만 남겨놓음
 

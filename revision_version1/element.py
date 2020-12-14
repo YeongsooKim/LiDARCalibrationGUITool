@@ -95,7 +95,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         has_pointcloud_file = self.CheckPointCloudFile()
 
         if not self.ui.importing.has_gnss_file:
-            self.ui.ErrorPopUp('Gnss.csv is missing')
+            self.ui.ErrorPopUp('Gnss.csv is missing\n Please set initial value')
         if not self.ui.importing.has_motion_file:
             self.ui.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
         if not has_pointcloud_file:
@@ -178,9 +178,13 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv'):
             self.ui.importing.has_gnss_file = True
+        else:
+            self.ui.importing.has_gnss_file = False
 
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv'):
             self.ui.importing.has_motion_file = True
+        else:
+            self.ui.importing.has_motion_file = False
 
     def CheckPointCloudFile(self):
         self.ui.importing.point_cloud_logging_path = self.path_file_str
