@@ -83,9 +83,7 @@ class ConfigurationTab(QWidget):
     ## Layout
     def SetConfiguration_Layout(self):
         hbox = QHBoxLayout()
-
-
-        
+        hbox.addWidget(self.SetConfiguration_LidarConfiguration_Groupbox())
         hbox.addWidget(self.SetConfiguration_PointCloudConfiguration_Groupbox())
 
         return hbox
