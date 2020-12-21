@@ -373,14 +373,14 @@ class CheckButton(QVBoxLayout):
         self.callback()
 
 class SpinBoxLabelLayout(QVBoxLayout):
-    instance_number = 1
+    instance_number = 1 # 바꿔도 바뀌는게 없던데...
     def __init__(self, label_str, ui):
         super().__init__()
         self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
         self.ui = ui
 
-        SpinBoxLabelLayout.instance_number += 1
+        SpinBoxLabelLayout.instance_number += 1 # 이 식의 용도는? 스핀박스의 갯수같긴함
         self.InitUi()
 
     def InitUi(self):

@@ -61,9 +61,9 @@ CONST_UNSUPERVISED = 3
 
 class ConfigurationTab(QWidget):
     def __init__(self, ui):
-        super().__init__()
+        super().__init__() # what's doing this? --> Operate Qwidget's init() function
         self.is_lidar_num_changed = False
-        self.ui = ui
+        self.ui = ui # What is ui? -- ui is FormWidget function class
 
         self.initUi()
 
@@ -84,7 +84,8 @@ class ConfigurationTab(QWidget):
     def SetConfiguration_Layout(self):
         hbox = QHBoxLayout()
 
-        hbox.addWidget(self.SetConfiguration_LidarConfiguration_Groupbox())
+
+        
         hbox.addWidget(self.SetConfiguration_PointCloudConfiguration_Groupbox())
 
         return hbox
@@ -1204,6 +1205,8 @@ class MyApp(QMainWindow):
         self.InitUi()
 
     def InitUi(self):
+        ### Define menuBar File tap and that's contents
+
         self.setCentralWidget(self.form_widget)
 
         menubar = self.menuBar()
@@ -1239,7 +1242,7 @@ class MyApp(QMainWindow):
         self.setWindowTitle('Calibration Tool')
         self.showMaximized()
 
-    def center(self):
+    def center(self): # 이건 내용이 센터를 만드는거 같긴한데 좀 더 찾아봐야할거같다.
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
@@ -1264,7 +1267,7 @@ class MyApp(QMainWindow):
                 return False
 
         widget = QWidget()
-        fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['Configuration'], "Configuration file (*.ini)")
+        fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['Configuration'], "Configuration file (*.ini)") # exist ini file path
 
         if fname[0]:
             self.form_widget.config.configuration_file = fname[0]
@@ -1273,15 +1276,17 @@ class MyApp(QMainWindow):
             print('Open '+ str(fname[0]))
 
     def OpenNewFile(self): # Ctrl+N
+        ### Open new file when some parameter change
         if self.form_widget.value_changed:
+            # Generate message box to save current setting. The option is save, no and cancel. Default is save
             reply = QMessageBox.question(self, 'Open New File', 'Do you want to save?',
                                          QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
             if reply == QMessageBox.Save:
-                fname = self.SaveDialog()
+                fname = self.SaveDialog() # path of saving directory
                 if fname[0]:
                     self.form_widget.config.configuration_file = fname[0]
                     self.form_widget.config.WriteFile(fname[0])
-                    self.SaveIniFile()
+                    self.SaveIniFile() # save parameters
                     print('Save Current ini File')
                 else:
                     print('Cancel Save ini File')
@@ -1290,6 +1295,7 @@ class MyApp(QMainWindow):
                 print('Cancel Save ini File')
                 return False
 
+        ### clear parameters
         # self.ClearForWidget()
         self.form_widget.config.WriteDefaultFile()
         self.form_widget.config.InitConfiguration()
@@ -1443,13 +1449,13 @@ class MyApp(QMainWindow):
         return path
 
     def SaveDialog(self):
-        words = self.form_widget.config.configuration_file.split('/')
-        file = words[-1]
-        directory = self.form_widget.config.PATH['Configuration']
+        words = self.form_widget.config.configuration_file.split('/') # first thing is gui_tool.exe's directory. Second is common, configuration, default.ini
+        file = words[-1] # default.ini
+        directory = self.form_widget.config.PATH['Configuration'] # ~/common/configuration/
         default_file = directory + '/' + file
         widget = QWidget()
         fname = QFileDialog().getSaveFileName(widget, caption='Save File', directory=default_file, filter="Configuration file (*.ini)")
-        return fname
+        return fname # return the path of saving directory
 
     def ClearForWidget(self):
         self.form_widget.deleteLater()
@@ -1464,6 +1470,7 @@ class FormWidget(QWidget):
         self.handeye_thread = QThread.Thread()
         self.opti_thread = QThread.Thread()
 
+        ### setting configuration file structure each taps default path of each parameters defining in config.WriteDefaultFile() and initialize in InitConfiguration()
         self.config = v1_step1_configuration.Configuration()
         self.importing = v1_step2_import_data.Import(self.config)
         self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
@@ -1472,8 +1479,10 @@ class FormWidget(QWidget):
         self.config.WriteDefaultFile()
         self.config.InitConfiguration()
 
+        ### Initialise configuration
         self.InitUi()
 
+        ### Set the configuration data
         self.SetConfiguration()
         self.value_changed = False
 
@@ -1483,6 +1492,7 @@ class FormWidget(QWidget):
         self.hbox = QHBoxLayout(self)
         self.tabs = QTabWidget(self)
 
+        ### Initialization each taps configuring data
         self.config_tab = ConfigurationTab(self)
         self.importing_tab = ImportDataTab(self)
         self.handeye_tab = HandEyeTab(self)
@@ -1504,6 +1514,7 @@ class FormWidget(QWidget):
         self.tabs.addTab(self.evaluation_tab, 'Evaluation')
         self.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
 
+        ### Set Basic Window
         self.hbox.addWidget(self.tabs)
         self.setLayout(self.hbox)
         self.setGeometry(300, 100, 1000, 600)

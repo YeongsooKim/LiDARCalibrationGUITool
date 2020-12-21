@@ -10,7 +10,7 @@ import os
 import configparser
 
 class Configuration:
-    path = os.getcwd().replace('\\', '/')
+    path = os.getcwd().replace('\\', '/') # path is gui_tool.exe directory
     configuration_path = 'common/configuration/'
     logging_data_path = 'common/logging_data/'
     image_path = 'common/image/'
