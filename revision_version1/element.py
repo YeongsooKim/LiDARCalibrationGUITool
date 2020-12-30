@@ -52,7 +52,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
-        self.id = FileInputWithCheckBtnLayout.instance_number
+        self.id = FileInputWithCheckBtnLayout.instance_number # id 가 왜 필요하지???
         self.label_str = label_str
         self.path_file_str = ''
         self.ui = ui
@@ -63,7 +63,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.InitUi()
 
     def InitUi(self):
-        self.window = QMainWindow()
+        #self.window = QMainWindow() #이거 아무대도 안쓰는데 왜 만듬?
         hbox = QHBoxLayout()
 
         self.label_edit = QLineEdit()
@@ -82,10 +82,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.addWidget(self.pbar)
 
     def GetFileBtn(self):
+        # Before import, get import file path by QFileDialog.
         widget = QWidget()
+        # export_file_path is string of import file path directory
         export_file_path = str(QFileDialog.getExistingDirectory(widget, 'Select Directory'))
 
-        if export_file_path:
+        if export_file_path: # if user set directory as blank. It need to cancel to set directory
             self.path_file_str = export_file_path
             self.label_edit.setText(self.path_file_str)
 
@@ -174,6 +176,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         QMessageBox.information(widget, 'Information', error_message)
 
     def CheckGnssFile(self):
+        '''
+        Checking the GNSS file and Moiton file
+        GNSS file is 'file_path/Gnss.csv'
+        Motion file is 'file_path/Motion.csv'
+        If this files are being, then each flag(has_gnss_file or has_motion_file) be true
+        '''
         self.ui.importing.gnss_logging_file = self.path_file_str
         self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv'):
@@ -187,6 +195,11 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.ui.importing.has_motion_file = False
 
     def CheckPointCloudFile(self):
+        '''
+        Checking the PointCloud file
+        The path of PointCloud file is 'file_path/XYZRGB_NumOfSensor.bin'
+        Check all number of LiDAR, over one of LiDAR PointCloud file is not being then pointcloud's flag will be false.
+        '''
         self.ui.importing.point_cloud_logging_path = self.path_file_str
         self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
         has_pointcloud_file = True
