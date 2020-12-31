@@ -65,8 +65,8 @@ class Import:
     def ParseMotion(self):
         motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # 사용할 column 'timestamp','speed_x','yaw_rate'으로 설정
         motion_file = self.gnss_logging_file + '/Motion.csv'
-        self.df_motion = utils_file.parse_motion_csv_df(motion_file,
-                                                   motion_usecols)  # motion file, motion usecols 입력으로 넣어 motion file parsing
+        # motion file, motion usecols 입력으로 넣어 motion file parsing
+        self.df_motion = utils_file.parse_motion_csv_df(motion_file, motion_usecols)
         # self.df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
 
         self.df_motion = self.df_motion.set_index('timestamp')
@@ -81,6 +81,7 @@ class Import:
 
             self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
         except:
+            self.init = [0,0,90]
             df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
