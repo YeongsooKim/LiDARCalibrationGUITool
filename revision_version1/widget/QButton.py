@@ -13,6 +13,9 @@ CONST_LIDAR = 0
 CONST_GNSS = 1
 
 class Button(QToolButton):
+    '''
+    Class generate ICON included LiDAR or GNSS ICON and text
+    '''
     green_lidar_icon = 'green_lidar.ico'
     red_lidar_icon = 'red_lidar.ico'
     green_gnss_icon = 'green_gnss.ico'
@@ -20,6 +23,7 @@ class Button(QToolButton):
     def __init__(self, text, color, icon, path, parent=None, click=False):
         super(Button, self).__init__(parent)
         self.path = path
+        # Check the icon type
         if color is CONST_GREEN:
             if icon is CONST_LIDAR:
                 icon = QIcon(path + self.green_lidar_icon)
@@ -34,6 +38,7 @@ class Button(QToolButton):
             elif icon is CONST_GNSS:
                 icon = QIcon(path + self.red_gnss_icon)
             self.status = 'red'
+        # Set the icon
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setText(text)
         self.setIcon(icon)
@@ -43,6 +48,10 @@ class Button(QToolButton):
             self.clicked.connect(self.ChangeStatus)
 
     def ChangeStatus(self):
+        '''
+        Convert the state.
+        Green mean use that data and red mena not use that data.
+        '''
         if self.status == 'green':
             icon = QIcon(self.path + self.red_lidar_icon)
             self.setIcon(icon)

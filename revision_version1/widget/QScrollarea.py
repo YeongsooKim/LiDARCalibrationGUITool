@@ -14,7 +14,6 @@ class ScrollAreaH(QScrollArea):
     def __init__(self, parent=None):
         super(ScrollAreaH, self).__init__(parent)
         self.setWidgetResizable(True)
-
         self.layout = QHBoxLayout()
 
         self.scroll = QWidget()

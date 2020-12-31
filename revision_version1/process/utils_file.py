@@ -9,7 +9,7 @@ import tkinter as tk  # GUI 툴킷에 대한 표준 파이썬 인터페이스
 import tkinter.filedialog  # file 경로 설정
 import struct  # 데이터 변환 시 사용
 import numpy as np  # 수치계산 (벡터 및 행렬 연산)에 사용
-import pandas as pd  # dataframe을 다
+import pandas as pd  # dataframe을 다룸
 
 
 # %% Select path

@@ -72,11 +72,11 @@ class ConfigurationTab(QWidget):
 
         config_widget = QWidget()
         config_widget.setLayout(self.SetConfiguration_Layout())
-        main_vbox.addWidget(config_widget, 30)
+        main_vbox.addWidget(config_widget, 40)
 
         interface_widget = QWidget()
         interface_widget.setLayout(self.UserInterface_Layout())
-        main_vbox.addWidget(interface_widget, 70)
+        main_vbox.addWidget(interface_widget, 60)
 
         self.setLayout(main_vbox)
 
@@ -1618,7 +1618,7 @@ class FormWidget(QWidget):
                     target.removeItem(item)
                 else:
                     self.RemoveLayout(item)
-
+                    
         layout = target.itemAt(0)
         target.removeItem(layout)
 

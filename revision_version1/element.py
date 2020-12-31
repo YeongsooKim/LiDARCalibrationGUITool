@@ -52,7 +52,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
     def __init__(self, label_str, ui):
         super().__init__()
-        self.id = FileInputWithCheckBtnLayout.instance_number # id 가 왜 필요하지???
+        self.id = FileInputWithCheckBtnLayout.instance_number # id 가 왜 필요하지??? -- 다른대선 씀
         self.label_str = label_str
         self.path_file_str = ''
         self.ui = ui
@@ -82,6 +82,10 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.addWidget(self.pbar)
 
     def GetFileBtn(self):
+        '''
+        Read the path of the Import File location through the dialog
+        And put the path to 'label_edit'
+        '''
         # Before import, get import file path by QFileDialog.
         widget = QWidget()
         # export_file_path is string of import file path directory
@@ -92,10 +96,14 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.label_edit.setText(self.path_file_str)
 
     def ImportFile(self):
+        '''
+        Check the file being and Import file data
+        '''
         self.ui.importing.Clear()
         self.CheckGnssFile()
         has_pointcloud_file = self.CheckPointCloudFile()
 
+        # Check file
         if not self.ui.importing.has_gnss_file:
             self.ui.ErrorPopUp('Gnss.csv is missing\n Please set initial value')
         if not self.ui.importing.has_motion_file:
@@ -103,7 +111,9 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if not has_pointcloud_file:
             self.ui.ErrorPopUp('XYZRGB.bin is missing')
 
+        # Import file
         self.label_edit.setText(self.path_file_str)
+
         self.GenerateCSVBtn()
         if self.ui.importing.has_gnss_file:
             self.gnss_button.setText('Gnss.csv 100%')
@@ -166,6 +176,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         return False
 
     def ErrorPopUp(self, error_message):
+
         widget = QWidget()
 
         qr = widget.frameGeometry()
@@ -211,7 +222,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         return has_pointcloud_file
 
     def GenerateCSVBtn(self):
+        '''
+        This function generate the Buttons(LiDAR and GNSS).
+        That buttons display using state of each data by image and loading percent text.
+        '''
         self.ui.importing.gnss_logging_file = self.path_file_str
+        # Clear current buttons
         self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
             self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
@@ -228,19 +244,22 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
 
     def GeneratePointCloudBtn(self):
+        '''
+        This function generate the LiDAR button in Importng_tap's LiDAR [bin File List] scrollArea.
+        '''
         self.ui.importing.point_cloud_logging_path = self.path_file_str
         self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
         self.lidar_buttons = {}
         for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
             if os.path.isfile(self.ui.importing.point_cloud_logging_path + '/XYZRGB_' + str(
                     idxSensor) + '.bin') == True:
-                ## Add button
+                ## Add Green Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
                              self.ui.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
                 self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
             else:
-                ## Add button
+                ## Add Red Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
                              self.ui.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
@@ -268,7 +287,7 @@ class CheckBoxListLayout(QVBoxLayout):
         if self.id == 1: # Instance name is 'select_using_sensor_list_layout'
             self.config_scroll_box = ScrollAreaH()
             self.addWidget(self.config_scroll_box)
-        else:
+        else:   # Instance name is 'select_principle_sensor_list_layout'
             self.listWidget = QListWidget()
             self.listWidget.itemChanged.connect(self.ItemChanged)
             self.addWidget(self.listWidget)
@@ -278,7 +297,7 @@ class CheckBoxListLayout(QVBoxLayout):
         self.lidar_buttons.clear()
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
             self.ui.RemoveLayout(self.config_scroll_box.layout)
-        else:
+        else:   # Instance name is 'select_principle_sensor_list_layout'
             listItems = self.listWidget.count()
             if not listItems == 0:
                 for item_index in reversed(range(listItems)):
@@ -328,12 +347,12 @@ class CheckBoxListLayout(QVBoxLayout):
 
     def ItemChanged(self):
         items = []
-        if self.id == 1:
+        if self.id == 1:     # Instance name is 'select_using_sensor_list_layout'
             for key in self.lidar_buttons.keys():
                 status = self.lidar_buttons[key].btn.status
                 if status == 'green':
                     items.append(key)
-        else:
+        else:    # Instance name is 'select_principle_sensor_list_layout'
             for item in self.LiDAR_list:
                 words = item.text().split()
                 if not item.checkState() == 0:
@@ -449,7 +468,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
                         list_index = self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].index(sensor_index)
                         del self.ui.evaluation_tab.eval_lidar['CheckedSensorList'][list_index]
                     del self.ui.config.PARM_LIDAR['SensorList'][-1]
-            else:
+            else: # is plus
                 for i in range(add_lidar_num):
                     self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
                     self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
