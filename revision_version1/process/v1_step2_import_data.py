@@ -81,7 +81,7 @@ class Import:
 
             self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
         except:
-            self.init = [0,0,90]
+            self.init = [0, 0, 90]
             df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
