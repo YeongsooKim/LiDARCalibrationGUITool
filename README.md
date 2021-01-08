@@ -16,7 +16,7 @@ exe파일 만드는 방법
 4. 'pyinstaller GUI_tool.spec' 실행
 
 -------------GUI_tool.spec--------------------------------------------------------
-`
+```
 # -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
@@ -54,6 +54,6 @@ coll = COLLECT(exe,
                upx=True,
                upx_exclude=[],
                name='Calibration GUI Tool')
-`
+```
 
 --------------------------------------------------------------------------------------
