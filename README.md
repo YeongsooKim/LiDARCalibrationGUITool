@@ -2,18 +2,20 @@ calibrationtool
 
 환경구성방법
 conda 가상환경 사용
+0. 터미널 실행
 1. conda create -n <환경이름>
 2. conda activate <환경이름>
-3. requirement.txt 파일이 있는 디렉토리로 이동(cd C:\\~\\calibration_guitool\\revision_version1)
+3. requirement_*.txt 파일이 있는 디렉토리로 이동(cd C:\\~\\calibration_guitool\\revision_version1)
 4. requirement_first.txt 파일 내부의 내용 스크립트로 복사해 패키지들 설치(ex. conda install -c conda-forge -y pip ...)
 5. requirement_second.txt 파일 pip통해 설치 (pip install -r requirment_second.txt)
 5.1 설치중 에러발생시 5번 다시 실행
    
-exe파일 만드는 방법
-1. 'pyinstaller GUI_tool.py'
+.exe파일 만드는 방법
+1. `pyinstaller GUI_tool.py`
 2. 실행파일 제작후 생성되는 dist 폴더와 build 폴더 삭제
 3. reversion1 폴더에 생성된 GUI_tool.spec 파일 아래 내용과 같이 수정
-4. 'pyinstaller GUI_tool.spec' 실행
+4. `pyinstaller GUI_tool.spec` 실행
+5. common을 dist내부의 프로그렘 폴더에 복사
 
 -------------GUI_tool.spec--------------------------------------------------------
 ```
