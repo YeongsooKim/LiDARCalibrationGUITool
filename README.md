@@ -16,11 +16,12 @@ exe파일 만드는 방법
 4. 'pyinstaller GUI_tool.spec' 실행
 
 -------------GUI_tool.spec--------------------------------------------------------
+`
 # -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
-`
+
 a = Analysis(['C:\\git\\calibration_guitool\\revision_version1\\GUI_tool.py'],
              pathex=['C:\\git\\calibration_guitool\\revision_version1'],
              binaries=[],
