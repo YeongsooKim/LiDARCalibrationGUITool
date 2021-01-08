@@ -14,12 +14,13 @@ exe파일 만드는 방법
 2. 실행파일 제작후 생성되는 dist 폴더와 build 폴더 삭제
 3. reversion1 폴더에 생성된 GUI_tool.spec 파일 아래 내용과 같이 수정
 4. 'pyinstaller GUI_tool.spec' 실행
+
 -------------GUI_tool.spec--------------------------------------------------------
 # -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
-
+`
 a = Analysis(['C:\\git\\calibration_guitool\\revision_version1\\GUI_tool.py'],
              pathex=['C:\\git\\calibration_guitool\\revision_version1'],
              binaries=[],
@@ -52,4 +53,6 @@ coll = COLLECT(exe,
                upx=True,
                upx_exclude=[],
                name='Calibration GUI Tool')
+`
+
 --------------------------------------------------------------------------------------
