@@ -1,0 +1,6 @@
+conda install -c conda-forge -y pip
+conda install -c conda-forge -y backports
+conda install -c conda-forge -y plas
+conda install -c conda-forge -y freetype
+conda install -c conda-forge -y icu
+conda install -c conda-forge -y jpeg
