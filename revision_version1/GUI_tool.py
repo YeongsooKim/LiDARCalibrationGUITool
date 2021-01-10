@@ -539,6 +539,9 @@ class CalibrationTab(QWidget):
         pass
 
     def RadioButton(self):
+        '''
+        only one button can selected
+        '''
         status = self.button_group.checkedId()
         if status == 1:  # GNSS Data
             if self.ui.importing.has_gnss_file == False:
