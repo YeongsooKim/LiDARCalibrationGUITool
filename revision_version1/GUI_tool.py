@@ -1622,8 +1622,8 @@ class FormWidget(QWidget):
                 else:
                     self.RemoveLayout(item)
                     
-        layout = target.itemAt(0)
-        target.removeItem(layout)
+        # layout = target.itemAt(0)
+        # target.removeItem(layout)
 
         layout = target.itemAt(0)
         target.removeItem(layout)

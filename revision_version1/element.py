@@ -57,13 +57,11 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         self.path_file_str = ''
         self.ui = ui
         self.parsed_bin = ''
-        self.END_LINE_INDEX = 15
 
         FileInputWithCheckBtnLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
-        #self.window = QMainWindow() #이거 아무대도 안쓰는데 왜 만듬?
         hbox = QHBoxLayout()
 
         self.label_edit = QLineEdit()
@@ -174,17 +172,6 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
             return True
         return False
-
-    def ErrorPopUp(self, error_message):
-
-        widget = QWidget()
-
-        qr = widget.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        widget.move(qr.topLeft())
-
-        QMessageBox.information(widget, 'Information', error_message)
 
     def CheckGnssFile(self):
         '''
@@ -639,7 +626,7 @@ class SlideLabelLayouts(QVBoxLayout):
             if self.start_time_layout.double_spin_box.value() > end_time:
                 self.start_time_layout.double_spin_box.setValue(end_time)
                 self.start_time_layout.slider.setValue(end_time)
-                self.ErrorPopUp('Start time cannot be higher than end time')
+                self.ui.ErrorPopUp('Start time cannot be higher than end time')
             else:
                 self.start_time_layout.slider.setValue(self.start_time_layout.double_spin_box.value())
 
@@ -654,23 +641,13 @@ class SlideLabelLayouts(QVBoxLayout):
             if self.end_time_layout.double_spin_box.value() < start_time:
                 self.end_time_layout.double_spin_box.setValue(start_time)
                 self.end_time_layout.slider.setValue(start_time)
-                self.ErrorPopUp('End time cannot be lower than start time')
+                self.ui.ErrorPopUp('End time cannot be lower than start time')
             else:
                 self.end_time_layout.slider.setValue(self.end_time_layout.double_spin_box.value())
 
             self.end_time_layout.prev_slider_value = self.end_time_layout.slider.value()
             self.end_time_layout.prev_double_spin_box_value = self.end_time_layout.double_spin_box.value()
             self.end_time = self.end_time_layout.double_spin_box.value()
-
-    def ErrorPopUp(self, error_message):
-        widget = QWidget()
-
-        qr = widget.frameGeometry()
-        cp = QDesktopWidget().availableGeometry().center()
-        qr.moveCenter(cp)
-        widget.move(qr.topLeft())
-
-        QMessageBox.information(widget, 'Information', error_message)
 
     def CheckChangedSlideLabelLayout(self):
         prev_start_time = self.start_time_layout.prev_slider_value
