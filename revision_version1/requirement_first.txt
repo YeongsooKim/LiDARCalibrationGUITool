@@ -4,3 +4,7 @@ conda install -c conda-forge -y plas
 conda install -c conda-forge -y freetype
 conda install -c conda-forge -y icu
 conda install -c conda-forge -y jpeg
+pip install -r requirement_second.txt
+
+pip install -r requirement_second.txt
+
