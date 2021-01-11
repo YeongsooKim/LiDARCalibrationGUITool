@@ -34,8 +34,8 @@ def get_motion_enu(df_motion, ref):
         diff_heading = df_motion['yaw_rate'].values[i] * dt
     
         # Get difference
-        next_east = diff_distance * np.cos(prev_heading * np.pi / 180.) + prev_east
-        next_north = diff_distance * np.sin(prev_heading * np.pi / 180.) + prev_north
+        next_east = diff_distance * np.cos((prev_heading+90) * np.pi / 180.) + prev_east
+        next_north = diff_distance * np.sin((prev_heading+90) * np.pi / 180.) + prev_north
         next_heading = prev_heading + diff_heading
     
         # Set ENH

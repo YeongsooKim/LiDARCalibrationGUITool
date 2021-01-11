@@ -18,9 +18,9 @@ def get_gnss_enu(df_gnss, ref):
 
 def get_motion_enu(df_motion, ref):
     # start point enu
-    prev_east = ref[0]
-    prev_north = ref[1]
-    prev_heading = ref[2]
+    prev_east = ref[0]      # m
+    prev_north = ref[1]     # m
+    prev_heading = ref[2]   # deg
     
     # Forward Predict
     pred_east = [prev_east]
@@ -34,8 +34,9 @@ def get_motion_enu(df_motion, ref):
         diff_heading = df_motion['yaw_rate'].values[i] * dt
     
         # Get difference
-        next_east = diff_distance * np.cos(prev_heading * np.pi / 180.) + prev_east
-        next_north = diff_distance * np.sin(prev_heading * np.pi / 180.) + prev_north
+        prev_heading_ = prev_heading + 90
+        next_east = prev_east + diff_distance * np.cos(prev_heading_ * np.pi / 180.)
+        next_north = prev_north + diff_distance * np.sin(prev_heading_ * np.pi / 180.)
         next_heading = prev_heading + diff_heading
     
         # Set ENH

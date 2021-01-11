@@ -35,21 +35,16 @@ def GetPlotParam(importing, using_gnss_motion, PARM_LIDAR, calibration_param, st
         # Remove rows by other sensors
         strColIndex = 'XYZRGB_' + str(idxSensor)
 
-        if using_gnss_motion:
-            df_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"}, inplace=True)
+        if not using_gnss_motion:
+            df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+        elif using_gnss_motion:
+            df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+            df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"}, inplace=True)
 
-        df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
-
 
         ##################
         ##### Arguments
-        # Get position
-        # print("df_one_info['east_m']: " + str(df_one_info['east_m']))
-        # print("df_one_info['north_m']: " + str(df_one_info['north_m']))
-        # print("df_one_info['heading']: " + str(df_one_info['heading']))
-        # print("df_one_info[strColIndex].values: " + str(df_one_info[strColIndex].values))
-
         pose = df_one_info['east_m'].values
         pose = np.vstack([pose, df_one_info['north_m'].values])
         pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
@@ -80,27 +75,4 @@ def GetPlotParam(importing, using_gnss_motion, PARM_LIDAR, calibration_param, st
         accum_pointcloud[idxSensor] = accum_point_enup
         accum_pointcloud_[idxSensor] = accum_point_enup_
 
-    return df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_
-
-    # ##############################################################################################################################
-    # # %% 5. Save results
-    # ##############################################################################################################################
-    # def SaveResult(self):
-    #     config_lidar_file = self.export_path + '/handeye_result.ini'
-    #
-    #     result_config = configparser.ConfigParser()
-    #     for idxSensor in self.CalibrationParam:
-    #         # Section Name
-    #         section_name = 'XYZRGB_' + str(idxSensor)
-    #
-    #         # Save parameter
-    #         result_config[section_name] = {}
-    #         result_config[section_name]['roll'] = str(self.CalibrationParam[idxSensor][0])
-    #         result_config[section_name]['pitch'] = str(self.CalibrationParam[idxSensor][1])
-    #         result_config[section_name]['yaw'] = str(self.CalibrationParam[idxSensor][2])
-    #         result_config[section_name]['x'] = str(self.CalibrationParam[idxSensor][3])
-    #         result_config[section_name]['y'] = str(self.CalibrationParam[idxSensor][4])
-    #         result_config[section_name]['z'] = str(self.CalibrationParam[idxSensor][5])
-    #
-    #     with open(config_lidar_file, 'w') as configfile:
-    #         result_config.write(configfile)
+    return df_one_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_

@@ -37,7 +37,7 @@ class HandEye:
         start_time = args[0]
         end_time = args[1]
         PARM_LIDAR = copy.deepcopy(args[2])
-        using_gnss_motion = args[3]
+        using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         df_info = copy.deepcopy(self.importing.df_info)
 
@@ -45,7 +45,7 @@ class HandEye:
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
-        if using_gnss_motion:
+        if using_motion_data:
             df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
 
         # -----------------------------------------------------------------------------------------------------------------------------
@@ -62,9 +62,9 @@ class HandEye:
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)
 
-            if not using_gnss_motion:
+            if not using_motion_data:
                 df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
-            elif using_gnss_motion:
+            elif using_motion_data:
                 df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
                 df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
 
@@ -86,6 +86,7 @@ class HandEye:
             index = 0
 
             for i, j in pbar:
+                ## Set Progress bar
                 while thread.pause:
                     thread.sleep(1)
                 # Display progress
@@ -100,7 +101,8 @@ class HandEye:
                 thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("XYZRGB_" + str(idxSensor))
-                # Get point clouds
+
+                ## Get point clouds
                 pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 

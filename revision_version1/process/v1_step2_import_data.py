@@ -59,6 +59,7 @@ class Import:
         self.df_gnss = self.df_gnss.set_index('timestamp')
         self.df_gnss = self.df_gnss.dropna(how='any')
         self.df_info = self.df_gnss
+        # self.dr_info : ['timestamp', 'east_m', 'north_m', 'heading']
 
         print('Parse Gnss logging data')
 
@@ -70,18 +71,17 @@ class Import:
         # self.df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
 
         self.df_motion = self.df_motion.set_index('timestamp')
-        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi
+        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi   # rad 2 deg
 
         try:
             self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
-                    self.df_gnss['heading'].values[0] + 90]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
+                    self.df_gnss['heading'].values[0]]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
             df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
             self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
         except:
-            self.init = [0, 0, 90]
             df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
@@ -89,6 +89,14 @@ class Import:
             self.df_info = df_motion
 
         print('Parse Motion logging data')
+        try:
+            print(df_motion)
+        except:
+            print('error on heading')
+        try:
+            print(self.df_info['dr_heading'])
+        except:
+            print('error on dr_heading')
 
     def ParsePointCloud(self, thread):
         thread.mutex.lock()
