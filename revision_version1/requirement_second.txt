@@ -50,6 +50,7 @@ pickleshare==0.7.5
 pillow
 prometheus-client==0.8.0
 prompt_toolkit==1.0.15
+pycairo==1.20.0
 pycparser==2.2
 pygments==2.7.1
 pyinstaller==4
