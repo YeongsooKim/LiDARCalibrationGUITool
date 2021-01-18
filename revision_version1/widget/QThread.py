@@ -44,7 +44,7 @@ class Thread(QThread):
 
     def Pause(self):
         self.cond.wait(self.mutex)
-        print("test")
+        print("Pause")
 
     def IsPaused(self):
         try:
