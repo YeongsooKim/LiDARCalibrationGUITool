@@ -415,7 +415,7 @@ class CalibrationTab(QWidget):
 
     def Result_Layout(self):
         vbox = QVBoxLayout()
-        
+
         vbox.addWidget(self.Result_ResultData_Groupbox())
         vbox.addWidget(self.Result_ResultGraph_Groupbox())
 
@@ -474,13 +474,26 @@ class CalibrationTab(QWidget):
                 self.ui.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
                 return False
 
-        self.ui.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
-        self.ui.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
-
         for target_clear in targets_clear:
             target_clear()
 
         if calibration_id == CONST_HANDEYE:
+            # disable access to unsupervised tab until complite handeye calibration
+            self.ui.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
+            self.ui.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
+            # if unsupervised calibration's result is being, reset the result
+            try:
+                self.result_data_pose_ax.clear()
+                self.result_data_pose_canvas.draw()
+                self.result_graph_ax.clear()
+                self.result_graph_canvas.draw()
+                self.ui.unsupervised_tab.result_data_pose_ax.clear()
+                self.ui.unsupervised_tab.result_data_pose_canvas.draw()
+                self.ui.unsupervised_tab.result_graph_ax.clear()
+                self.ui.unsupervised_tab.result_graph_canvas.draw()
+                # print("clear results in unsupervised")
+            except:
+                pass
             self.ui.handeye_thread._status = True
             self.ui.handeye_thread.SetFunc(calibration,
                                    [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
@@ -507,6 +520,14 @@ class CalibrationTab(QWidget):
             self.ui.handeye_thread.end.connect(end_callback)
             self.ui.handeye_thread.start()
         elif calibration_id == CONST_UNSUPERVISED:
+            # remove plots
+            try:
+                self.result_data_pose_ax.clear()
+                self.result_data_pose_canvas.draw()
+                self.result_graph_ax.clear()
+                self.result_graph_canvas.draw()
+            except:
+                pass
             self.ui.opti_thread._status = True
             self.ui.opti_thread.SetFunc(calibration,
                                    [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
@@ -674,6 +695,7 @@ class HandEyeTab(CalibrationTab):
     def EndCalibration(self):
         self.progress_status = CONST_STOP
         self.ui.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
+        self.ui.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
         self.ui.handeye.complete_calibration = True
 
         self.ui.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.handeye.PARM_LIDAR['CheckedSensorList'])
@@ -834,7 +856,6 @@ class UnsupervisedTab(CalibrationTab):
 
     def EndCalibration(self):
         self.progress_status = CONST_STOP
-        self.ui.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
         self.ui.unsupervised.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.ui.importing,
