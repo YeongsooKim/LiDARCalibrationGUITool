@@ -17,6 +17,7 @@ from process import utils_file
 from process import utils_pose
 from process import utils_pose_dr
 
+
 class Import:
     def __init__(self, config):
         self.config = config
@@ -57,6 +58,7 @@ class Import:
         RefWGS84 = [self.df_gnss['latitude'][0], self.df_gnss['longitude'][0]]
         self.df_gnss = utils_pose.get_gnss_enu(self.df_gnss, RefWGS84)
         self.df_gnss = self.df_gnss.set_index('timestamp')
+        self.df_gnss = self.df_gnss[~self.df_gnss.index.duplicated()]
         self.df_gnss = self.df_gnss.dropna(how='any')
         self.df_info = self.df_gnss
         # self.dr_info : ['timestamp', 'east_m', 'north_m', 'heading']
@@ -71,11 +73,12 @@ class Import:
         # self.df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
 
         self.df_motion = self.df_motion.set_index('timestamp')
-        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi   # rad 2 deg
+        self.df_motion = self.df_motion[~self.df_motion.index.duplicated()]
+        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi  # rad 2 deg
 
         try:
             self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
-                    self.df_gnss['heading'].values[0]]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
+                         self.df_gnss['heading'].values[0]]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
             df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
@@ -114,7 +117,6 @@ class Import:
             pointcloud_index = []
             PointCloudList = {}
 
-
             pbar = tqdm(range(np.size(df_pointcloud['num_points'].values)))
             iteration_size = len(range(np.size(df_pointcloud['num_points'].values)))
             self.progress = 0.0
@@ -125,27 +127,35 @@ class Import:
                 iteration_ratio = float(index + 1) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100
 
-                epoch_ratio = (iteration_ratio + p_index)/float(lidar_len)
-                epoch_percentage = epoch_ratio*100
+                epoch_ratio = (iteration_ratio + p_index) / float(lidar_len)
+                epoch_percentage = epoch_ratio * 100
 
                 if epoch_percentage >= 99.8:
                     epoch_percentage = 100.0
-                thread.iteration_percentage.emit({idxSensor : iteration_percentage})
+                thread.iteration_percentage.emit({idxSensor: iteration_percentage})
                 thread.change_value.emit(int(epoch_percentage))
 
                 # Get point cloud
-                arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i], df_pointcloud['file_pointer'].values[i])
-                tmpXYZ = np.sqrt(np.power(arrPoint[:, 0:1], 2) + np.power(arrPoint[:, 1:2], 2) + np.power(arrPoint[:, 2:3], 2))
+                arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i],
+                                                      df_pointcloud['file_pointer'].values[i])
+                tmpXYZ = np.sqrt(
+                    np.power(arrPoint[:, 0:1], 2) + np.power(arrPoint[:, 1:2], 2) + np.power(arrPoint[:, 2:3], 2))
 
                 # Check parameter
                 remove_filter = tmpXYZ < float(self.config.PARM_PC['MinThresholdDist_m'])
                 remove_filter = np.logical_or(remove_filter, tmpXYZ > float(self.config.PARM_PC['MaxThresholdDist_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 0:1] < float(self.config.PARM_PC['MinThresholdX_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 0:1] > float(self.config.PARM_PC['MaxThresholdX_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 1:2] < float(self.config.PARM_PC['MinThresholdY_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 1:2] > float(self.config.PARM_PC['MaxThresholdY_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 2:3] < float(self.config.PARM_PC['MinThresholdZ_m']))
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 2:3] > float(self.config.PARM_PC['MaxThresholdZ_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 0:1] < float(self.config.PARM_PC['MinThresholdX_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 0:1] > float(self.config.PARM_PC['MaxThresholdX_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 1:2] < float(self.config.PARM_PC['MinThresholdY_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 1:2] > float(self.config.PARM_PC['MaxThresholdY_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 2:3] < float(self.config.PARM_PC['MinThresholdZ_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              arrPoint[:, 2:3] > float(self.config.PARM_PC['MaxThresholdZ_m']))
 
                 # filtering
                 FilteredPointCloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)), arrPoint[:, 0:3], axis=0)
@@ -157,7 +167,6 @@ class Import:
 
                 index = index + 1
 
-
             # Add point cloud of one LIDAR to self.PointCloudSensorList
             self.PointCloudSensorList[idxSensor] = PointCloudList
 
@@ -165,6 +174,8 @@ class Import:
             pointcloud_data = {'timestamp': pointcloud_timestamp, 'XYZRGB_' + str(idxSensor): pointcloud_index}
             self.df_pointcloud_idx[idxSensor] = pd.DataFrame(pointcloud_data)
             self.df_pointcloud_idx[idxSensor] = self.df_pointcloud_idx[idxSensor].set_index('timestamp')
+            self.df_pointcloud_idx[idxSensor] = self.df_pointcloud_idx[idxSensor][
+                ~self.df_pointcloud_idx[idxSensor].index.duplicated()]
             self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
 
             p_index = p_index + 1.0
@@ -241,7 +252,7 @@ class Import:
         non_valid_info = ~valid_info
         self.df_info = self.df_info.drop(self.df_info[non_valid_info].index)
         del valid_info, non_valid_info
-            
+
     def Clear(self):
         self.DefaultStartTime = 0.0
         self.DefaultEndTime = 0.0

@@ -1629,10 +1629,10 @@ class FormWidget(QWidget):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
-        fig = plt.figure(figsize=(20, 20))
-
+        fig = plt.figure(figsize=(16, 12), dpi=70)
         veh_path = self.config.PATH['Image_path'] + 'vehicle2.png'
         # veh = plt.imread(veh_path)
+        # Open vehicle image
         veh = Image.open(veh_path)
         veh2 = veh.resize((1100, 1100))
         veh = np.asarray(veh2)
@@ -1707,7 +1707,7 @@ class FormWidget(QWidget):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
-        fig = plt.figure(figsize=(20, 20))
+        fig = plt.figure(figsize=(16, 12), dpi=70)
 
         if ax is not None:
             ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
