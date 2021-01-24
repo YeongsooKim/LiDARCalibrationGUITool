@@ -12,3 +12,5 @@ revision_version1/process/__pycache__/
 revision_version1/__pycache__/
 
 revision_version1/widget/__pycache__/
+
+.vscode/
