@@ -206,18 +206,18 @@ class ImportDataTab(QWidget):
         return groupbox
 
     def Main_GnssInit_Groupbox(self):
-        groupbox = QGroupBox('Set Initial Value')
+        groupbox = QGroupBox('Set Initial Pose in ENU Coordinate')
         vbox = QVBoxLayout()
 
         hbox = QHBoxLayout()
         label = QLabel()
-        hbox.addWidget(label, 25)
+        hbox.addWidget(label, 50)
         label = QLabel('East [m]')
-        hbox.addWidget(label, 25)
+        hbox.addWidget(label, 16)
         label = QLabel('North [m]')
-        hbox.addWidget(label, 25)
+        hbox.addWidget(label, 17)
         label = QLabel('Heading [deg]')
-        hbox.addWidget(label, 25)
+        hbox.addWidget(label, 17)
         vbox.addLayout(hbox)
 
         self.scroll_box = ScrollAreaV()
@@ -283,7 +283,7 @@ class ImportDataTab(QWidget):
         self.ui.RemoveLayout(self.scroll_box.layout)
 
         if self.ui.importing.has_gnss_file:
-            self.init_gnss_value_layout = element.GnssInitEditLabel('Gnss Initial Value', self.ui)
+            self.init_gnss_value_layout = element.GnssInitEditLabel('Gnss Initial Pose in ENU Coordinate      ', self.ui)
             self.init_gnss_value_layout.double_spin_box_east.setValue(self.ui.importing.df_gnss['east_m'].values[0])
             self.init_gnss_value_layout.double_spin_box_north.setValue(self.ui.importing.df_gnss['north_m'].values[0])
             self.init_gnss_value_layout.double_spin_box_heading.setValue(self.ui.importing.df_gnss['heading'].values[0])
@@ -301,7 +301,7 @@ class ImportDataTab(QWidget):
 
         if self.ui.importing.has_motion_file:
             ## Set intial value
-            self.init_motion_value_layout = element.GnssInitEditLabel('Motion Initial Value', self.ui)
+            self.init_motion_value_layout = element.GnssInitEditLabel('Motion Initial Pose in ENU coordinate    ', self.ui)
             self.init_motion_value_layout.double_spin_box_east.setValue(self.ui.importing.init[0])
             self.init_motion_value_layout.double_spin_box_north.setValue(self.ui.importing.init[1])
             self.init_motion_value_layout.double_spin_box_heading.setValue(self.ui.importing.init[2])
