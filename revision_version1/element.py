@@ -728,7 +728,7 @@ class GnssInitEditLabel(QVBoxLayout):
         self.double_spin_box_east.setSingleStep(0.01)
         self.double_spin_box_east.setMaximum(10000.0)
         self.double_spin_box_east.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Value':
+        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
             self.double_spin_box_east.setReadOnly(True)
             self.double_spin_box_east.setStyleSheet("background-color: #F0F0F0;")
             self.double_spin_box_east.setButtonSymbols(QAbstractSpinBox.NoButtons)
@@ -739,7 +739,7 @@ class GnssInitEditLabel(QVBoxLayout):
         self.double_spin_box_north.setSingleStep(0.01)
         self.double_spin_box_north.setMaximum(10000.0)
         self.double_spin_box_north.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Value':
+        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
             self.double_spin_box_north.setReadOnly(True)
             self.double_spin_box_north.setStyleSheet("background-color: #F0F0F0;")
             self.double_spin_box_north.setButtonSymbols(QAbstractSpinBox.NoButtons)
@@ -750,7 +750,7 @@ class GnssInitEditLabel(QVBoxLayout):
         self.double_spin_box_heading.setSingleStep(0.01)
         self.double_spin_box_heading.setMaximum(10000.0)
         self.double_spin_box_heading.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Value':
+        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
             self.double_spin_box_heading.setReadOnly(True)
             self.double_spin_box_heading.setStyleSheet("background-color: #F0F0F0;")
             self.double_spin_box_heading.setButtonSymbols(QAbstractSpinBox.NoButtons)

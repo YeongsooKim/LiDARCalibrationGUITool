@@ -199,6 +199,7 @@ class HandEye:
                 thread.emit_string.emit('Interrupted evaluating lidar {} calibration'.format(idxSensor))
                 break
             thread.emit_string.emit('Complete evaluating lidar {} calibration'.format(idxSensor))
+            thread.change_value.emit(int(100))
 
         if not thread._status:
             for idxSensor in not_evaluated_lidar['CheckedSensorList']:
