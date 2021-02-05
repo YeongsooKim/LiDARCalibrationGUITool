@@ -109,7 +109,18 @@ class Evaluation:
             print('\n----------- Start Mapping -----------')
             # HD Map 생성
             pbar = tqdm(l)  # idx_pair progress bar 생성
+            iteration_size = len(l)
+            thread.emit_string.emit('Map generating LiDAR {}'.format(idxSensor))
+            index = 0
             for j in pbar:  # make hd map
+
+                iteration_ratio = float(index + 1) / float(iteration_size)
+                iteration_percentage = iteration_ratio * 100
+
+                epoch_ratio = (iteration_ratio + p_index) / (float(lidar_len) * 10) # job cost of mapping is one and cost of evauation is nine
+                epoch_percentage = epoch_ratio * 100
+
+                thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("Progress of Mapping")  # 상태바 naming
                 # pbar2.set_description("Progress of HD Map")   # 상태바 naming
@@ -147,6 +158,10 @@ class Evaluation:
 
                 HD_map = np.vstack([HD_map, np.transpose(point)])
 
+                index = index + 1
+
+            p_index = p_index + 1.0
+
             Map[idxSensor] = HD_map
 
             ##-----------------------------------------------------------------------------------------------------------------------------
@@ -157,16 +172,15 @@ class Evaluation:
 
             iteration_size = len(l)
             index = 0
+            thread.emit_string.emit('Start Evaluation LiDAR_{}'.format(idxSensor))
             for i in pbar:
                 # Display progress
                 iteration_ratio = float(index + 1) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100
 
-                epoch_ratio = (iteration_ratio + p_index)/float(lidar_len)
+                epoch_ratio = (9 * iteration_ratio + p_index)/(float(lidar_len)*10)
                 epoch_percentage = epoch_ratio*100
 
-                if epoch_percentage >= 99.8:
-                    epoch_percentage = 100.0
                 thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("Evaluation" + str(idxSensor))  # 상태바 naming
@@ -295,6 +309,9 @@ class Evaluation:
 
                     PARM_LIDAR = copy.deepcopy(evaluated_lidar)
                     break
+            if thread._status:
+                epoch_percentage = 100.0
+                thread.change_value.emit(int(epoch_percentage))
 
             ref_sensor_localization[idxSensor] = ref_each_localization
             pred_sensor_localization[idxSensor] = pred_each_localization
@@ -303,7 +320,7 @@ class Evaluation:
             y_sensor_localization[idxSensor] = y_each_localization
             yaw_sensor_localization[idxSensor] = yaw_each_localization
 
-            p_index = p_index + 1.0
+            p_index = p_index + 9.0
             if not thread._status:
                 thread.emit_string.emit('Interrupted evaluating lidar {} calibration'.format(idxSensor))
                 break

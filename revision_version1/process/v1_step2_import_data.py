@@ -66,7 +66,7 @@ class Import:
         print('Parse Gnss logging data')
 
     def ParseMotion(self):
-        motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # 사용할 column 'timestamp','speed_x','yaw_rate'으로 설정
+        motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # select 'timestamp','speed_x','yaw_rate'as using
         motion_file = self.gnss_logging_file + '/Motion.csv'
         # motion file, motion usecols 입력으로 넣어 motion file parsing
         self.df_motion = utils_file.parse_motion_csv_df(motion_file, motion_usecols)

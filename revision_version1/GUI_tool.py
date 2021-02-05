@@ -351,14 +351,14 @@ class ImportDataTab(QWidget):
         self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.setMinimum(default_start_time)
 
         ## set slider and double_spin_box value
-        self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.maximum())
-        self.ui.evaluation_tab.limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.slider.setValue(self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.minimum())
         self.ui.evaluation_tab.limit_time_layout.start_time_layout.double_spin_box.setValue(default_start_time)
+        self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.setValue(self.ui.evaluation_tab.limit_time_layout.end_time_layout.slider.maximum())
+        self.ui.evaluation_tab.limit_time_layout.end_time_layout.double_spin_box.setValue(default_end_time)
 
         ## set slider and double_spin_box value start, end time
-        self.ui.evaluation_tab.start_time = default_start_time
-        self.ui.evaluation_tab.end_time = default_end_time
+        self.ui.evaluation_tab.limit_time_layout.start_time = default_start_time
+        self.ui.evaluation_tab.limit_time_layout.end_time = default_end_time
 
 class CalibrationTab(QWidget):
     def __init__(self, ui):
@@ -711,9 +711,9 @@ class HandEyeTab(CalibrationTab):
         # Handeye tab
         ## Set 'Result Calibration Data'
         for idxSensor in self.ui.handeye.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][3], 4)))
-            self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][4], 4)))
-            self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, 4)))
+            self.result_labels[idxSensor].label_edit_x.setText(format(self.ui.handeye.CalibrationParam[idxSensor][3], ".4f"))
+            self.result_labels[idxSensor].label_edit_y.setText(format(self.ui.handeye.CalibrationParam[idxSensor][4], ".4f"))
+            self.result_labels[idxSensor].label_edit_yaw.setText(format(self.ui.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
@@ -869,9 +869,9 @@ class UnsupervisedTab(CalibrationTab):
 
         ## Set 'Result Calibration Data'
         for idxSensor in self.ui.unsupervised.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(str(round(self.ui.unsupervised.CalibrationParam[idxSensor][3], 2)))
-            self.result_labels[idxSensor].label_edit_y.setText(str(round(self.ui.unsupervised.CalibrationParam[idxSensor][4], 2)))
-            self.result_labels[idxSensor].label_edit_yaw.setText(str(round(self.ui.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, 2)))
+            self.result_labels[idxSensor].label_edit_x.setText(format(self.ui.unsupervised.CalibrationParam[idxSensor][3], ".4f"))
+            self.result_labels[idxSensor].label_edit_y.setText(format(self.ui.unsupervised.CalibrationParam[idxSensor][4], ".4f"))
+            self.result_labels[idxSensor].label_edit_yaw.setText(format(self.ui.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
@@ -1344,6 +1344,8 @@ class MyApp(QMainWindow):
         is_single_optimization = False
         is_multi_optimization = False
         is_import = False
+        is_evaluation = False
+        is_path = False
 
         for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
             if 'PrincipalSensor' in line:
@@ -1408,6 +1410,10 @@ class MyApp(QMainWindow):
                 line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
             elif ('OutlierDistance_m' in line) and is_multi_optimization:
                 line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
+            elif '[Path]' in line:
+                is_path = True
+            elif ('Logging_file_path' in line) and is_path:
+                line = line.replace(line, 'Logging_file_path = ' + str(self.form_widget.importing_tab.logging_file_path_layout.path_file_str + '\n'))
             sys.stdout.write(line)
         self.form_widget.value_changed = False
 
@@ -1740,19 +1746,19 @@ class FormWidget(QWidget):
                 ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
 
             strColIndex = 'XYZRGB_' + str(idxSensor[i])
-            ax.plot(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], ',',
-                    color=self.color_list[(idxSensor[i]) % len(self.color_list)], label=strColIndex)
+            ax.plot(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], '.',
+                    color=self.color_list[(idxSensor[i]) % len(self.color_list)], label=strColIndex, ms = 2)
 
             if canvas is None:
                 ax.axis('equal')
                 ax.grid()
-                ax.legend()
+                ax.legend(markerscale=2)
                 ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
 
         if canvas is not None:
             ax.axis('equal')
             ax.grid()
-            ax.legend()
+            ax.legend(markerscale=2)
             ax.set_title('Result of calibration')
             canvas.draw()
         else:
