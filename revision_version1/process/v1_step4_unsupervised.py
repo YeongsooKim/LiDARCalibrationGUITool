@@ -43,7 +43,8 @@ class Unsupervised:
     ##############################################################################################################################
     def Calibration(self, thread, args):
         thread.emit_string.emit(str('Start optimization calibration'))
-        thread.emit_string.emit(str('LiDAR          Iter  Opti_value   Cost'))
+        # thread.emit_string.emit(str('LiDAR          Iter  Opti_value   Cost')){0:>10}   {1:4d} {2:>13} {3:>13}
+        thread.emit_string.emit(str('     {0:>10}    {1:>4}  {2:>15}      {3:>15}'.format('LiDAR', 'Iter', 'Opti_Value', 'Cost')))
         mutex_unlock = False
         start_time = args[0]
         end_time = args[1]

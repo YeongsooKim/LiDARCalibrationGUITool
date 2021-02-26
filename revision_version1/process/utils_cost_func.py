@@ -111,10 +111,13 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
     else:
         err = np.mean(np.array(pose_err))
 
-    thread.emit_string.emit('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
+    thread.emit_string.emit('{0:>10}    {1:4d} {2:>15}   {3:>15}'.format(strFile, nFeval, str(round(CalibH_d,8)), str(round(err,8))))
 
-    # print
-    print('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
+    # if not thread._status:
+    #     is_break = True
+    # #     thread.cond.wait(thread.mutex)
+
+    print('{0:}   {1:4d}   {2:3.6f}  {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
 
     # return error
     return err
@@ -205,7 +208,7 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
     # result_str = '{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err)
     # print
 
-    thread.emit_string.emit('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
+    thread.emit_string.emit('{0:>10}    {1:4d} {2:>15}   {3:>15}'.format(strFile, nFeval, str(round(CalibH_d,8)), str(round(err,8))))
 
     # if not thread._status:
     #     is_break = True

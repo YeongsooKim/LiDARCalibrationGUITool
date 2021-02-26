@@ -817,9 +817,11 @@ class UnsupervisedTab(CalibrationTab):
         vbox.addLayout(hbox)
 
         label = QLabel('[ Unsupervised Progress ]')
+        # label.setFont(QFont('MSGOTHIC',10))
         vbox.addWidget(label)
 
         self.text_edit = QTextEdit()
+        self.text_edit.setFont(QFont('MSGOTHIC',10))
         vbox.addWidget(self.text_edit)
 
         self.scroll_box = ScrollAreaV()
@@ -1492,6 +1494,9 @@ class MyApp(QMainWindow):
 
 class FormWidget(QWidget):
     def __init__(self, parent):
+        self.fontDB = QFontDatabase()
+        self.fontDB.addApplicationFont('./MSGOTHIC.TTF')
+
         super(FormWidget, self).__init__(parent)
         self.resize_count = 0
         self.thread = QThread.Thread()
@@ -1831,6 +1836,7 @@ class FormWidget(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+
     w = MyApp()
     w.show()
 
