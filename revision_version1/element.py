@@ -26,6 +26,15 @@ CONST_CUSTOM = 1
 CONST_HANDEYE = 2
 CONST_UNSUPERVISED = 3
 
+## SpinBoxLabelLayout instance ID
+CONST_CONFIG_LIDAR_NUM = 1
+CONST_IMPORT_DATA_SAMPLING_INTERVER = 2
+CONST_VALIDATION_MAXIMUM_ITERATION = 3
+CONST_HANDEYE_MAXIMUM_ITERATION = 4
+CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING = 5
+CONST_EVAL_SAMPLING_INTERVAL = 6
+
+
 ## DoubleSpinBoxLabelLayout instance ID
 CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE = 1
 CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE = 2
@@ -38,15 +47,20 @@ CONST_CONFIG_MAXIMUM_THRESHOLD_Z = 8
 
 CONST_IMPORT_VEHICLE_MINIMUM_SPEED = 9
 
-CONST_HANDEYE_TOLERANCE = 10
-CONST_HANDEYE_OUTLIER_DISTANCE = 11
-CONST_HANDEYE_HEADING_THRESHOLD = 12
-CONST_HANDEYE_DISTANCE_THRESHOLD = 13
+CONST_DATAVALIDATION_TOLERANCE = 10
+CONST_DATAVALIDATION_OUTLIER_DISTANCE = 11
+CONST_DATAVALIDATION_HEADING_THRESHOLD = 12
+CONST_DATAVALIDATION_DISTANCE_THRESHOLD = 13
 
-CONST_OPTI_POINT_SAMPLING_RATIO = 14
-CONST_OPTI_OUTLIER_DISTANCE = 15
+CONST_HANDEYE_TOLERANCE = 14
+CONST_HANDEYE_OUTLIER_DISTANCE = 15
+CONST_HANDEYE_HEADING_THRESHOLD = 16
+CONST_HANDEYE_DISTANCE_THRESHOLD = 17
 
-CONST_EVAL_VEHICLE_MINIMUM_SPEED = 16
+CONST_OPTI_POINT_SAMPLING_RATIO = 18
+CONST_OPTI_OUTLIER_DISTANCE = 19
+
+CONST_EVAL_VEHICLE_MINIMUM_SPEED = 20
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
@@ -392,14 +406,14 @@ class CheckButton(QVBoxLayout):
         self.callback()
 
 class SpinBoxLabelLayout(QVBoxLayout):
-    instance_number = 1 # 바꿔도 바뀌는게 없던데...
+    instance_number = 1 
     def __init__(self, label_str, ui):
         super().__init__()
         self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
         self.ui = ui
 
-        SpinBoxLabelLayout.instance_number += 1 # 이 식의 용도는? 스핀박스의 갯수같긴함
+        SpinBoxLabelLayout.instance_number += 1 
         self.InitUi()
 
     def InitUi(self):
@@ -419,13 +433,14 @@ class SpinBoxLabelLayout(QVBoxLayout):
 
     def SpinBoxChanged(self):
         self.ui.value_changed = True
-        if self.label_str == 'LiDAR Num':
+        if self.id == CONST_CONFIG_LIDAR_NUM: 
             ## Check PARM_LIDAR is empty
             if self.ui.config.PARM_LIDAR.get('SensorList') == None:
                 return False
             if len(self.ui.config.PARM_LIDAR['SensorList']) <= 0:
                 return False
 
+            self.ui.datavalidation.complete_calibration = False
             self.ui.handeye.complete_calibration = False
             self.ui.unsupervised.complete_calibration = False
             self.ui.config_tab.is_lidar_num_changed = True
@@ -475,16 +490,16 @@ class SpinBoxLabelLayout(QVBoxLayout):
             ## Add Reset result label in rph tab, handeye tab, unsupervised tab and evaulation tab
             self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
 
-        elif self.label_str == 'Sampling Interval [Count]':
+        
+        elif self.id == CONST_IMPORT_DATA_SAMPLING_INTERVER:
             self.ui.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
-
-        elif self.label_str == 'Maximum Iteration [Count]':
+        elif self.id == CONST_VALIDATION_MAXIMUM_ITERATION:
+            self.ui.config.PARM_DV['MaximumIteration'] = self.spin_box.value()
+        elif self.id == CONST_HANDEYE_MAXIMUM_ITERATION:
             self.ui.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
-
-        elif self.label_str == 'Num Points Plane Modeling':
+        elif self.id == CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING:
             self.ui.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
-
-        elif self.label_str == 'Eval Sampling Interval [Count]':
+        elif self.id == CONST_EVAL_SAMPLING_INTERVAL:
             self.ui.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
@@ -539,6 +554,16 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
 
         elif self.id == CONST_IMPORT_VEHICLE_MINIMUM_SPEED :  # Import tab Vehicle Minimum Speed [km/h]
             self.ui.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
+
+
+        elif self.id == CONST_DATAVALIDATION_TOLERANCE:  # Handeye tab Tolerance
+            self.ui.config.PARM_DV['Tolerance'] = self.double_spin_box.value()
+        elif self.id == CONST_DATAVALIDATION_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
+            self.ui.config.PARM_DV['OutlierDistance_m'] = self.double_spin_box.value()
+        elif self.id == CONST_DATAVALIDATION_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
+            self.ui.config.PARM_DV['filter_HeadingThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_DATAVALIDATION_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
+            self.ui.config.PARM_DV['filter_DistanceThreshold'] = self.double_spin_box.value()
 
         elif self.id == CONST_HANDEYE_TOLERANCE:  # Handeye tab Tolerance
             self.ui.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
@@ -861,6 +886,95 @@ class CalibrationResultLabel(QVBoxLayout):
         self.hbox.addWidget(self.label_edit_yaw)
 
         self.addLayout(self.hbox)
+        
+
+class ValidationResultLabel(QVBoxLayout):
+    def __init__(self, idxSensor):
+        super().__init__()
+        self.idxSensor = idxSensor
+
+        self.InitUi()
+
+    def InitUi(self):
+    #    try:
+        #self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.ui.config.PARM_DV['filter_HeadingThreshold']))
+        #self.addWidget(self.label_heading_threshold)
+        #self.hbox = QHBoxLayout()
+        #self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.ui.config.PARM_DV['filter_DistanceThreshold']))
+        #self.addWidget(self.label_heading_threshold)
+        #self.hbox = QHBoxLayout()
+    
+        
+        self.label = QLabel('LiDAR {}'.format(self.idxSensor))
+        self.addWidget(self.label)
+        self.hbox = QHBoxLayout()
+        
+        self.label_translation_error = QLabel('Translation Error RMSE [m]')
+        self.hbox.addWidget(self.label_translation_error)
+        self.label_edit_translation_error = QLineEdit()
+        self.label_edit_translation_error.setReadOnly(True)
+        self.label_edit_translation_error.setText('0.0')
+        self.label_edit_translation_error.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_translation_error)
+
+        self.label_rotation_error = QLabel('Rotation Error RMSE [deg]')
+        self.hbox.addWidget(self.label_rotation_error)
+        self.label_edit_rotation_error = QLineEdit()
+        self.label_edit_rotation_error.setReadOnly(True)
+        self.label_edit_rotation_error.setText('0.0')
+        self.label_edit_rotation_error.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_rotation_error)
+
+
+        self.addLayout(self.hbox)
+
+class ValidationConfigLabel(QVBoxLayout):
+    def __init__(self, heading_threshold, distance_threshold):
+        super().__init__()
+        self.heading_threshold = heading_threshold
+        self.distance_threshold = distance_threshold
+
+        self.InitUi()
+
+    def InitUi(self):
+    #    try:
+        
+        self.hbox = QHBoxLayout()
+        
+        '''
+        self.label_heading_threshold = QLabel('Heading Threshold [deg]: ')
+        self.hbox.addWidget(self.label_heading_threshold)
+        self.label_edit_heading_threshold = QLineEdit()
+        self.label_edit_heading_threshold.setReadOnly(True)
+        self.label_edit_heading_threshold.setText(self.heading_threshold)
+        self.label_edit_heading_threshold.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_heading_threshold)
+
+        self.label_distance_threshold = QLabel('Distance Threshold [m]: ')
+        self.hbox.addWidget(self.label_distance_threshold)
+        self.label_edit_distance_threshold = QLineEdit()
+        self.label_edit_distance_threshold.setReadOnly(True)
+        self.label_edit_distance_threshold.setText(self.distance_threshold)
+        self.label_edit_distance_threshold.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit_distance_threshold)
+
+
+        self.addLayout(self.hbox)
+
+        '''
+        '''
+        
+        print(self.heading_threshold)
+        self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.heading_threshold))
+        self.addWidget(self.label_heading_threshold)
+        self.hbox = QHBoxLayout()
+        self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.distance_threshold))
+        self.hbox.addWidget(self.label_distance_threshold)
+        
+
+        self.addLayout(self.hbox)
+        '''
+        
 
 class CalibrationResultEditLabel2(QVBoxLayout):
     def __init__(self, idxSensor, calibration_param, ui):

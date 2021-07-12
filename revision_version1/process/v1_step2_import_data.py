@@ -135,6 +135,9 @@ class Import:
                 thread.iteration_percentage.emit({idxSensor: iteration_percentage})
                 thread.change_value.emit(int(epoch_percentage))
 
+                if df_pointcloud['num_points'].values[i] == 0:
+                    continue
+
                 # Get point cloud
                 arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i],
                                                       df_pointcloud['file_pointer'].values[i])

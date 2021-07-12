@@ -21,6 +21,7 @@ class Configuration:
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
         self.PARM_IM = {}
+        self.PARM_DV = {}
         self.PARM_HE = {}
         self.PARM_SO = {}
         self.PARM_MO = {}
@@ -53,6 +54,13 @@ class Configuration:
         # Import
         self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
         self.PARM_IM['VehicleSpeedThreshold'] = float(config_param['Import']['VehicleSpeedThreshold'])
+
+        # Data Validation
+        self.PARM_DV['MaximumIteration'] = int(config_param['Validation']['MaximumIteration'])
+        self.PARM_DV['Tolerance'] = float(config_param['Validation']['Tolerance'])
+        self.PARM_DV['OutlierDistance_m'] = float(config_param['Validation']['OutlierDistance_m'])
+        self.PARM_DV['filter_HeadingThreshold'] = float(config_param['Validation']['filter_HeadingThreshold'])
+        self.PARM_DV['filter_DistanceThreshold'] = float(config_param['Validation']['filter_DistanceThreshold'])
 
         # Handeye
         self.PARM_HE['MaximumIteration'] = int(config_param['Handeye']['MaximumIteration'])
@@ -107,6 +115,13 @@ class Configuration:
         f.write('[Import]\n')
         f.write('SamplingInterval = 1\n')
         f.write('VehicleSpeedThreshold = 1.0\n')
+        f.write('\n')
+        f.write('[Validation]\n')
+        f.write('MaximumIteration = 100\n')
+        f.write('Tolerance = 0.0000001\n')
+        f.write('OutlierDistance_m = 0.5\n')
+        f.write('filter_HeadingThreshold = 100.0\n')
+        f.write('filter_DistanceThreshold = 100.0\n')
         f.write('\n')
         f.write('[Handeye]\n')
         f.write('MaximumIteration = 100\n')
