@@ -439,6 +439,7 @@ class CalibrationTab(QWidget):
         self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
         self.result_data_pose_ax.grid()
         self.result_data_pose_canvas.draw()
+
         vbox.addWidget(self.result_data_pose_canvas)
 
         btn = QPushButton('View')

@@ -8,7 +8,7 @@
 # Basic modules in Anaconda
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-from scipy.optimize import minimize
+from lib.scipy.optimize import minimize
 
 # Additional modules
 

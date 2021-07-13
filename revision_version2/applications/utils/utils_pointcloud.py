@@ -5,7 +5,6 @@
 
 #import g2o
 import numpy as np
-import scipy.linalg
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
