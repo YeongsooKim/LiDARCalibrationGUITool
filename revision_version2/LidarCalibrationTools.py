@@ -17,12 +17,12 @@ import matplotlib.pyplot as plt
 
 import element
 from applications.utils import get_result
-from applications.steps import v1_step1_configuration
-from applications.steps import v1_step2_import_data
-from applications.steps import v1_step2_2_data_validation
-from applications.steps import v1_step3_handeye
-from applications.steps import v1_step4_unsupervised
-from applications.steps import v1_step5_evaluation
+from applications.steps import step1_1_configuration
+from applications.steps import step1_2_import_data
+from applications.steps import step3_1_XYYaw_data_validation
+from applications.steps import step3_2_XYYaw_handeye
+from applications.steps import step3_3_XYYaw_unsupervised
+from applications.steps import step4_evaluation
 from hmi.visualization.vtk_lidar_calib import *
 from widget.QButton import *
 from widget import QThread
@@ -304,12 +304,12 @@ class ImportDataTab(QWidget):
             ## Set button status in handeye_tab
             self.form_widget.handeye_tab.using_gnss_motion = True
             self.form_widget.handeye_tab.button_group.button(2).setChecked(True)
-            self.form_widget.handeye_tab.prev_checkID = self.form_widget.handeye_tab.button_group.checkedId()
+            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
 
             ## Set button status in unsupervised_tab
             self.form_widget.unsupervised_tab.using_gnss_motion = True
             self.form_widget.unsupervised_tab.button_group.button(2).setChecked(True)
-            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.handeye_tab.button_group.checkedId()
+            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
 
         if self.form_widget.importing.has_motion_file:
             ## Set intial value
@@ -332,12 +332,12 @@ class ImportDataTab(QWidget):
             ## Set button status in handeye_tab
             self.form_widget.handeye_tab.using_gnss_motion = False
             self.form_widget.handeye_tab.button_group.button(1).setChecked(True)
-            self.form_widget.handeye_tab.prev_checkID = self.form_widget.handeye_tab.button_group.checkedId()
+            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
 
             ## Setbutton status in unsupervised_tab
             self.form_widget.unsupervised_tab.using_gnss_motion = False
             self.form_widget.unsupervised_tab.button_group.button(1).setChecked(True)
-            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.handeye_tab.button_group.checkedId()
+            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
 
             ## Change time_speed_threshold_layout status
             self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
@@ -377,7 +377,7 @@ class ImportDataTab(QWidget):
         self.form_widget.evaluation_tab.limit_time_layout.start_time = default_start_time
         self.form_widget.evaluation_tab.limit_time_layout.end_time = default_end_time
 
-class CalibrationTab(QWidget):
+class XYYaw_CalibrationTab(QWidget):
     def __init__(self, form_widget):
         super().__init__()
         self.using_gnss_motion = False
@@ -590,7 +590,7 @@ class CalibrationTab(QWidget):
             self.using_gnss_motion = True
         self.prev_checkID = self.button_group.checkedId()
 
-class DataValidation(CalibrationTab):
+class DataValidation(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
         super().__init__(form_widget)
         self.label_heading_threshold = self.form_widget.config.PARM_DV['FilterHeadingThreshold']
@@ -775,10 +775,8 @@ class DataValidation(CalibrationTab):
         ## Set 'Result Calibration Data'
 
         for idxSensor in self.form_widget.datavalidation.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_translation_error.setText(
-                format(self.form_widget.datavalidation.RMSETranslationErrorDict[idxSensor], ".4f"))
-            self.result_labels[idxSensor].label_edit_rotation_error.setText(
-                format(self.form_widget.datavalidation.RMSERotationErrorDict[idxSensor], ".4f"))
+            self.result_labels[idxSensor].label_edit_translation_error.setText(format(self.form_widget.datavalidation.RMSETranslationErrorDict[idxSensor], ".4f"))
+            self.result_labels[idxSensor].label_edit_rotation_error.setText(format(self.form_widget.datavalidation.RMSERotationErrorDict[idxSensor], ".4f"))
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
@@ -826,7 +824,7 @@ class DataValidation(CalibrationTab):
     def Skip(self):
         self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
 
-class HandEyeTab(CalibrationTab):
+class HandEyeTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
         super().__init__(form_widget)
 
@@ -1009,7 +1007,7 @@ class HandEyeTab(CalibrationTab):
         for i in range(len(keys)):
             target[keys[i]] = values[i].copy()
 
-class UnsupervisedTab(CalibrationTab):
+class UnsupervisedTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
         super().__init__(form_widget)
         self.edit_handeye_calibration_parm = {}
@@ -1774,12 +1772,12 @@ class FormWidget(QWidget):
         self.opti_thread = QThread.Thread()
 
         ### setting configuration file structure each taps default path of each parameters defining in config.WriteDefaultFile() and initialize in InitConfiguration()
-        self.config = v1_step1_configuration.Configuration()
-        self.importing = v1_step2_import_data.Import(self.config)
-        self.datavalidation = v1_step2_2_data_validation.DataValidation(self.config, self.importing)
-        self.handeye = v1_step3_handeye.HandEye(self.config, self.importing)
-        self.unsupervised = v1_step4_unsupervised.Unsupervised(self.config, self.importing)
-        self.evaluation = v1_step5_evaluation.Evaluation(self.config, self.importing)
+        self.config = step1_1_configuration.Configuration()
+        self.importing = step1_2_import_data.Import(self.config)
+        self.datavalidation = step3_1_XYYaw_data_validation.DataValidation(self.config, self.importing)
+        self.handeye = step3_2_XYYaw_handeye.HandEye(self.config, self.importing)
+        self.unsupervised = step3_3_XYYaw_unsupervised.Unsupervised(self.config, self.importing)
+        self.evaluation = step4_evaluation.Evaluation(self.config, self.importing)
         self.config.WriteDefaultFile()
         self.config.InitConfiguration()
 
@@ -1804,22 +1802,22 @@ class FormWidget(QWidget):
         self.unsupervised_tab = UnsupervisedTab(self)
         self.evaluation_tab = EvaluationTab(self)
 
-        self.tabs.addTab(self.config_tab, '1. Configuration')
+        self.tabs.addTab(self.config_tab, '1.1 Configuration')
         self.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
 
-        self.tabs.addTab(self.importing_tab, '2.1. Import Data')
+        self.tabs.addTab(self.importing_tab, '1.2. Import Data')
         self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, False)
 
-        self.tabs.addTab(self.datavalidation_tab, '2.2. Data Validation')
+        self.tabs.addTab(self.datavalidation_tab, '3.1. X, Y, Yaw: Data Validation')
         self.tabs.setTabEnabled(CONST_VALIDATION_TAB, False)
 
-        self.tabs.addTab(self.handeye_tab, '3. HandEye')
+        self.tabs.addTab(self.handeye_tab, '3.2. X, Y, Yaw: Hand-Eye Calibration')
         self.tabs.setTabEnabled(CONST_HANDEYE_TAB, False)
 
-        self.tabs.addTab(self.unsupervised_tab, '4. Unsupervised')
+        self.tabs.addTab(self.unsupervised_tab, '3.3. X, Y, Yaw: Unsupervised Calibration')
         self.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
 
-        self.tabs.addTab(self.evaluation_tab, '5. Evaluation')
+        self.tabs.addTab(self.evaluation_tab, '4. Evaluation')
         self.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
 
         ### Set Basic Window
