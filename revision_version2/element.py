@@ -231,17 +231,17 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         # Clear current buttons
         self.form_widget.RemoveLayout(self.form_widget.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Gnss.csv') == True:
-            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image'])
             self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
         else:
-            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image'])
             self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
 
         if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Motion.csv') == True:
-            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image'])
             self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
         else:
-            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image'])
             self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
 
     def GeneratePointCloudBtn(self):
@@ -256,13 +256,13 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                     idxSensor) + '.bin') == True:
                 ## Add Green Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
-                             self.form_widget.config.PATH['Image_path'])
+                             self.form_widget.config.PATH['Image'])
                 self.lidar_buttons[idxSensor] = btn
                 self.form_widget.importing_tab.lidar_scroll_box.layout.addWidget(btn)
             else:
                 ## Add Red Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
-                             self.form_widget.config.PATH['Image_path'])
+                             self.form_widget.config.PATH['Image'])
                 self.lidar_buttons[idxSensor] = btn
                 self.form_widget.importing_tab.lidar_scroll_box.layout.addWidget(btn)
 
@@ -317,7 +317,7 @@ class CheckBoxListLayout(QVBoxLayout):
                                             label_str=label,
                                             color=CONST_GREEN,
                                             btn_type=CONST_LIDAR,
-                                            image_path=self.form_widget.config.PATH['Image_path'],
+                                            image_path=self.form_widget.config.PATH['Image'],
                                             callback=self.ItemChanged)
 
                 else:
@@ -325,7 +325,7 @@ class CheckBoxListLayout(QVBoxLayout):
                                             label_str=label,
                                             color=CONST_RED,
                                             btn_type=CONST_LIDAR,
-                                            image_path=self.form_widget.config.PATH['Image_path'],
+                                            image_path=self.form_widget.config.PATH['Image'],
                                             callback=self.ItemChanged)
                 self.lidar_buttons[sensor_index] = check_btn
                 self.config_scroll_box.layout.addLayout(check_btn)

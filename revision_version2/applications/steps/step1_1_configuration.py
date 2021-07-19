@@ -14,6 +14,7 @@ class Configuration:
     configuration_path = 'common/configuration/'
     logging_data_path = 'common/logging_data/'
     image_path = 'common/image/'
+    vehicle_mesh_path = 'common/meshes/vehicles/'
 
     def __init__(self):
         # Path and file
@@ -27,6 +28,7 @@ class Configuration:
         self.PARM_MO = {}
         self.PARM_EV = {}
         self.PATH = {}
+        self.VEHICLE_INFO = {}
         self.CalibrationParam = {}
 
     ##############################################################################################################################
@@ -85,17 +87,28 @@ class Configuration:
 
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
-        self.PATH['Logging_file_path'] = config_param['Path']['Logging_file_path']
-        self.PATH['Image_path'] = config_param['Path']['Image_path']
+        self.PATH['LoggingFile'] = config_param['Path']['LoggingFile']
+        self.PATH['Image'] = config_param['Path']['Image']
+        self.PATH['VehicleMesh'] = config_param['Path']['VehicleMesh']
+
+        # Vehicle info
+        config_param.read(self.vehicle_info_file)
+        self.VEHICLE_INFO['evoque_old'] = [float(config_param['evoque_old']['Length']), float(config_param['evoque_old']['Width']),
+                                        float(config_param['evoque_old']['Height']), float(config_param['evoque_old']['XRotation']),
+                                        float(config_param['evoque_old']['YRotation']), float(config_param['evoque_old']['ZRotation'])]
+
+        self.VEHICLE_INFO['lidar'] = [float(config_param['lidar']['Length']), float(config_param['lidar']['Width']),
+                                        float(config_param['lidar']['Height']), float(config_param['lidar']['XRotation']),
+                                        float(config_param['lidar']['YRotation']), float(config_param['lidar']['ZRotation'])]
 
         print('Initialize configuration parameter')
 
     def WriteDefaultFile(self):
-        file = self.path + '/' + self.configuration_path + 'default.ini'
-        self.WriteFile(file)
-        self.configuration_file = file
+        config_file = self.path + '/' + self.configuration_path + 'default.ini'
+        self.WriteDefaultFileBase(config_file)
+        self.configuration_file = config_file
 
-    def WriteFile(self, file):
+    def WriteDefaultFileBase(self, file):
         f = open(file, 'w', encoding=None)
         f.write('[LIDAR]\n')
         f.write('PrincipalSensor = 0\n')
@@ -146,8 +159,32 @@ class Configuration:
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
-        f.write('Logging_file_path = ' + self.path + '/' + self.logging_data_path + '\n')
-        f.write('Image_path = ' + self.path + '/' + self.image_path + '\n')
+        f.write('LoggingFile = ' + self.path + '/' + self.logging_data_path + '\n')
+        f.write('Image = ' + self.path + '/' + self.image_path + '\n')
+        f.write('VehicleMesh = ' + self.path + '/' + self.vehicle_mesh_path + '\n')
         f.close()
 
         print('Write default configuration parameter in ' + file)
+
+    def WriteVehicleInfoFile(self):
+        vehicle_info_file = self.path + '/' + self.configuration_path + 'vehicle_info.ini'
+        self.vehicle_info_file = vehicle_info_file
+
+        f = open(vehicle_info_file, 'w', encoding=None)
+        f.write('[evoque_old]\n')
+        f.write('Length = 4371\n')
+        f.write('Width = 1904\n')
+        f.write('Height = 1649\n')
+        f.write('XRotation = 90\n')
+        f.write('YRotation = 90\n')
+        f.write('ZRotation = 0\n')
+        f.write('\n')
+        f.write('[lidar]\n')
+        f.write('Length = 20\n')
+        f.write('Width = 20\n')
+        f.write('Height = 20\n')
+        f.write('XRotation = 90\n')
+        f.write('YRotation = 90\n')
+        f.write('ZRotation = 0\n')
+
+        f.close()
