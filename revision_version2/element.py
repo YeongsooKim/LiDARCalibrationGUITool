@@ -64,12 +64,12 @@ CONST_EVAL_VEHICLE_MINIMUM_SPEED = 20
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
-    def __init__(self, label_str, ui):
+    def __init__(self, label_str, form_widget):
         super().__init__()
         self.id = FileInputWithCheckBtnLayout.instance_number # id 가 왜 필요하지??? -- 다른대선 씀
         self.label_str = label_str
         self.path_file_str = ''
-        self.ui = ui
+        self.form_widget = form_widget
         self.parsed_bin = ''
 
         FileInputWithCheckBtnLayout.instance_number += 1
@@ -111,66 +111,66 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         '''
         Check the file being and Import file data
         '''
-        self.ui.importing.Clear()
+        self.form_widget.importing.Clear()
         self.CheckGnssFile()
         has_pointcloud_file = self.CheckPointCloudFile()
 
         # Check file
-        if not self.ui.importing.has_gnss_file:
-            self.ui.ErrorPopUp('Gnss.csv is missing\n Please set initial value')
-        if not self.ui.importing.has_motion_file:
-            self.ui.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
+        if not self.form_widget.importing.has_gnss_file:
+            self.form_widget.ErrorPopUp('Gnss.csv is missing\n Please set initial value')
+        if not self.form_widget.importing.has_motion_file:
+            self.form_widget.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
         if not has_pointcloud_file:
-            self.ui.ErrorPopUp('XYZRGB.bin is missing')
+            self.form_widget.ErrorPopUp('XYZRGB.bin is missing')
 
         # Import file
         self.label_edit.setText(self.path_file_str)
 
         self.GenerateCSVBtn()
-        if self.ui.importing.has_gnss_file:
+        if self.form_widget.importing.has_gnss_file:
             self.gnss_button.setText('Gnss.csv 100%')
         else:
             self.gnss_button.setText('Gnss.csv 0%')
 
-        if self.ui.importing.has_motion_file:
+        if self.form_widget.importing.has_motion_file:
             self.motion_button.setText('Motion.csv 100%')
         else:
             self.motion_button.setText('Motion.csv 0%')
 
         self.GeneratePointCloudBtn()
 
-        if (self.ui.importing.has_gnss_file or self.ui.importing.has_motion_file) and has_pointcloud_file:
-            if self.ui.importing.has_gnss_file:
-                self.ui.importing.ParseGnss()
-            if self.ui.importing.has_motion_file:
-                self.ui.importing.ParseMotion()
+        if (self.form_widget.importing.has_gnss_file or self.form_widget.importing.has_motion_file) and has_pointcloud_file:
+            if self.form_widget.importing.has_gnss_file:
+                self.form_widget.importing.ParseGnss()
+            if self.form_widget.importing.has_motion_file:
+                self.form_widget.importing.ParseMotion()
 
-            self.ui.thread.SetFunc(self.ui.importing.ParsePointCloud)
-            self.ui.thread._status = True
+            self.form_widget.thread.SetFunc(self.form_widget.importing.ParsePointCloud)
+            self.form_widget.thread._status = True
             try:
-                self.ui.thread.change_value.disconnect()
+                self.form_widget.thread.change_value.disconnect()
             except:
                 pass
             try:
-                self.ui.thread.iteration_percentage.disconnect()
+                self.form_widget.thread.iteration_percentage.disconnect()
             except:
                 pass
             try:
-                self.ui.thread.end.disconnect()
+                self.form_widget.thread.end.disconnect()
             except:
                 pass
             try:
-                self.ui.thread.emit_string.disconnect()
+                self.form_widget.thread.emit_string.disconnect()
             except:
                 pass
 
-            self.ui.thread.change_value.connect(self.pbar.setValue)
-            self.ui.thread.iteration_percentage.connect(self.ui.importing_tab.IterationPercentage)
-            self.ui.thread.end.connect(self.ui.importing_tab.EndImport)
+            self.form_widget.thread.change_value.connect(self.pbar.setValue)
+            self.form_widget.thread.iteration_percentage.connect(self.form_widget.importing_tab.IterationPercentage)
+            self.form_widget.thread.end.connect(self.form_widget.importing_tab.EndImport)
 
-            self.ui.thread.start()
+            self.form_widget.thread.start()
 
-        self.ui.config_tab.is_lidar_num_changed = False
+        self.form_widget.config_tab.is_lidar_num_changed = False
 
     def IsSetPath(self):
         if self.path_file_str == '':
@@ -194,17 +194,17 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         Motion file is 'file_path/Motion.csv'
         If this files are being, then each flag(has_gnss_file or has_motion_file) be true
         '''
-        self.ui.importing.gnss_logging_file = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv'):
-            self.ui.importing.has_gnss_file = True
+        self.form_widget.importing.gnss_logging_file = self.path_file_str
+        self.form_widget.RemoveLayout(self.form_widget.importing_tab.gnss_scroll_box.layout)
+        if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Gnss.csv'):
+            self.form_widget.importing.has_gnss_file = True
         else:
-            self.ui.importing.has_gnss_file = False
+            self.form_widget.importing.has_gnss_file = False
 
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv'):
-            self.ui.importing.has_motion_file = True
+        if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Motion.csv'):
+            self.form_widget.importing.has_motion_file = True
         else:
-            self.ui.importing.has_motion_file = False
+            self.form_widget.importing.has_motion_file = False
 
     def CheckPointCloudFile(self):
         '''
@@ -212,11 +212,11 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         The path of PointCloud file is 'file_path/XYZRGB_NumOfSensor.bin'
         Check all number of LiDAR, over one of LiDAR PointCloud file is not being then pointcloud's flag will be false.
         '''
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+        self.form_widget.importing.point_cloud_logging_path = self.path_file_str
+        self.form_widget.RemoveLayout(self.form_widget.importing_tab.lidar_scroll_box.layout)
         has_pointcloud_file = True
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            if not os.path.isfile(self.ui.importing.point_cloud_logging_path + '/XYZRGB_' + str(
+        for idxSensor in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
+            if not os.path.isfile(self.form_widget.importing.point_cloud_logging_path + '/XYZRGB_' + str(
                     idxSensor) + '.bin') == True:
                 has_pointcloud_file = False
 
@@ -227,54 +227,54 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         This function generate the Buttons(LiDAR and GNSS).
         That buttons display using state of each data by image and loading percent text.
         '''
-        self.ui.importing.gnss_logging_file = self.path_file_str
+        self.form_widget.importing.gnss_logging_file = self.path_file_str
         # Clear current buttons
-        self.ui.RemoveLayout(self.ui.importing_tab.gnss_scroll_box.layout)
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Gnss.csv') == True:
-            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+        self.form_widget.RemoveLayout(self.form_widget.importing_tab.gnss_scroll_box.layout)
+        if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Gnss.csv') == True:
+            self.gnss_button = Button('Gnss.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
         else:
-            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
+            self.gnss_button = Button('Gnss.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.gnss_button)
 
-        if os.path.isfile(self.ui.importing.gnss_logging_file + '/Motion.csv') == True:
-            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+        if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Motion.csv') == True:
+            self.motion_button = Button('Motion.csv', CONST_GREEN, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
         else:
-            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.ui.config.PATH['Image_path'])
-            self.ui.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
+            self.motion_button = Button('Motion.csv', CONST_RED, CONST_GNSS, self.form_widget.config.PATH['Image_path'])
+            self.form_widget.importing_tab.gnss_scroll_box.layout.addWidget(self.motion_button)
 
     def GeneratePointCloudBtn(self):
         '''
         This function generate the LiDAR button in Importng_tap's LiDAR [bin File List] scrollArea.
         '''
-        self.ui.importing.point_cloud_logging_path = self.path_file_str
-        self.ui.RemoveLayout(self.ui.importing_tab.lidar_scroll_box.layout)
+        self.form_widget.importing.point_cloud_logging_path = self.path_file_str
+        self.form_widget.RemoveLayout(self.form_widget.importing_tab.lidar_scroll_box.layout)
         self.lidar_buttons = {}
-        for idxSensor in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-            if os.path.isfile(self.ui.importing.point_cloud_logging_path + '/XYZRGB_' + str(
+        for idxSensor in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
+            if os.path.isfile(self.form_widget.importing.point_cloud_logging_path + '/XYZRGB_' + str(
                     idxSensor) + '.bin') == True:
                 ## Add Green Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_GREEN, CONST_LIDAR,
-                             self.ui.config.PATH['Image_path'])
+                             self.form_widget.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+                self.form_widget.importing_tab.lidar_scroll_box.layout.addWidget(btn)
             else:
                 ## Add Red Button
                 btn = Button('XYZRGB {}'.format(idxSensor), CONST_RED, CONST_LIDAR,
-                             self.ui.config.PATH['Image_path'])
+                             self.form_widget.config.PATH['Image_path'])
                 self.lidar_buttons[idxSensor] = btn
-                self.ui.importing_tab.lidar_scroll_box.layout.addWidget(btn)
+                self.form_widget.importing_tab.lidar_scroll_box.layout.addWidget(btn)
 
 class CheckBoxListLayout(QVBoxLayout):
     instance_num = 1
-    def __init__(self, ui, label_str=None):
+    def __init__(self, form_widget, label_str=None):
         super().__init__()
         self.id = CheckBoxListLayout.instance_num
         CheckBoxListLayout.instance_num += 1
 
         self.label_str = label_str
-        self.ui = ui
+        self.form_widget = form_widget
         self.LiDAR_list = []
         self.lidar_buttons = {}
 
@@ -297,7 +297,7 @@ class CheckBoxListLayout(QVBoxLayout):
         self.LiDAR_list.clear()
         self.lidar_buttons.clear()
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
-            self.ui.RemoveLayout(self.config_scroll_box.layout)
+            self.form_widget.RemoveLayout(self.config_scroll_box.layout)
         else:   # Instance name is 'select_principle_sensor_list_layout'
             listItems = self.listWidget.count()
             if not listItems == 0:
@@ -317,7 +317,7 @@ class CheckBoxListLayout(QVBoxLayout):
                                             label_str=label,
                                             color=CONST_GREEN,
                                             btn_type=CONST_LIDAR,
-                                            image_path=self.ui.config.PATH['Image_path'],
+                                            image_path=self.form_widget.config.PATH['Image_path'],
                                             callback=self.ItemChanged)
 
                 else:
@@ -325,7 +325,7 @@ class CheckBoxListLayout(QVBoxLayout):
                                             label_str=label,
                                             color=CONST_RED,
                                             btn_type=CONST_LIDAR,
-                                            image_path=self.ui.config.PATH['Image_path'],
+                                            image_path=self.form_widget.config.PATH['Image_path'],
                                             callback=self.ItemChanged)
                 self.lidar_buttons[sensor_index] = check_btn
                 self.config_scroll_box.layout.addLayout(check_btn)
@@ -338,7 +338,7 @@ class CheckBoxListLayout(QVBoxLayout):
                 self.listWidget.addItem(item)
 
                 radio_btn = QRadioButton('LiDAR %i' % sensor_index)
-                if sensor_index == self.ui.config.PARM_LIDAR['PrincipalSensor']:
+                if sensor_index == self.form_widget.config.PARM_LIDAR['PrincipalSensor']:
                     radio_btn.setChecked(True)
                 radio_btn.clicked.connect(self.SetPrincipalSensor)
                 self.button_group.addButton(radio_btn, sensor_index)
@@ -360,25 +360,25 @@ class CheckBoxListLayout(QVBoxLayout):
                     items.append(int(words[1]))
 
         if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
-            self.ui.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
-            self.ui.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
+            self.form_widget.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
+            self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
 
             if not len(items) == 0:
                 configuration_first_checked_sensor = items[0]
-                checked_principal_sensor = self.ui.unsupervised_tab.select_principle_sensor_list_layout.button_group.checkedId()
+                checked_principal_sensor = self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.button_group.checkedId()
 
                 if checked_principal_sensor in items:
-                    self.ui.config.PARM_LIDAR['PrincipalSensor'] = checked_principal_sensor
+                    self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = checked_principal_sensor
                 else:
-                    self.ui.config.PARM_LIDAR['PrincipalSensor'] = configuration_first_checked_sensor
+                    self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = configuration_first_checked_sensor
             else:
-                self.ui.config.PARM_LIDAR['PrincipalSensor'] = None
+                self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = None
 
-            self.ui.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-            self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
+            self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
+            self.form_widget.ResetResultsLabels(self.form_widget.config.PARM_LIDAR)
 
     def SetPrincipalSensor(self):
-        self.ui.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
+        self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
 
 class CheckButton(QVBoxLayout):
     def __init__(self, click_status, label_str, color, btn_type, image_path, callback=None):
@@ -407,11 +407,11 @@ class CheckButton(QVBoxLayout):
 
 class SpinBoxLabelLayout(QVBoxLayout):
     instance_number = 1 
-    def __init__(self, label_str, ui):
+    def __init__(self, label_str, form_widget):
         super().__init__()
         self.id = SpinBoxLabelLayout.instance_number
         self.label_str = label_str
-        self.ui = ui
+        self.form_widget = form_widget
 
         SpinBoxLabelLayout.instance_number += 1 
         self.InitUi()
@@ -432,23 +432,23 @@ class SpinBoxLabelLayout(QVBoxLayout):
         self.addLayout(hbox)
 
     def SpinBoxChanged(self):
-        self.ui.value_changed = True
+        self.form_widget.value_changed = True
         if self.id == CONST_CONFIG_LIDAR_NUM: 
             ## Check PARM_LIDAR is empty
-            if self.ui.config.PARM_LIDAR.get('SensorList') == None:
+            if self.form_widget.config.PARM_LIDAR.get('SensorList') == None:
                 return False
-            if len(self.ui.config.PARM_LIDAR['SensorList']) <= 0:
+            if len(self.form_widget.config.PARM_LIDAR['SensorList']) <= 0:
                 return False
 
-            self.ui.datavalidation.complete_calibration = False
-            self.ui.handeye.complete_calibration = False
-            self.ui.unsupervised.complete_calibration = False
-            self.ui.config_tab.is_lidar_num_changed = True
+            # self.form_widget.datavalidation.complete_calibration = False
+            self.form_widget.handeye.complete_calibration = False
+            self.form_widget.unsupervised.complete_calibration = False
+            self.form_widget.config_tab.is_lidar_num_changed = True
 
             is_minus = False
-            last_lidar_num = self.ui.config.PARM_LIDAR['SensorList'][-1]
+            last_lidar_num = self.form_widget.config.PARM_LIDAR['SensorList'][-1]
             spin_box_value = self.spin_box.value()
-            PARM_LIDAR_num = len(self.ui.config.PARM_LIDAR['SensorList'])
+            PARM_LIDAR_num = len(self.form_widget.config.PARM_LIDAR['SensorList'])
             add_lidar_num = spin_box_value - PARM_LIDAR_num
 
             ## Determine adding or delete lidar list
@@ -458,57 +458,57 @@ class SpinBoxLabelLayout(QVBoxLayout):
 
             if is_minus:
                 for i in range(add_lidar_num):
-                    if len(self.ui.config.PARM_LIDAR['SensorList']) <= 1:
+                    if len(self.form_widget.config.PARM_LIDAR['SensorList']) <= 1:
                         self.spin_box.setValue(1)
                         return False
 
-                    sensor_index = self.ui.config.PARM_LIDAR['SensorList'][-1]
-                    if sensor_index in self.ui.config.PARM_LIDAR['CheckedSensorList']:
-                        list_index = self.ui.config.PARM_LIDAR['CheckedSensorList'].index(sensor_index)
-                        del self.ui.config.PARM_LIDAR['CheckedSensorList'][list_index]
-                    if sensor_index in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
-                        list_index = self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].index(sensor_index)
-                        del self.ui.evaluation_tab.eval_lidar['CheckedSensorList'][list_index]
-                    del self.ui.config.PARM_LIDAR['SensorList'][-1]
+                    sensor_index = self.form_widget.config.PARM_LIDAR['SensorList'][-1]
+                    if sensor_index in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
+                        list_index = self.form_widget.config.PARM_LIDAR['CheckedSensorList'].index(sensor_index)
+                        del self.form_widget.config.PARM_LIDAR['CheckedSensorList'][list_index]
+                    if sensor_index in self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList']:
+                        list_index = self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].index(sensor_index)
+                        del self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'][list_index]
+                    del self.form_widget.config.PARM_LIDAR['SensorList'][-1]
             else: # is plus
                 for i in range(add_lidar_num):
-                    self.ui.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
-                    self.ui.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
-                    self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
+                    self.form_widget.config.PARM_LIDAR['SensorList'].append(last_lidar_num + 1)
+                    self.form_widget.config.PARM_LIDAR['CheckedSensorList'].append(last_lidar_num + 1)
+                    self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].append(last_lidar_num + 1)
                     last_lidar_num = last_lidar_num + 1
 
-            for idxSensor in self.ui.config.PARM_LIDAR['SensorList']:
-                if self.ui.config.CalibrationParam.get(idxSensor):
+            for idxSensor in self.form_widget.config.PARM_LIDAR['SensorList']:
+                if self.form_widget.config.CalibrationParam.get(idxSensor):
                     continue
                 calib = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-                self.ui.config.CalibrationParam[idxSensor] = calib
+                self.form_widget.config.CalibrationParam[idxSensor] = calib
 
             ## Add widget item of lidar list in configuration tab and unsupervised tab
-            self.ui.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
-            self.ui.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.ui.config.PARM_LIDAR['SensorList'], self.ui.config.PARM_LIDAR['CheckedSensorList'])
+            self.form_widget.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
+            self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
 
             ## Add Reset result label in rph tab, handeye tab, unsupervised tab and evaulation tab
-            self.ui.ResetResultsLabels(self.ui.config.PARM_LIDAR)
+            self.form_widget.ResetResultsLabels(self.form_widget.config.PARM_LIDAR)
 
         
         elif self.id == CONST_IMPORT_DATA_SAMPLING_INTERVER:
-            self.ui.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
+            self.form_widget.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
         elif self.id == CONST_VALIDATION_MAXIMUM_ITERATION:
-            self.ui.config.PARM_DV['MaximumIteration'] = self.spin_box.value()
+            self.form_widget.config.PARM_DV['MaximumIteration'] = self.spin_box.value()
         elif self.id == CONST_HANDEYE_MAXIMUM_ITERATION:
-            self.ui.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
+            self.form_widget.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
         elif self.id == CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING:
-            self.ui.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
+            self.form_widget.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
         elif self.id == CONST_EVAL_SAMPLING_INTERVAL:
-            self.ui.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
+            self.form_widget.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
 class DoubleSpinBoxLabelLayout(QVBoxLayout):
     instance_number = 1
-    def __init__(self, string, ui):
+    def __init__(self, string, form_widget):
         super().__init__()
         self.id = DoubleSpinBoxLabelLayout.instance_number
         self.label_str = string
-        self.ui = ui
+        self.form_widget = form_widget
         self.text = ''
 
         DoubleSpinBoxLabelLayout.instance_number += 1
@@ -534,62 +534,62 @@ class DoubleSpinBoxLabelLayout(QVBoxLayout):
         self.addLayout(self.h_box)
 
     def DoubleSpinBoxChanged(self):
-        self.ui.value_changed = True
+        self.form_widget.value_changed = True
         if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
-            self.ui.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE:  # Configuration tab Maximum Threshold Distance [m]
-            self.ui.config.PARM_PC['MaxThresholdDist_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MaxThresholdDist_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_X:  # Configuration tab Minimum Threshold X [m]
-            self.ui.config.PARM_PC['MinThresholdX_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MinThresholdX_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_X:  # Configuration tab Maximum Threshold X [m]
-            self.ui.config.PARM_PC['MaxThresholdX_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MaxThresholdX_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Y:  # Configuration tab Minimum Threshold Y [m]
-            self.ui.config.PARM_PC['MinThresholdY_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MinThresholdY_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Y:  # Configuration tab Maximum Threshold Y [m]
-            self.ui.config.PARM_PC['MaxThresholdY_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MaxThresholdY_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Z [m]
-            self.ui.config.PARM_PC['MinThresholdZ_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MinThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Distance [m]
-            self.ui.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_IMPORT_VEHICLE_MINIMUM_SPEED :  # Import tab Vehicle Minimum Speed [km/h]
-            self.ui.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
 
         elif self.id == CONST_DATAVALIDATION_TOLERANCE:  # Handeye tab Tolerance
-            self.ui.config.PARM_DV['Tolerance'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_DV['Tolerance'] = self.double_spin_box.value()
         elif self.id == CONST_DATAVALIDATION_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
-            self.ui.config.PARM_DV['OutlierDistance_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_DV['OutlierDistance_m'] = self.double_spin_box.value()
         elif self.id == CONST_DATAVALIDATION_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
-            self.ui.config.PARM_DV['filter_HeadingThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_DV['FilterHeadingThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_DATAVALIDATION_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
-            self.ui.config.PARM_DV['filter_DistanceThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_DV['FilterDistanceThreshold'] = self.double_spin_box.value()
 
         elif self.id == CONST_HANDEYE_TOLERANCE:  # Handeye tab Tolerance
-            self.ui.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
-            self.ui.config.PARM_HE['OutlierDistance_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_HE['OutlierDistance_m'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
-            self.ui.config.PARM_HE['filter_HeadingThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_HE['FilterHeadingThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
-            self.ui.config.PARM_HE['filter_DistanceThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_HE['FilterDistanceThreshold'] = self.double_spin_box.value()
 
         elif self.id == CONST_OPTI_POINT_SAMPLING_RATIO:  # unsupervised tab Point Sampling Ratio
-            self.ui.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # unsupervised tab Outlier Distance [m]
-            self.ui.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_EVAL_VEHICLE_MINIMUM_SPEED:  # Evaluation tab Eval Vehicle Minimum Speed [km/h]
-            self.ui.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
 class SlideLabelLayouts(QVBoxLayout):
     instance_num = 1
-    def __init__(self, ui, label_str=None):
+    def __init__(self, form_widget, label_str=None):
         super().__init__()
         self.id = SlideLabelLayouts.instance_num
         SlideLabelLayouts.instance_num += 1
 
-        self.ui = ui
+        self.form_widget = form_widget
         self.label_str = label_str
 
         self.end_editing_finished = False
@@ -651,7 +651,7 @@ class SlideLabelLayouts(QVBoxLayout):
             if self.start_time_layout.double_spin_box.value() > end_time:
                 self.start_time_layout.double_spin_box.setValue(end_time)
                 self.start_time_layout.slider.setValue(end_time)
-                self.ui.ErrorPopUp('Start time cannot be higher than end time')
+                self.form_widget.ErrorPopUp('Start time cannot be higher than end time')
             else:
                 self.start_time_layout.slider.setValue(self.start_time_layout.double_spin_box.value())
 
@@ -666,7 +666,7 @@ class SlideLabelLayouts(QVBoxLayout):
             if self.end_time_layout.double_spin_box.value() < start_time:
                 self.end_time_layout.double_spin_box.setValue(start_time)
                 self.end_time_layout.slider.setValue(start_time)
-                self.ui.ErrorPopUp('End time cannot be lower than start time')
+                self.form_widget.ErrorPopUp('End time cannot be lower than start time')
             else:
                 self.end_time_layout.slider.setValue(self.end_time_layout.double_spin_box.value())
 
@@ -731,10 +731,10 @@ class SlideLabelLayout(QGridLayout):
         self.addWidget(self.double_spin_box, 1, 1)
 
 class GnssInitEditLabel(QVBoxLayout):
-    def __init__(self, string, ui, ):
+    def __init__(self, string, form_widget, ):
         super().__init__()
         self.string = string
-        self.ui = ui
+        self.form_widget = form_widget
 
         self.east_m = 0.
         self.north_m = 0.
@@ -788,25 +788,25 @@ class GnssInitEditLabel(QVBoxLayout):
     def DoubleSpinBoxEastChanged(self):
         self.east_m = self.double_spin_box_east.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.ui.importing.ChangeInitValue(init)
+        self.form_widget.importing.ChangeInitValue(init)
 
     def DoubleSpinBoxNorthChanged(self):
         self.north_m = self.double_spin_box_north.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.ui.importing.ChangeInitValue(init)
+        self.form_widget.importing.ChangeInitValue(init)
 
     def DoubleSpinBoxHeadingChanged(self):
         self.heading_deg = self.double_spin_box_heading.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.ui.importing.ChangeInitValue(init)
+        self.form_widget.importing.ChangeInitValue(init)
 
 class CalibrationResultEditLabel(QVBoxLayout):
-    def __init__(self, id, idxSensor, calibration_param, ui):
+    def __init__(self, id, idxSensor, calibration_param, form_widget):
         super().__init__()
         self.id = id
         self.idxSensor = idxSensor
         self.calibration_param = calibration_param
-        self.ui = ui
+        self.form_widget = form_widget
 
         self.InitUi()
 
@@ -840,7 +840,7 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.addLayout(self.hbox)
 
     def DisplayCalibrationGraph(self):
-        status = self.ui.evaluation_tab.button_group.checkedId()
+        status = self.form_widget.evaluation_tab.button_group.checkedId()
         if not self.id == status:
             return False
 
@@ -848,7 +848,7 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.calibration_param[self.idxSensor][4] = self.double_spin_box_y.value() * math.pi / 180.0
         self.calibration_param[self.idxSensor][2] = self.double_spin_box_yaw.value() * math.pi / 180.0
 
-        self.ui.evaluation_tab.DisplayCalibrationGraph()
+        self.form_widget.evaluation_tab.DisplayCalibrationGraph()
 
 class CalibrationResultLabel(QVBoxLayout):
     def __init__(self, idxSensor):
@@ -897,10 +897,10 @@ class ValidationResultLabel(QVBoxLayout):
 
     def InitUi(self):
     #    try:
-        #self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.ui.config.PARM_DV['filter_HeadingThreshold']))
+        #self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.form_widget.config.PARM_DV['FilterHeadingThreshold']))
         #self.addWidget(self.label_heading_threshold)
         #self.hbox = QHBoxLayout()
-        #self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.ui.config.PARM_DV['filter_DistanceThreshold']))
+        #self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
         #self.addWidget(self.label_heading_threshold)
         #self.hbox = QHBoxLayout()
     
@@ -977,12 +977,12 @@ class ValidationConfigLabel(QVBoxLayout):
         
 
 class CalibrationResultEditLabel2(QVBoxLayout):
-    def __init__(self, idxSensor, calibration_param, ui):
+    def __init__(self, idxSensor, calibration_param, form_widget):
         super().__init__()
         self.idxSensor = idxSensor
         # self.calibration_param = calibration_param
-        self.ui = ui
-        self.calibration_param = self.ui.unsupervised_tab.edit_handeye_calibration_parm
+        self.form_widget = form_widget
+        self.calibration_param = self.form_widget.unsupervised_tab.edit_handeye_calibration_parm
 
         self.InitUi()
 
@@ -1047,7 +1047,7 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         self.calibration_param[self.idxSensor][3] = x
         self.calibration_param[self.idxSensor][4] = y
 
-        self.ui.unsupervised.CalibrationParam[self.idxSensor] = copy.deepcopy(self.calibration_param[self.idxSensor])
+        self.form_widget.unsupervised.CalibrationParam[self.idxSensor] = copy.deepcopy(self.calibration_param[self.idxSensor])
 
         lidar = 'Set Lidar {} initial value\n'.format(self.idxSensor)
         changed_value = 'X: ' + str(round(x, 2)) + ' [m], Y: ' + str(round(y, 2)) + ' [m], Yaw: ' + str(round(yaw_deg, 2)) + ' [Deg]\n'
@@ -1066,9 +1066,9 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         QMessageBox.information(widget, 'Information', message)
 
 class ResultTab(QVBoxLayout):
-    def __init__(self, ui):
+    def __init__(self, form_widget):
         super().__init__()
-        self.ui = ui
+        self.form_widget = form_widget
 
         self.initUI()
 
@@ -1114,12 +1114,12 @@ class ImageDisplay(QWidget):
         self.show()
 
 class EvaluationLable(QHBoxLayout):
-    def __init__(self, idxSensor, ui):
+    def __init__(self, idxSensor, form_widget):
         super().__init__()
         self.prev_checkID = CONST_HANDEYE
 
         self.idxSensor = idxSensor
-        self.ui = ui
+        self.form_widget = form_widget
 
         self.InitUi()
 
@@ -1187,33 +1187,33 @@ class EvaluationLable(QHBoxLayout):
 
     def CheckBox(self):
         if self.checkbox.checkState() == 0:
-            if self.idxSensor in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
-                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].remove(self.idxSensor)
+            if self.idxSensor in self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList']:
+                self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].remove(self.idxSensor)
         else:
-            if not self.idxSensor in self.ui.evaluation_tab.eval_lidar['CheckedSensorList']:
-                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].append(self.idxSensor)
-                self.ui.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
+            if not self.idxSensor in self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList']:
+                self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].append(self.idxSensor)
+                self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
 
     def RadioButton(self):
-        if self.ui.config_tab.is_lidar_num_changed == True:
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.button_group.button(self.prev_checkID).setChecked(True)
-            self.ui.ErrorPopUp('Please import after changing lidar number')
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
             return False
 
         status = self.button_group.checkedId()
         if status == CONST_HANDEYE:
-            if not self.ui.handeye.complete_calibration:
+            if not self.form_widget.handeye.complete_calibration:
                 self.button_group.button(self.prev_checkID).setChecked(True)
-                self.ui.ErrorPopUp('Please complete the HandEye calibration')
+                self.form_widget.ErrorPopUp('Please complete the HandEye calibration')
                 return False
         elif status == CONST_UNSUPERVISED:
-            if not self.ui.unsupervised.complete_calibration:
+            if not self.form_widget.unsupervised.complete_calibration:
                 self.button_group.button(self.prev_checkID).setChecked(True)
-                self.ui.ErrorPopUp('Please complete the unsupervised calibration')
+                self.form_widget.ErrorPopUp('Please complete the unsupervised calibration')
                 return False
         elif status == CONST_CUSTOM:
-            if self.ui.evaluation_tab.custom_calibration_param.get(self.idxSensor) == None:
-                self.ui.evaluation_tab.custom_calibration_param[self.idxSensor] = [0., 0., 0., 0., 0., 0.]
+            if self.form_widget.evaluation_tab.custom_calibration_param.get(self.idxSensor) == None:
+                self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor] = [0., 0., 0., 0., 0., 0.]
 
         if status == CONST_CUSTOM:
             self.spinbox1.setReadOnly(False)
@@ -1238,28 +1238,28 @@ class EvaluationLable(QHBoxLayout):
 
             
         if status == CONST_HANDEYE:
-            self.spinbox1.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][3])
-            self.spinbox2.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][4])
-            self.spinbox3.setValue(self.ui.handeye.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+            self.spinbox1.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
         elif status == CONST_UNSUPERVISED:
-            self.spinbox1.setValue(self.ui.unsupervised.CalibrationParam[self.idxSensor][3])
-            self.spinbox2.setValue(self.ui.unsupervised.CalibrationParam[self.idxSensor][4])
-            self.spinbox3.setValue(self.ui.unsupervised.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+            self.spinbox1.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][3])
+            self.spinbox2.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][4])
+            self.spinbox3.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
         elif status == CONST_CUSTOM:
-            self.spinbox1.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][3])
-            self.spinbox2.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][4])
-            self.spinbox3.setValue(self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][2] * 180.0 / math.pi)
+            self.spinbox1.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][3])
+            self.spinbox2.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4])
+            self.spinbox3.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] * 180.0 / math.pi)
 
         self.prev_checkID = self.button_group.checkedId()
 
     def DoubleSpinBoxChanged1(self):
         if self.button_group.checkedId() == CONST_CUSTOM:
-            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][3] = self.spinbox1.value()
+            self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][3] = self.spinbox1.value()
 
     def DoubleSpinBoxChanged2(self):
         if self.button_group.checkedId() == CONST_CUSTOM:
-            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][4] = self.spinbox2.value()
+            self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4] = self.spinbox2.value()
 
     def DoubleSpinBoxChanged3(self):
         if self.button_group.checkedId() == CONST_CUSTOM:
-            self.ui.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0
+            self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0

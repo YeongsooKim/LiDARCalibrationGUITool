@@ -212,8 +212,8 @@ class DataValidation:
                 err_rotation = np.abs(v_rotation - l_rotation)
                 
                 # Check validation using parameter
-                if (float(err_rotation) < self.config.PARM_DV['filter_HeadingThreshold']) & (
-                        float(err_translation) < self.config.PARM_DV['filter_DistanceThreshold']):
+                if (float(err_rotation) < self.config.PARM_DV['FilterHeadingThreshold']) & (
+                        float(err_translation) < self.config.PARM_DV['FilterDistanceThreshold']):
                     #diff_point_xyzdh.append(np.transpose(diff_point).tolist())
                     #diff_gnss_xyzdh.append(np.transpose(diff_gnss).tolist())
                 

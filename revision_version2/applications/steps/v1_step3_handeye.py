@@ -165,8 +165,8 @@ class HandEye:
                 error_distance = np.abs(diff_gnss[3] - diff_point[3])
 
                 # Check validation using parameter
-                if (float(error_heading) < self.config.PARM_HE['filter_HeadingThreshold']) & (
-                        float(error_distance) < self.config.PARM_HE['filter_DistanceThreshold']):
+                if (float(error_heading) < self.config.PARM_HE['FilterHeadingThreshold']) & (
+                        float(error_distance) < self.config.PARM_HE['FilterDistanceThreshold']):
                     diff_point_xyzdh.append(np.transpose(diff_point).tolist())
                     diff_gnss_xyzdh.append(np.transpose(diff_gnss).tolist())
 
