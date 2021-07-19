@@ -590,14 +590,77 @@ class XYYaw_CalibrationTab(QWidget):
             self.using_gnss_motion = True
         self.prev_checkID = self.button_group.checkedId()
 
-class DataValidation(XYYaw_CalibrationTab):
+class DataValidation(QWidget):
     def __init__(self, form_widget):
-        super().__init__(form_widget)
+        super().__init__()
+        self.using_gnss_motion = False
+        self.form_widget = form_widget
+
+        self.progress_status = CONST_STOP
+        self.result_labels = {}
         self.label_heading_threshold = self.form_widget.config.PARM_DV['FilterHeadingThreshold']
         self.label_distance_threshold = self.form_widget.config.PARM_DV['FilterDistanceThreshold']
+        self.initUi()
+
+    def initUi(self):
+        main_vbox = QVBoxLayout()
+        main_hbox = QHBoxLayout()
+
+        self.config_widget = QWidget()
+        self.config_widget.setLayout(self.Configuration_Layout())
+        main_hbox.addWidget(self.config_widget, 25)
+
+        self.result_widget = QWidget()
+        self.result_widget.setLayout(self.Result_Layout())
+        main_hbox.addWidget(self.result_widget, 75)
+
+        main_vbox.addLayout(main_hbox, 50)
+
+        skip_btn = QPushButton('Skip')
+        skip_btn.clicked.connect(self.Skip)
+        main_vbox.addWidget(skip_btn, 50)
+
+        self.setLayout(main_vbox)
+
+    ## Layout
+    def Configuration_Layout(self):
+        self.configuration_vbox = QVBoxLayout()
+
+        self.configuration_vbox.addWidget(self.Configuration_DataInfo_Groupbox())
+
+        hbox = QHBoxLayout()
+        label = QLabel('Used Data')
+        hbox.addWidget(label)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        rbn1 = QRadioButton('GNSS Data')
+        rbn1.setChecked(True)
+        rbn1.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn1)
+        self.button_group.addButton(rbn1, 1)
+
+        # button for unsupervised calibration
+        rbn2 = QRadioButton('Motion Data')
+        rbn2.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn2)
+        self.button_group.addButton(rbn2, 2)
+        self.configuration_vbox.addLayout(hbox)
+
+        self.configuration_vbox.addWidget(self.Configuration_Validation_Groupbox())
+
+        return self.configuration_vbox
+
+    def Result_Layout(self):
+        vbox = QVBoxLayout()
+
+        vbox.addWidget(self.Result_ResultData_Groupbox())
+        vbox.addWidget(self.Result_ResultGraph_Groupbox())
+
+        return vbox
 
     ## Groupbox
-    def Configuration_SetConfiguration_Groupbox(self):
+    def Configuration_DataInfo_Groupbox(self):
         groupbox = QGroupBox('Configuration Info')
         vbox = QVBoxLayout()
 
@@ -628,14 +691,13 @@ class DataValidation(XYYaw_CalibrationTab):
 
         return groupbox
 
-    def Configuration_Calibration_Groupbox(self):
+    def Configuration_Validation_Groupbox(self):
         groupbox = QGroupBox('Data Validation')
         vbox = QVBoxLayout(self)
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartValidation(CONST_HANDEYE,
-                                                         self.form_widget.datavalidation.Validation,
+        btn.clicked.connect(lambda: self.StartValidation(self.form_widget.datavalidation.Validation,
                                                          self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
                                                          self.form_widget.importing_tab.limit_time_layout.start_time,
                                                          self.form_widget.importing_tab.limit_time_layout.end_time,
@@ -669,16 +731,48 @@ class DataValidation(XYYaw_CalibrationTab):
         self.scroll_box = ScrollAreaV()
         vbox.addWidget(self.scroll_box)
 
-        skip_btn = QPushButton('Skip')
-        skip_btn.clicked.connect(self.Skip)
-        vbox.addWidget(skip_btn)
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_ResultData_Groupbox(self):
+        groupbox = QGroupBox('Translation RMSE')
+        vbox = QVBoxLayout()
+
+        self.result_data_pose_fig = plt.figure()
+        self.result_data_pose_canvas = FigureCanvas(self.result_data_pose_fig)
+        self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_canvas.draw()
+        vbox.addWidget(self.result_data_pose_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.ViewTranslationError)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_ResultGraph_Groupbox(self):
+        groupbox = QGroupBox('Rotation RMSE')
+        vbox = QVBoxLayout()
+
+        self.result_graph_fig = plt.figure()
+        self.result_graph_canvas = FigureCanvas(self.result_graph_fig)
+        self.result_graph_ax = self.result_graph_fig.add_subplot(1, 1, 1)
+        self.result_graph_ax.grid()
+        self.result_graph_canvas.draw()
+        vbox.addWidget(self.result_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.ViewRotationError)
+        vbox.addWidget(btn)
 
         groupbox.setLayout(vbox)
         return groupbox
 
     ## Callback func
 
-    def StartValidation(self, validation_exist, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
+    def StartValidation(self, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
                         targets_clear, progress_callbacks, end_callback):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
@@ -700,7 +794,6 @@ class DataValidation(XYYaw_CalibrationTab):
             self.result_data_pose_canvas.draw()
             self.result_graph_ax.clear()
             self.result_graph_canvas.draw()
-            # print("clear results in unsupervised")
         except:
             pass
         self.form_widget.validation_thread._status = True
@@ -729,6 +822,7 @@ class DataValidation(XYYaw_CalibrationTab):
 
         self.form_widget.validation_thread.end.connect(end_callback)
         self.form_widget.validation_thread.start()
+
     def Pause(self):
         if self.progress_status is CONST_PLAY:
             self.progress_status = CONST_PAUSE
