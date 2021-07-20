@@ -23,6 +23,7 @@ class Configuration:
         self.PARM_LIDAR = {}
         self.PARM_PC = {}
         self.PARM_IM = {}
+        self.PARM_ZRP = {}
         self.PARM_DV = {}
         self.PARM_HE = {}
         self.PARM_SO = {}
@@ -57,6 +58,14 @@ class Configuration:
         # Import
         self.PARM_IM['SamplingInterval'] = int(config_param['Import']['SamplingInterval'])
         self.PARM_IM['VehicleSpeedThreshold'] = float(config_param['Import']['VehicleSpeedThreshold'])
+
+        # Z, Roll, Pitch: Calibration
+        self.PARM_ZRP['MaxDistanceX_m'] = float(config_param['ZRPCalibration']['MaxDistanceX_m'])
+        self.PARM_ZRP['MinDistanceX_m'] = float(config_param['ZRPCalibration']['MinDistanceX_m'])
+        self.PARM_ZRP['MaxDistanceY_m'] = float(config_param['ZRPCalibration']['MaxDistanceY_m'])
+        self.PARM_ZRP['MinDistanceY_m'] = float(config_param['ZRPCalibration']['MinDistanceY_m'])
+        self.PARM_ZRP['MaxDistanceZ_m'] = float(config_param['ZRPCalibration']['MaxDistanceZ_m'])
+        self.PARM_ZRP['MinDistanceZ_m'] = float(config_param['ZRPCalibration']['MinDistanceZ_m'])
 
         # Data Validation
         self.PARM_DV['MaximumIteration'] = int(config_param['Validation']['MaximumIteration'])
@@ -135,6 +144,13 @@ class Configuration:
         f.write('SamplingInterval = 1\n')
         f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
+        f.write('[ZRPCalibration]\n')
+        f.write('MaxDistanceX_m = 1.0\n')
+        f.write('MinDistanceX_m = -1.0\n')
+        f.write('MaxDistanceY_m = 1.0\n')
+        f.write('MinDistanceY_m = -1.0\n')
+        f.write('MaxDistanceZ_m = 1.0\n')
+        f.write('MinDistanceZ_m = -1.0\n')
         f.write('[Validation]\n')
         f.write('MaximumIteration = 100\n')
         f.write('Tolerance = 0.0000001\n')
