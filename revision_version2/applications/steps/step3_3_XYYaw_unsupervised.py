@@ -8,7 +8,7 @@
 # Basic modules in Anaconda
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-from lib.scipy.optimize import minimize
+from scipy.optimize import minimize
 
 # Additional modules
 
@@ -108,7 +108,6 @@ class Unsupervised:
                            calib_param[2],
                            args=(calib_param[3], calib_param[4], pose, pointcloud,
                                  self.config.PARM_IM, self.config.PARM_SO, thread),
-                           thread=thread,
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
             # set data

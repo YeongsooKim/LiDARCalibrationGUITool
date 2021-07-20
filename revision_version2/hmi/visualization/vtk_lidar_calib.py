@@ -17,17 +17,48 @@ import vtk
 '''
 
 # Length, Width, Height, x rotation, y rotation, z rotation
-vehicle_info_ = [4371, 1904, 1649, 90, 90, 0]
+vehicle_info_ = [0., 0., 0., 0., 0., 0., 0., 0., 0.]
 vehicle_stl_path_ = ''
-test_global_value_ = 10
+lidar_stl_path_ = ''
 
 X_PIX2METER = 1.0/0.0006887739372658
 Y_PIX2METER = 1.0/0.0006887739372658
 Z_PIX2METER = 100.0/0.07200000000000001
 
-def SetStlPath(path):
+# Parameters for tranlsation in meter.
+X_TRANSLATE_PIX2METER = 1.0/1.008755986325648 
+Y_TRANSLATE_PIX2METER = 1.0/0.89637191416309
+Z_TRANSLATE_PIX2METER = 1.0/1.007424376155878
+
+
+# move vehicle to center
+def moveCenterVehicleTranslation(boundary):
+    centerlize_yaxis = -(boundary[2] + boundary[3]) / 2
+    height2zero = -boundary[4]
+    return [0, centerlize_yaxis, height2zero]
+
+# Rotate vehicle according to the value of vehicle_info_[6,7,8]
+def GetRotation(vehicleTransfromObject):
+    global vehicle_info_
+    vehicleTransfromObject.RotateX(vehicle_info_[6])
+    vehicleTransfromObject.RotateY(vehicle_info_[7])
+    vehicleTransfromObject.RotateZ(vehicle_info_[8])
+
+    return vehicleTransfromObject
+
+# Move vehicle in Meter.
+def TranslateVehicle(x, y, z):  # Pixel to Meter
+    aligned_poision = [x * X_TRANSLATE_PIX2METER, y * Y_TRANSLATE_PIX2METER, z * Z_TRANSLATE_PIX2METER]
+
+    return aligned_poision
+
+def SetVehicleStlPath(path):
     global vehicle_stl_path_
     vehicle_stl_path_ = path
+
+def SetLidarStlPath(path):
+    global lidar_stl_path_
+    lidar_stl_path_ = path
 
 def SetVehicleInfo(vehicle_info):
     global vehicle_info_
@@ -76,13 +107,14 @@ def GetOrientation(boundary):
     
     pass
 
-def VehicleSizeScaling(vehicle_info, boundary):
+def VehicleSizeScaling(boundary):
     boundary_size = GetBoundarySize(boundary)
 
     # pass the number from User
-    length = vehicle_info[0]
-    width = vehicle_info[1]
-    height = vehicle_info[2]
+    global vehicle_info_
+    length = vehicle_info_[0]
+    width = vehicle_info_[1]
+    height = vehicle_info_[2]
 
     sorted_boundary_size = sorted(boundary_size)
 
@@ -165,22 +197,17 @@ def GetActors(lidar_info_list):
 
     # make real size unit
     boundary = vehicle_actor.GetBounds()
-    global vehicle_info_
-    scaled_vehicle_size = VehicleSizeScaling(vehicle_info_, boundary)
+    scaled_vehicle_size = VehicleSizeScaling(boundary)
     vehicle_transform.Scale(scaled_vehicle_size)
 
-    # align coordinate
-    # vehicle_transform.RotateWXYZ(-90,0,0,1)
-
-    # move position to origin with center of gravity
-    # alignedPoision = TranslateCoordinateVehicle2origin(3.75,0,0)
-    # vehicle_transform.Translate(alignedPoision)
-    # vehicle_actor.SetUserTransform(vehicle_transform)
+    #move position to origin with center of gravity
+    #transformed_vehicle_boundary = vehicle_actor.GetBounds()
 
     # -------------------------------------------create LiDAR instances
     # LiDAR Source
     lidar_vtk_reader = vtk.vtkSTLReader()
-    lidar_vtk_reader.SetFileName('lidar.stl')
+    global lidar_stl_path_
+    lidar_vtk_reader.SetFileName(lidar_stl_path_)
 
     # Mapper
     lidar_mapper = vtk.vtkPolyDataMapper()
@@ -264,21 +291,20 @@ def GetVehicleActor():
     actor.GetProperty().SetOpacity(0.5)
 
     # Set Vehicle size and pose
-    vehicle_transform = vtk.vtkTransform()
+    transformation = vtk.vtkTransform()
+
+    rotation = GetRotation(transformation)
+    actor.SetUserTransform(rotation)
 
     # make real size unit
     boundary = actor.GetBounds()
-    global vehicle_info_
-    print(vehicle_info_)
-    scaled_vehicle_size = VehicleSizeScaling(vehicle_info_, boundary)
-    vehicle_transform.Scale(scaled_vehicle_size)
+    scaled_vehicle_size = VehicleSizeScaling(boundary)
+    transformation.Scale(scaled_vehicle_size)
 
-    # align coordinate
-    # vehicle_transform.RotateWXYZ(-90,0,0,1)
-
-    # move position to origin with center of gravity
-    # alignedPoision = TranslateCoordinateVehicle2origin(3.75,0,0)
-    # vehicle_transform.Translate(alignedPoision)
-    # actor.SetUserTransform(vehicle_transform)
+    #move position to origin with center of gravity
+    centerlize = moveCenterVehicleTranslation(actor.GetBounds())
+    aligned_poision = TranslateVehicle(centerlize[0], centerlize[1], centerlize[2])
+    transformation.Translate(aligned_poision)
+    #transformed_vehicle_boundary = actor.GetBounds()
 
     return actor
