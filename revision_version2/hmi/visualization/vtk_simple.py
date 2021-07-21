@@ -50,30 +50,22 @@ iren = vtk.vtkRenderWindowInteractor()
 iren.SetRenderWindow(renWin)
 
 # Add the actors to the renderer, set the background and size
-ren.AddActor(cylinderActor)
-ren.SetBackground(colors.GetColor3d("BkgColor"))
-renWin.SetSize(300, 300)
+# Add the actors to the renderer, set the background and size
+renWin.SetSize(1300, 1300)
 renWin.SetWindowName('CylinderExample')
 
 # This allows the interactor to initialize itself. It has to be
 # called before an event loop.
 iren.Initialize()
 
+ren.AddActor(cylinderActor)
+ren.SetBackground(colors.GetColor3d("BkgColor"))
 # We'll zoom in a little by accessing the camera and invoking a "Zoom"
 # method on it.
-# ren.ResetCamera()
-# ren.GetActiveCamera().Zoom(1.5)
-# renWin.Render()
+ren.ResetCamera()
+ren.GetActiveCamera().Zoom(1.5)
+renWin.Render()
 
 # Start the event loop.
 iren.Start()
 
-time.sleep(5)
-
-print('start terminate')
-render_window = iren.GetRenderWindow()
-render_window.Finalize()
-iren.TerminateApp()
-
-del renWin, iren
-print('end terminate')

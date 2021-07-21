@@ -449,7 +449,6 @@ if __name__ == '__main__':
     
 
     CalibResult(lidar_info_list, vehicle_info_)
-    CalibResult(lidar_info_list, vehicle_info_)
 
     '''
     sonatasize =        vehicleSizeWidth = 1.800

@@ -36,7 +36,7 @@ def fitPlaneSVD(XYZ):
     p = (np.ones((rows,1)))
     AB = np.hstack([XYZ,p])
     [u, d, v] = np.linalg.svd(AB,0)        
-    B = v[3,:];                    # Solution is last column of v.
+    B = v[3,:]                    # Solution is last column of v.
     nn = np.linalg.norm(B[0:3])
     B = B / nn
     return B[0:3]
