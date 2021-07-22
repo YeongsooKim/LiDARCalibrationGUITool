@@ -114,18 +114,17 @@ class Import:
             index = 0
             for i in pbar:
                 # Display progress
-                iteration_ratio = float(index + 1) / float(iteration_size)
+                iteration_ratio = float(index) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100
 
                 epoch_ratio = (iteration_ratio + p_index) / float(lidar_len)
                 epoch_percentage = epoch_ratio * 100
 
-                if epoch_percentage >= 99.8:
-                    epoch_percentage = 100.0
                 thread.iteration_percentage.emit({idxSensor: iteration_percentage})
                 thread.change_value.emit(int(epoch_percentage))
 
                 if df_pointcloud['num_points'].values[i] == 0:
+                    index += 1
                     continue
 
                 # Get point cloud
@@ -160,6 +159,14 @@ class Import:
 
                 index = index + 1
 
+            iteration_ratio = float(index) / float(iteration_size)
+            iteration_percentage = iteration_ratio * 100
+
+            if iteration_percentage >= 99.8:
+                iteration_percentage = 100.0
+
+            thread.iteration_percentage.emit({idxSensor: iteration_percentage})
+
             # Add point cloud of one LIDAR to self.PointCloudSensorList
             self.PointCloudSensorList[idxSensor] = PointCloudList
 
@@ -174,6 +181,14 @@ class Import:
             p_index = p_index + 1.0
 
             self.is_complete = True
+
+        epoch_ratio = (iteration_ratio + p_index) / float(lidar_len)
+        epoch_percentage = epoch_ratio * 100
+
+        if epoch_percentage >= 99.8:
+            epoch_percentage = 100.0
+
+        thread.change_value.emit(int(epoch_percentage))
 
         self.text_pointcloud = df_pointcloud
         # -----------------------------------------------------------------------------------------------------------------------------
@@ -222,6 +237,7 @@ class Import:
         self.df_info = df_motion
 
         for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+            print(self.config.PARM_LIDAR['CheckedSensorList'])
             self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
 
         # -----------------------------------------------------------------------------------------------------------------------------

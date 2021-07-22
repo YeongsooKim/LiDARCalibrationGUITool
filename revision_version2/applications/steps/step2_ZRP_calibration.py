@@ -37,6 +37,9 @@ class ZRollPitch:
         
         # roll, pitch, z
         self.calib_result = [0.0, 0.0, 0.0]
+        self.mean_distance = [0.0]
+        self.ground_slope = 0
+        self.timestamp = 0
         
         # Path and file
         self.export_path = ''
@@ -57,6 +60,8 @@ class ZRollPitch:
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
+
+        print(df_info)
 
         dXMaxThreshold_m = PARM_ZRP['MaxDistanceX_m']
         dXMinThreshold_m = PARM_ZRP['MinDistanceX_m']
@@ -84,6 +89,7 @@ class ZRollPitch:
 
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
 
+            self.timestamp = df_info[strColIndex].index
             self.pointcloud = pointcloud_in_lidar_frame
             self.filtered_pointcloud = filtered_pointcloud_in_lidar_frame
 
@@ -148,13 +154,19 @@ class ZRollPitch:
         for idxDataNum in list(range(dNumOfPointCloudData)):
             iteration_ratio = float(index) / float(iteration_size)
             iteration_percentage = iteration_ratio * 100
-
             thread.change_value.emit(int(iteration_percentage))
+
+            while thread.pause:
+                thread.sleep(1)
+
+            if not thread._status:
+                break
 
             strColIndex = 'XYZRGB_' + str(selected_sensor)
 
             pointcloud_in_lidar_frame = self.importing.PointCloudSensorList[selected_sensor][int(df_info[strColIndex].values[idxDataNum])]
             if len(pointcloud_in_lidar_frame) == 0:
+                index += 1
                 continue
             pointclouda_in_lidar_frame_homogeneous = np.insert(pointcloud_in_lidar_frame, 3, 1, axis = 1)
 
@@ -162,6 +174,8 @@ class ZRollPitch:
 
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
             filtered_pointcloud_in_lidar_frame_homogeneous = np.insert(filtered_pointcloud_in_lidar_frame, 3, 1, axis = 1)
+
+            self.timestamp = df_info[strColIndex].index
 
             if len(filtered_pointcloud_in_lidar_frame_homogeneous) < 3:
                 thread.emit_string.emit(str('There are empty points in ROI'))
@@ -249,13 +263,20 @@ class ZRollPitch:
 
             index += 1
 
+        iteration_ratio = float(index) / float(iteration_size)
+        iteration_percentage = iteration_ratio * 100
         if iteration_percentage >= 99.8:
             iteration_percentage = 100.0
         thread.change_value.emit(int(iteration_percentage))
 
-        if has_error:
+        if not thread._status:
+            thread.emit_string.emit(str("Stop lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor)))
+
+        elif has_error:
             self.calib_result = [0.0, 0.0, 0.0]
-        else:
+            thread.emit_string.emit('Interrupted lidar {} calibration'.format(selected_sensor))
+
+        elif not has_error:
             # roll, pitch, height calibration
             if est_method == 1:
                 calib_roll_result = np.mean(measured_roll_deg) * np.pi/180
@@ -267,13 +288,37 @@ class ZRollPitch:
                 calib_pitch_result = pitch_rls[len(pitch_rls)-1]
                 calib_height_result = height_rls[len(height_rls)-1]
 
+            Transformation_veh2lidar = np.array([[np.cos(calib_pitch_result), np.sin(calib_pitch_result)*np.sin(calib_roll_result), np.sin(calib_pitch_result)*np.cos(calib_roll_result), 0.],
+                        [0, np.cos(calib_roll_result), -1*np.sin(calib_roll_result), 0.],
+                        [-1*np.sin(calib_pitch_result), np.cos(calib_pitch_result)*np.sin(calib_roll_result), np.cos(calib_pitch_result)*np.cos(calib_roll_result), calib_height_result],
+                        [0., 0., 0., 1.]])
+            filtered_pointcloud_in_veh_frame = np.matmul(Transformation_veh2lidar, np.transpose(filtered_pointcloud_in_lidar_frame_homogeneous))
+
+            filtered_pointcloud_in_veh_frame = np.transpose(filtered_pointcloud_in_veh_frame)
+
+            SVD_veh = utils_plane.fitPlaneSVD(filtered_pointcloud_in_veh_frame)
+            if SVD_veh[2] < 0:
+                SVD_veh = -SVD_veh
+
+            x1 = SVD_veh[0]
+            y1 = SVD_veh[1]
+            z1 = SVD_veh[2]
+
+            x2 = 0
+            y2 = 0
+            z2 = 1
+
+            theta = np.arccos((x1*x2+y1*y2+z1*z2)/(np.sqrt(x1*x1 + y1*y1 + z1*z1)*np.sqrt(x2*x2 + y2*y2 + z2*z2)))
+
+            min_theta = np.minimum(theta, np.pi-theta)
 
             roll_deg = calib_roll_result * 180/np.pi
             pitch_deg = calib_pitch_result * 180/np.pi
             z_m = calib_height_result
 
+            print("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor))
             self.calib_result = [roll_deg, pitch_deg, z_m]
+            self.mean_distance = measured_distance_m
+            thread.emit_string.emit(str("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor)))
 
-            thread.mutex.unlock()
-
-            print("Complete Z, Roll, Pitch Calibrations")
+        thread.mutex.unlock()

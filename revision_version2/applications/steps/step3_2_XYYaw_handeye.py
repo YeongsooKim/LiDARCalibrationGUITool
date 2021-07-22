@@ -96,8 +96,6 @@ class HandEye:
                 epoch_ratio = (iteration_ratio + p_index)/float(lidar_len)
                 epoch_percentage = epoch_ratio*100
 
-                if epoch_percentage >= 99.8:
-                    epoch_percentage = 100.0
                 thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("XYZRGB_" + str(idxSensor))
@@ -107,8 +105,10 @@ class HandEye:
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
                 if pointcloud1.shape[0] < 1:
+                    index += 1
                     continue
                 if pointcloud2.shape[0] < 1:
+                    index += 1
                     continue
 
                 # Get GNSS
@@ -150,6 +150,7 @@ class HandEye:
                 #        uf.FnDisplayTransformPointCloud(pointcloud2, pointcloud1, transform_point)
 
                 if converged == False:
+                    index += 1
                     continue
 
                 # Get difference of x,y,z,d,h
@@ -200,6 +201,13 @@ class HandEye:
                 break
             thread.emit_string.emit('Complete evaluating lidar {} calibration'.format(idxSensor))
             thread.change_value.emit(int(100))
+
+        epoch_ratio = (iteration_ratio + p_index) / float(lidar_len)
+        epoch_percentage = epoch_ratio * 100
+
+        if epoch_percentage >= 99.8:
+            epoch_percentage = 100.0
+        thread.change_value.emit(int(epoch_percentage))
 
         if not thread._status:
             for idxSensor in not_evaluated_lidar['CheckedSensorList']:

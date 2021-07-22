@@ -263,6 +263,7 @@ class Evaluation:
                 # transformation_veh_to_lidar
 
                 if converged == False:
+                    index += 1
                     continue
 
                 # Map matching ransformation by map matching

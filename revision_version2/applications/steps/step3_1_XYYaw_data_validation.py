@@ -141,8 +141,10 @@ class DataValidation:
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
                 if pointcloud1.shape[0] < 1:
+                    index += 1
                     continue
                 if pointcloud2.shape[0] < 1:
+                    index += 1
                     continue
 
                 # Get GNSS
@@ -184,6 +186,7 @@ class DataValidation:
                 #        uf.FnDisplayTransformPointCloud(pointcloud2, pointcloud1, transform_point)
 
                 if converged == False:
+                    index += 1
                     continue
 
 

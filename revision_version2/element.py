@@ -16,68 +16,13 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
-## label type
-CONST_UNEDITABLE_LABEL = 0
-CONST_UNEDITABLE_LABEL2 = 1
-CONST_EDITABLE_LABEL = 2
-CONST_EDITABLE_LABEL2 = 3
-CONST_EVAULATION_LABEL = 4
-
-## button color
-CONST_GREEN = 0
-CONST_RED = 1
-CONST_LIDAR = 0
-CONST_GNSS = 1
-
-CONST_CUSTOM = 1
-CONST_HANDEYE = 2
-CONST_UNSUPERVISED = 3
-
-## SpinBoxLabelLayout instance ID
-CONST_CONFIG_LIDAR_NUM = 1
-CONST_IMPORT_DATA_SAMPLING_INTERVER = 2
-CONST_VALIDATION_MAXIMUM_ITERATION = 3
-CONST_HANDEYE_MAXIMUM_ITERATION = 4
-CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING = 5
-CONST_EVAL_SAMPLING_INTERVAL = 6
-
-## DoubleSpinBoxLabelLayout instance ID
-CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE = 1
-CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE = 2
-CONST_CONFIG_MINIMUM_THRESHOLD_X = 3
-CONST_CONFIG_MAXIMUM_THRESHOLD_X = 4
-CONST_CONFIG_MINIMUM_THRESHOLD_Y = 5
-CONST_CONFIG_MAXIMUM_THRESHOLD_Y = 6
-CONST_CONFIG_MINIMUM_THRESHOLD_Z = 7
-CONST_CONFIG_MAXIMUM_THRESHOLD_Z = 8
-CONST_IMPORT_VEHICLE_MINIMUM_SPEED = 9
-CONST_ZRP_MAXIMUM_X_DISTANCE = 10
-CONST_ZRP_MINIMUM_X_DISTANCE = 11
-CONST_ZRP_MAXIMUM_Y_DISTANCE = 12
-CONST_ZRP_MINIMUM_Y_DISTANCE = 13
-CONST_ZRP_MAXIMUM_Z_DISTANCE = 14
-CONST_ZRP_MINIMUM_Z_DISTANCE = 15
-CONST_DATAVALIDATION_TOLERANCE = 16
-CONST_DATAVALIDATION_OUTLIER_DISTANCE = 17
-CONST_DATAVALIDATION_HEADING_THRESHOLD = 18
-CONST_DATAVALIDATION_DISTANCE_THRESHOLD = 19
-CONST_HANDEYE_TOLERANCE = 20
-CONST_HANDEYE_OUTLIER_DISTANCE = 21
-CONST_HANDEYE_HEADING_THRESHOLD = 22
-CONST_HANDEYE_DISTANCE_THRESHOLD = 23
-CONST_OPTI_POINT_SAMPLING_RATIO = 24
-CONST_OPTI_OUTLIER_DISTANCE = 25
-CONST_EVAL_VEHICLE_MINIMUM_SPEED = 26
-
-## SlideLabelLayouts instance ID
-CONST_IMPORT_LIMIT_TIME = 1
-CONST_ZRP_LIMIT_TIME = 2
+from id import *
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
     def __init__(self, label_str, form_widget):
         super().__init__()
-        self.id = FileInputWithCheckBtnLayout.instance_number # id 가 왜 필요하지??? -- 다른대선 씀
+        self.id = FileInputWithCheckBtnLayout.instance_number
         self.label_str = label_str
         self.path_file_str = ''
         self.form_widget = form_widget
@@ -445,7 +390,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
         self.addLayout(hbox)
 
     def AddWidgetItem(self, PARM_LIDAR_CHECKED_SENSOR_LIST):
-        if self.id == 1:    # instance name is 'select_lidar_to_calib_layout'
+        if self.id == CONST_SELECT_LIDAR_TO_CALIB_LAYOUT:    # instance name is 'select_lidar_to_calib_layout'
             self.cb.clear()
 
             labels = []
@@ -455,24 +400,43 @@ class ComboBoxLabelLayout(QHBoxLayout):
             self.cb.addItems(labels)
 
     def TextChanged(self, text):
-        if text == '':
-            return
+        if self.id == CONST_SELECT_LIDAR_TO_CALIB_LAYOUT:    # instance name is 'select_lidar_to_calib_layout'
+            if text == '':
+                return
 
-        words = text.split(' ')
-        self.form_widget.zrollpitch_tab.idxSensor = int(words[-1])
+            # Set zrollpitch_tab sensor index
+            words = text.split(' ')
+            self.form_widget.zrollpitch_tab.idxSensor = int(words[-1])
 
-        if self.form_widget.zrollpitch_tab.calib_result.get(self.form_widget.zrollpitch_tab.idxSensor) is None:
-            calib_result = [0.0, 0.0, 0.0]
-        else:
-            calib_result = self.form_widget.zrollpitch_tab.calib_result[self.form_widget.zrollpitch_tab.idxSensor]
 
-        # reset ZRP tab result label
-        PARM_LIDAR = copy.deepcopy(self.form_widget.config.PARM_LIDAR)
-        PARM_LIDAR['CheckedSensorList'] = [self.form_widget.zrollpitch_tab.idxSensor]
-        self.form_widget.ResetResultsLabel(CONST_UNEDITABLE_LABEL2, PARM_LIDAR,
-                                           self.form_widget.zrollpitch_tab.scroll_box.layout,
-                                           self.form_widget.zrollpitch_tab.result_labels,
-                                           calib_result)
+            # reset ZRP tab result label
+            PARM_LIDAR = self.form_widget.config.PARM_LIDAR
+            calib_result = {}
+            for pc in PARM_LIDAR['CheckedSensorList']:
+                if self.form_widget.zrollpitch_tab.calib_result.get(pc) is None:
+                    calib_result[pc] = [0.0, 0.0, 0.0]
+                else:
+                    calib_result[pc] = self.form_widget.zrollpitch_tab.calib_result[pc]
+
+            self.form_widget.ResetResultsLabel(CONST_UNEDITABLE_LABEL2, PARM_LIDAR,
+                                               self.form_widget.zrollpitch_tab.scroll_box.layout,
+                                               self.form_widget.zrollpitch_tab.result_labels,
+                                               calib_result)
+
+            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+                                               self.form_widget.datavalidation_tab.zrp_scroll_box.layout,
+                                               self.form_widget.datavalidation_tab.zrp_result_labels,
+                                               calib_result)
+
+            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+                                               self.form_widget.handeye_tab.zrp_scroll_box.layout,
+                                               self.form_widget.handeye_tab.zrp_result_labels,
+                                               calib_result)
+
+            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+                                               self.form_widget.unsupervised_tab.zrp_scroll_box.layout,
+                                               self.form_widget.unsupervised_tab.zrp_result_labels,
+                                               calib_result)
 
 class SpinBoxLabelLayout(QVBoxLayout):
     instance_number = 1 
@@ -972,7 +936,6 @@ class CalibrationResultLabel(QVBoxLayout):
         self.hbox.addWidget(self.label_edit3)
 
         self.addLayout(self.hbox)
-        
 
 class ValidationResultLabel(QVBoxLayout):
     def __init__(self, idxSensor):
@@ -1060,15 +1023,13 @@ class ValidationConfigLabel(QVBoxLayout):
 
         self.addLayout(self.hbox)
         '''
-        
 
 class CalibrationResultEditLabel2(QVBoxLayout):
     def __init__(self, idxSensor, calibration_param, form_widget):
         super().__init__()
         self.idxSensor = idxSensor
-        # self.calibration_param = calibration_param
+        self.calibration_param = copy.deepcopy(calibration_param)
         self.form_widget = form_widget
-        self.calibration_param = self.form_widget.unsupervised_tab.edit_handeye_calibration_parm
 
         self.InitUi()
 
@@ -1152,30 +1113,23 @@ class CalibrationResultEditLabel2(QVBoxLayout):
         QMessageBox.information(widget, 'Information', message)
 
 class ResultTab(QVBoxLayout):
-    def __init__(self, form_widget):
+    def __init__(self, str1, str2, form_widget):
         super().__init__()
         self.form_widget = form_widget
+
+        self.str1 = str1
+        self.str2 = str2
 
         self.initUI()
 
     def initUI(self):
-        self.handeye_init_value = self.HandEyeInit()
-        self.user_define_init_value = self.UserDefineInit()
+        self.scroll_box1 = ScrollAreaV()
+        self.scroll_box2 = ScrollAreaV()
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.handeye_init_value, 'Handeye')
-        self.tabs.addTab(self.user_define_init_value, 'User Define')
+        self.tabs.addTab(self.scroll_box1, self.str1)
+        self.tabs.addTab(self.scroll_box2, self.str2)
         self.addWidget(self.tabs)
-
-    def UserDefineInit(self):
-        self.user_define_scroll_box = ScrollAreaV()
-
-        return self.user_define_scroll_box
-
-    def HandEyeInit(self):
-        self.handeye_scroll_box = ScrollAreaV()
-
-        return self.handeye_scroll_box
 
 class ImageDisplay(QWidget):
     def __init__(self, path):
@@ -1349,3 +1303,206 @@ class EvaluationLable(QHBoxLayout):
     def DoubleSpinBoxChanged3(self):
         if self.button_group.checkedId() == CONST_CUSTOM:
             self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0
+
+
+class RadioWithEditLabel(QHBoxLayout):
+    def __init__(self, instance_id, idxSensor, buttons, form_widget, editable=True, using_checkbox=False):
+        super().__init__()
+        self.id = instance_id
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            self.prev_checkID = CONST_HANDEYE
+
+        self.idxSensor = idxSensor
+        self.buttons = buttons
+        self.form_widget = form_widget
+        self.editable = editable
+        self.using_checkbox = using_checkbox
+
+        self.InitUi()
+
+    def InitUi(self):
+        if self.using_checkbox:
+            self.checkbox = QCheckBox('LiDAR {}'.format(str(self.idxSensor)))
+            self.checkbox.setChecked(True)
+            self.checkbox.stateChanged.connect(self.CheckBox)
+            self.addWidget(self.checkbox)
+        else:
+            label = QLabel('LiDAR {}'.format(str(self.idxSensor)))
+            self.addWidget(label)
+
+        self.button_group = QButtonGroup()
+        for i, key in enumerate(self.buttons):
+            rbn = QRadioButton()
+            rbn.setChecked(self.buttons[key])
+            rbn.clicked.connect(self.RadioButton)
+            self.addWidget(rbn)
+            self.button_group.addButton(rbn, i+1)
+
+        # spinbox for x
+        self.spinbox1 = QDoubleSpinBox()
+        self.spinbox1.setReadOnly(self.editable)
+        self.spinbox1.setSingleStep(0.01)
+        self.spinbox1.setMaximum(1000.0)
+        self.spinbox1.setMinimum(-1000.0)
+        self.spinbox1.setDecimals(4)
+        self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
+        self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox1.valueChanged.connect(self.DoubleSpinBoxChanged1)
+        self.addWidget(self.spinbox1)
+
+        # spinbox for y
+        self.spinbox2 = QDoubleSpinBox()
+        self.spinbox2.setReadOnly(self.editable)
+        self.spinbox2.setSingleStep(0.01)
+        self.spinbox2.setMaximum(1000.0)
+        self.spinbox2.setMinimum(-1000.0)
+        self.spinbox2.setDecimals(4)
+        self.spinbox2.setStyleSheet("background-color: #F0F0F0;")
+        self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox2.valueChanged.connect(self.DoubleSpinBoxChanged2)
+        self.addWidget(self.spinbox2)
+
+        # spinbox for yaw
+        self.spinbox3 = QDoubleSpinBox()
+        self.spinbox3.setReadOnly(self.editable)
+        self.spinbox3.setSingleStep(0.01)
+        self.spinbox3.setMaximum(1000.0)
+        self.spinbox3.setMinimum(-1000.0)
+        self.spinbox3.setDecimals(4)
+        self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
+        self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spinbox3.valueChanged.connect(self.DoubleSpinBoxChanged3)
+        self.addWidget(self.spinbox3)
+
+    def CheckBox(self):
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            if self.checkbox.checkState() == 0:
+                if self.idxSensor in self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList']:
+                    self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].remove(self.idxSensor)
+            else:
+                if not self.idxSensor in self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList']:
+                    self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].append(self.idxSensor)
+                    self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
+
+    def RadioButton(self):
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
+            self.button_group.button(self.prev_checkID).setChecked(True)
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            status = self.button_group.checkedId()
+            if status == CONST_HANDEYE:
+                if not self.form_widget.handeye.complete_calibration:
+                    self.button_group.button(self.prev_checkID).setChecked(True)
+                    self.form_widget.ErrorPopUp('Please complete the HandEye calibration')
+                    return False
+            elif status == CONST_UNSUPERVISED:
+                if not self.form_widget.unsupervised.complete_calibration:
+                    self.button_group.button(self.prev_checkID).setChecked(True)
+                    self.form_widget.ErrorPopUp('Please complete the unsupervised calibration')
+                    return False
+            elif status == CONST_CUSTOM:
+                if self.form_widget.evaluation_tab.custom_calibration_param.get(self.idxSensor) == None:
+                    self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor] = [0., 0., 0., 0., 0., 0.]
+
+            if status == CONST_CUSTOM:
+                self.spinbox1.setReadOnly(False)
+                self.spinbox1.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox1.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+                self.spinbox2.setReadOnly(False)
+                self.spinbox2.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox2.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+                self.spinbox3.setReadOnly(False)
+                self.spinbox3.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+            else:
+                self.spinbox1.setReadOnly(True)
+                self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.spinbox2.setReadOnly(True)
+                self.spinbox2.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.spinbox3.setReadOnly(True)
+                self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
+
+            if status == CONST_HANDEYE:
+                self.spinbox1.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][3])
+                self.spinbox2.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][4])
+                self.spinbox3.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+            elif status == CONST_UNSUPERVISED:
+                self.spinbox1.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][3])
+                self.spinbox2.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][4])
+                self.spinbox3.setValue(self.form_widget.unsupervised.CalibrationParam[self.idxSensor][2] * 180.0 / math.pi)
+            elif status == CONST_CUSTOM:
+                self.spinbox1.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][3])
+                self.spinbox2.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4])
+                self.spinbox3.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] * 180.0 / math.pi)
+
+        if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
+            status = self.button_group.checkedId()
+            if status == CONST_AUTOMATIC:
+                self.spinbox1.setReadOnly(True)
+                self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.spinbox2.setReadOnly(True)
+                self.spinbox2.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox2.setButtonSymbols(QAbstractSpinBox.NoButtons)
+                self.spinbox3.setReadOnly(True)
+                self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
+                self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
+            else:
+                self.spinbox1.setReadOnly(False)
+                self.spinbox1.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox1.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+                self.spinbox2.setReadOnly(False)
+                self.spinbox2.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox2.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+                self.spinbox3.setReadOnly(False)
+                self.spinbox3.setStyleSheet("background-color: #FFFFFF;")
+                self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+
+            if status == CONST_AUTOMATIC:
+                PARM_LIDAR = self.form_widget.config.PARM_LIDAR
+                calib_result = {}
+                for pc in PARM_LIDAR['CheckedSensorList']:
+                    if self.form_widget.zrollpitch_tab.calib_result.get(pc) is None:
+                        calib_result[pc] = [0.0, 0.0, 0.0]
+                    else:
+                        calib_result[pc] = self.form_widget.zrollpitch_tab.calib_result[pc]
+
+                self.form_widget.ResetResultsLabel(CONST_UNEDITABLE_LABEL2, PARM_LIDAR,
+                                                   self.form_widget.zrollpitch_tab.scroll_box.layout,
+                                                   self.form_widget.zrollpitch_tab.result_labels,
+                                                   calib_result)
+
+                if self.form_widget.zrollpitch_tab.calib_result.get(self.idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.form_widget.zrollpitch_tab.calib_result[pc]
+
+                self.spinbox1.setValue(calib_result[0])
+                self.spinbox2.setValue(calib_result[1])
+                self.spinbox3.setValue(calib_result[2])
+            elif status == CONST_MANUAL:
+                self.spinbox1.setValue(0.0)
+                self.spinbox2.setValue(0.0)
+                self.spinbox3.setValue(0.0)
+
+        self.prev_checkID = self.button_group.checkedId()
+
+    def DoubleSpinBoxChanged1(self):
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            if self.button_group.checkedId() == CONST_CUSTOM:
+                self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][3] = self.spinbox1.value()
+
+    def DoubleSpinBoxChanged2(self):
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            if self.button_group.checkedId() == CONST_CUSTOM:
+                self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4] = self.spinbox2.value()
+
+    def DoubleSpinBoxChanged3(self):
+        if self.id == CONST_EVALUATION_RESULT_LABEL:
+            if self.button_group.checkedId() == CONST_CUSTOM:
+                self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0
