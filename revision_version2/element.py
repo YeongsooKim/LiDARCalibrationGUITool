@@ -16,6 +16,13 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
+## label type
+CONST_UNEDITABLE_LABEL = 0
+CONST_UNEDITABLE_LABEL2 = 1
+CONST_EDITABLE_LABEL = 2
+CONST_EDITABLE_LABEL2 = 3
+CONST_EVAULATION_LABEL = 4
+
 ## button color
 CONST_GREEN = 0
 CONST_RED = 1
@@ -428,7 +435,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
         hbox.addWidget(label)
 
         self.cb = QComboBox()
-        self.cb.activated[str].connect(self.OnActivated)
+        self.cb.currentTextChanged.connect(self.TextChanged)
         # valueChanged
         pal = self.cb.palette()
         pal.setColor(QPalette.Button, QColor(255,255,255))
@@ -447,9 +454,25 @@ class ComboBoxLabelLayout(QHBoxLayout):
                 labels.append(label)
             self.cb.addItems(labels)
 
-    def OnActivated(self, text):
+    def TextChanged(self, text):
+        if text == '':
+            return
+
         words = text.split(' ')
         self.form_widget.zrollpitch_tab.idxSensor = int(words[-1])
+
+        if self.form_widget.zrollpitch_tab.calib_result.get(self.form_widget.zrollpitch_tab.idxSensor) is None:
+            calib_result = [0.0, 0.0, 0.0]
+        else:
+            calib_result = self.form_widget.zrollpitch_tab.calib_result[self.form_widget.zrollpitch_tab.idxSensor]
+
+        # reset ZRP tab result label
+        PARM_LIDAR = copy.deepcopy(self.form_widget.config.PARM_LIDAR)
+        PARM_LIDAR['CheckedSensorList'] = [self.form_widget.zrollpitch_tab.idxSensor]
+        self.form_widget.ResetResultsLabel(CONST_UNEDITABLE_LABEL2, PARM_LIDAR,
+                                           self.form_widget.zrollpitch_tab.scroll_box.layout,
+                                           self.form_widget.zrollpitch_tab.result_labels,
+                                           calib_result)
 
 class SpinBoxLabelLayout(QVBoxLayout):
     instance_number = 1 
@@ -910,9 +933,13 @@ class CalibrationResultEditLabel(QVBoxLayout):
         self.form_widget.evaluation_tab.DisplayCalibrationGraph()
 
 class CalibrationResultLabel(QVBoxLayout):
-    def __init__(self, idxSensor):
+    def __init__(self, idxSensor, str1, str2, str3):
         super().__init__()
         self.idxSensor = idxSensor
+
+        self.str1 = str1
+        self.str2 = str2
+        self.str3 = str3
 
         self.InitUi()
 
@@ -920,29 +947,29 @@ class CalibrationResultLabel(QVBoxLayout):
         self.label = QLabel('LiDAR {}'.format(self.idxSensor))
         self.addWidget(self.label)
         self.hbox = QHBoxLayout()
-        self.label_x = QLabel('x [m]')
-        self.hbox.addWidget(self.label_x)
-        self.label_edit_x = QLineEdit()
-        self.label_edit_x.setReadOnly(True)
-        self.label_edit_x.setText('0.0')
-        self.label_edit_x.setStyleSheet("background-color: #F0F0F0;")
-        self.hbox.addWidget(self.label_edit_x)
+        self.label1 = QLabel(self.str1)
+        self.hbox.addWidget(self.label1)
+        self.label_edit1 = QLineEdit()
+        self.label_edit1.setReadOnly(True)
+        self.label_edit1.setText('0.0')
+        self.label_edit1.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit1)
 
-        self.label_y = QLabel('y [m]')
-        self.hbox.addWidget(self.label_y)
-        self.label_edit_y = QLineEdit()
-        self.label_edit_y.setReadOnly(True)
-        self.label_edit_y.setText('0.0')
-        self.label_edit_y.setStyleSheet("background-color: #F0F0F0;")
-        self.hbox.addWidget(self.label_edit_y)
+        self.label2 = QLabel(self.str2)
+        self.hbox.addWidget(self.label2)
+        self.label_edit2 = QLineEdit()
+        self.label_edit2.setReadOnly(True)
+        self.label_edit2.setText('0.0')
+        self.label_edit2.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit2)
 
-        self.label_yaw = QLabel('yaw [deg]')
-        self.hbox.addWidget(self.label_yaw)
-        self.label_edit_yaw = QLineEdit()
-        self.label_edit_yaw.setReadOnly(True)
-        self.label_edit_yaw.setText('0.0')
-        self.label_edit_yaw.setStyleSheet("background-color: #F0F0F0;")
-        self.hbox.addWidget(self.label_edit_yaw)
+        self.label3 = QLabel(self.str3)
+        self.hbox.addWidget(self.label3)
+        self.label_edit3 = QLineEdit()
+        self.label_edit3.setReadOnly(True)
+        self.label_edit3.setText('0.0')
+        self.label_edit3.setStyleSheet("background-color: #F0F0F0;")
+        self.hbox.addWidget(self.label_edit3)
 
         self.addLayout(self.hbox)
         

@@ -53,9 +53,10 @@ CONST_EVALUATION_TAB = 6
 
 ## label type
 CONST_UNEDITABLE_LABEL = 0
-CONST_EDITABLE_LABEL = 1
-CONST_EDITABLE_LABEL2 = 2
-CONST_EVAULATION_LABEL = 3
+CONST_UNEDITABLE_LABEL2 = 1
+CONST_EDITABLE_LABEL = 2
+CONST_EDITABLE_LABEL2 = 3
+CONST_EVAULATION_LABEL = 4
 
 ## calibration status
 CONST_IDLE = 0
@@ -172,12 +173,10 @@ class ConfigurationTab(QWidget):
         vehicle_info_box.setFlat(True)
         vbox.addWidget(vehicle_info_box)
 
-        '''
         # vtk vehicle
         self.vtkWidget = QVTKRenderWindowInteractor()
         vbox.addWidget(self.vtkWidget)
         self.VTKInit(self.cb.currentText())
-        '''
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -465,11 +464,12 @@ class ZRollPitch_CalibrationTab(QWidget):
 
         self.progress_status = CONST_IDLE
         self.result_labels = {}
+        self.calib_result = {}
         self.prev_checkID = 1
 
-        self.calib_r = []
-        self.calib_p = []
-        self.calib_z = []
+        self.roll_deg = 0.0
+        self.pitch_deg = 0.0
+        self.z_m = 0.0
 
         self.idxSensor = 0
 
@@ -551,59 +551,6 @@ class ZRollPitch_CalibrationTab(QWidget):
         return vbox
 
     ## Groupbox
-    def Configuration_LimitTime_Groupbox(self):
-        groupbox = QGroupBox('Limit Time Data')
-        vbox = QVBoxLayout()
-
-        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
-        vbox.addLayout(self.limit_time_layout)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Configuration_Calibration_Groupbox(self):
-        groupbox = QGroupBox('Z, Roll, Pitch Calibration')
-        vbox = QVBoxLayout(self)
-
-        hbox = QHBoxLayout()
-
-        btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartCalibration(CONST_ZROLLPITCH,
-                                                          self.form_widget.zrollpitch.Calibration,
-                                                          self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                          self.form_widget.config.PARM_ZRP,
-                                                          [self.text_edit.clear, self.calibration_pbar.reset],
-                                                          [self.text_edit.append, self.calibration_pbar.setValue],
-                                                          self.EndCalibration))
-        hbox.addWidget(btn)
-
-        self.pause_btn = QPushButton('Pause')
-        self.pause_btn.clicked.connect(self.Pause)
-        hbox.addWidget(self.pause_btn)
-        vbox.addLayout(hbox)
-
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.Cancel)
-        hbox.addWidget(stop_btn)
-        vbox.addLayout(hbox)
-
-        self.label = QLabel('[ Z, Roll, Pitch Calibration Progress ]')
-        vbox.addWidget(self.label)
-
-        self.calibration_pbar = QProgressBar(self)
-        vbox.addWidget(self.calibration_pbar)
-
-        self.text_edit = QTextEdit()
-        vbox.addWidget(self.text_edit)
-
-        self.scroll_box = ScrollAreaV()
-        vbox.addWidget(self.scroll_box)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
     def Result_GroundPoints_Groupbox(self):
         groupbox = QGroupBox('Ground Points')
 
@@ -812,7 +759,7 @@ class ZRollPitch_CalibrationTab(QWidget):
         except:
             pass
 
-        print('Start z, roll, pitch calibration')
+        print('Start z, roll, pitch view ground')
         self.form_widget.rpz_thread.end.connect(end_callback)
         self.form_widget.rpz_thread.start()
 
@@ -898,11 +845,9 @@ class XYYaw_CalibrationTab(QWidget):
         groupbox = QGroupBox('Result Data')
         vbox = QVBoxLayout()
 
-        '''
         self.vtkWidget = QVTKRenderWindowInteractor()
         vbox.addWidget(self.vtkWidget)
         self.VTKInit()
-        '''
 
         btn = QPushButton('View')
         btn.clicked.connect(self.ViewLiDAR)
@@ -1022,13 +967,19 @@ class XYYaw_CalibrationTab(QWidget):
         iren = vtk.vtkRenderWindowInteractor()
         iren.SetRenderWindow(renWin)
 
-        # TODO Change Get LiDAR info
-        lidar_info_list = [[0, 0, 0, 0, 0, 0],
-                           [3.01, -0.03, 0.65, 0.42, 0.99, 0.48],
-                           [3.05, -0.19, 0.69, 0.75, -1.71, -0.52],
-                           [0.74, 0.56, 1.56, -25.64, 0.82, -0.13],
-                           [0.75, -0.06, 1.7, -0.12, 0.08, 1.3],
-                           [0.72, -0.83, 1.57, 4.58, 0.46, -0.31]]
+        lidar_info_list = []
+        for i in range(len(self.PARM_LIDAR['CheckedSensorList'])):
+            idxSensor = list(self.PARM_LIDAR['CheckedSensorList'])
+
+            lidar_info = [self.calib_x[i], self.calib_y[i], 0, 0, 0, self.calib_yaw[i]]
+            lidar_info_list.append(lidar_info)
+
+        # lidar_info_list = [[0, 0, 0, 0, 0, 0],
+        #                    [3.01, -0.03, 0.65, 0.42, 0.99, 0.48],
+        #                    [3.05, -0.19, 0.69, 0.75, -1.71, -0.52],
+        #                    [0.74, 0.56, 1.56, -25.64, 0.82, -0.13],
+        #                    [0.75, -0.06, 1.7, -0.12, 0.08, 1.3],
+        #                    [0.72, -0.83, 1.57, 4.58, 0.46, -0.31]]
 
         actors = vtk_lidar_calib.GetActors(lidar_info_list)
 
@@ -1094,6 +1045,16 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         self.est_method = self.button_group2.checkedId()
 
     ## Groupbox
+    def Configuration_LimitTime_Groupbox(self):
+        groupbox = QGroupBox('Limit Time Data')
+        vbox = QVBoxLayout()
+
+        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        vbox.addLayout(self.limit_time_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
     def Configuration_SetConfiguration_Groupbox(self):
         groupbox = QGroupBox('Configuration Info')
         vbox = QVBoxLayout()
@@ -1274,21 +1235,21 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         self.progress_status = CONST_IDLE
         self.form_widget.zrollpitch.complete_calibration = True
 
-        '''
-        # Handeye tab
+        # ZRP tab
+        ## remove plots
+        self.result_graph1_ax.clear()
+        self.result_graph2_ax.clear()
+
+        self.calib_result[self.form_widget.zrollpitch_tab.idxSensor] = copy.deepcopy(self.form_widget.zrollpitch.calib_result)
+
         ## Set 'Result Calibration Data'
-        for idxSensor in self.form_widget.handeye.PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][3], ".4f"))
-            self.result_labels[idxSensor].label_edit_y.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][4], ".4f"))
-            self.result_labels[idxSensor].label_edit_yaw.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
-        '''
-        ## Plot 'Result Data'
-        self.result_2d_data_pose_ax.clear()
-        self.form_widget.ViewGroundPoints1(self.form_widget.zrollpitch.pointcloud, self.form_widget.zrollpitch.filtered_pointcloud,
-                                 self.form_widget.config.PARM_ZRP, self.result_data_pose_ax, self.result_data_pose_canvas)
-        self.result_3d_data_pose_ax.clear()
-        self.form_widget.ViewGroundPoints2(self.form_widget.zrollpitch.pointcloud, self.form_widget.zrollpitch.filtered_pointcloud,
-                                 self.form_widget.config.PARM_ZRP, self.result_data_pose_ax, self.result_data_pose_canvas)
+        self.result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.form_widget.zrollpitch_tab.idxSensor][0], 4)))
+        self.result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.form_widget.zrollpitch_tab.idxSensor][1], 4)))
+        self.result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.form_widget.zrollpitch_tab.idxSensor][2], 4)))
+
+        print("end z, roll, pitch calibration")
+
+        self.form_widget.zrollpitch.calib_result
 
     def CopyList(self, source, target):
         keys = list(source.keys())
@@ -1758,9 +1719,9 @@ class HandEyeTab(XYYaw_CalibrationTab):
         # Handeye tab
         ## Set 'Result Calibration Data'
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][3], ".4f"))
-            self.result_labels[idxSensor].label_edit_y.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][4], ".4f"))
-            self.result_labels[idxSensor].label_edit_yaw.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
+            self.result_labels[idxSensor].label_edit1.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][3], ".4f"))
+            self.result_labels[idxSensor].label_edit2.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][4], ".4f"))
+            self.result_labels[idxSensor].label_edit3.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
         self.VTKInit()
@@ -1921,9 +1882,9 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Set 'Result Calibration Data'
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
-            self.result_labels[idxSensor].label_edit_x.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][3], ".4f"))
-            self.result_labels[idxSensor].label_edit_y.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][4], ".4f"))
-            self.result_labels[idxSensor].label_edit_yaw.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
+            self.result_labels[idxSensor].label_edit1.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][3], ".4f"))
+            self.result_labels[idxSensor].label_edit2.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][4], ".4f"))
+            self.result_labels[idxSensor].label_edit3.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
         self.VTKInit()
@@ -2753,6 +2714,7 @@ class FormWidget(QWidget):
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.unsupervised_tab.optimization_initial_value_tab.handeye_scroll_box.layout,
                                self.unsupervised_tab.handeye_result_labels,
                                self.unsupervised_tab.edit_handeye_calibration_parm)
+
         # reset unsupervised initial value of custom
         self.ResetResultsLabel(CONST_EDITABLE_LABEL2, PARM_LIDAR, self.unsupervised_tab.optimization_initial_value_tab.user_define_scroll_box.layout,
                                self.unsupervised_tab.user_define_initial_labels,
@@ -2763,11 +2725,18 @@ class FormWidget(QWidget):
         labels.clear()
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             if label_type is CONST_UNEDITABLE_LABEL:
-                result_label = element.CalibrationResultLabel(idxSensor)
+                result_label = element.CalibrationResultLabel(idxSensor, 'x [m]', 'y [m]', 'yaw [deg]')
                 if calibration_param.get(idxSensor) is not None:
-                    result_label.label_edit_x.setText(str(round(calibration_param[idxSensor][3], 4)))
-                    result_label.label_edit_y.setText(str(round(calibration_param[idxSensor][4], 4)))
-                    result_label.label_edit_yaw.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 4)))
+                    result_label.label_edit1.setText(str(round(calibration_param[idxSensor][3], 4)))
+                    result_label.label_edit2.setText(str(round(calibration_param[idxSensor][4], 4)))
+                    result_label.label_edit3.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 4)))
+
+            elif label_type is CONST_UNEDITABLE_LABEL2:
+                result_label = element.CalibrationResultLabel(idxSensor, 'roll [deg]', 'pitch [deg]', 'z [m]')
+                result_label.label_edit1.setText(str(round(calibration_param[0], 4)))
+                result_label.label_edit2.setText(str(round(calibration_param[1], 4)))
+                result_label.label_edit3.setText(str(round(calibration_param[2], 4)))
+
             elif label_type is CONST_EVAULATION_LABEL:
                 result_label = element.EvaluationLable(idxSensor, self)
 
@@ -2777,6 +2746,7 @@ class FormWidget(QWidget):
                     result_label.double_spin_box_x.setValue(calibration_param[idxSensor][3])
                     result_label.double_spin_box_y.setValue(calibration_param[idxSensor][4])
                     result_label.double_spin_box_yaw.setValue(calibration_param[idxSensor][2] * 180.0 / math.pi)
+
             labels[idxSensor] = result_label
             layout.addLayout(result_label)
         layout.addStretch(1)

@@ -35,6 +35,9 @@ class ZRollPitch:
         self.importing = importing
         self.complete_zrollpitch = False
         
+        # roll, pitch, z
+        self.calib_result = [0.0, 0.0, 0.0]
+        
         # Path and file
         self.export_path = ''
         self.result_calibration_config_file = ''
@@ -89,6 +92,8 @@ class ZRollPitch:
     def Calibration(self, thread, args):
         thread.emit_string.emit(str('Start z, roll, pitch calibration'))
         thread.mutex.lock()
+        has_error = False
+
         start_time = args[0]
         end_time = args[1]
         PARM_ZRP = copy.deepcopy(args[2])
@@ -137,7 +142,15 @@ class ZRollPitch:
         measured_distance_m = []
 
         dNumOfPointCloudData = len(df_info)
+
+        iteration_size = len(list(range(dNumOfPointCloudData)))
+        index = 0
         for idxDataNum in list(range(dNumOfPointCloudData)):
+            iteration_ratio = float(index) / float(iteration_size)
+            iteration_percentage = iteration_ratio * 100
+
+            thread.change_value.emit(int(iteration_percentage))
+
             strColIndex = 'XYZRGB_' + str(selected_sensor)
 
             pointcloud_in_lidar_frame = self.importing.PointCloudSensorList[selected_sensor][int(df_info[strColIndex].values[idxDataNum])]
@@ -149,8 +162,13 @@ class ZRollPitch:
 
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
             filtered_pointcloud_in_lidar_frame_homogeneous = np.insert(filtered_pointcloud_in_lidar_frame, 3, 1, axis = 1)
-            
-            if plane_method == 1:                
+
+            if len(filtered_pointcloud_in_lidar_frame_homogeneous) < 3:
+                thread.emit_string.emit(str('There are empty points in ROI'))
+                has_error = True
+                break
+
+            if plane_method == 1:
                 SVD = utils_plane.fitPlaneSVD(filtered_pointcloud_in_lidar_frame)
                 if SVD[2] < 0:
                     SVD = -SVD
@@ -180,6 +198,7 @@ class ZRollPitch:
             array = Plane_Norm
 
             Distance_to_plane = []
+
             for idx in list(range(len(filtered_pointcloud_in_lidar_frame))):
                 a = array[0]
                 b = array[1]
@@ -191,6 +210,9 @@ class ZRollPitch:
 
                 distance = np.abs(a*x + b*y + c*z + d)/np.sqrt(a*a + b*b + c*c)
                 Distance_to_plane.append(distance)
+
+            iteration_ratio = float(index) / float(iteration_size)
+            iteration_percentage = iteration_ratio * 100
 
             measured_distance_m.append(np.mean(Distance_to_plane))
 
@@ -225,21 +247,33 @@ class ZRollPitch:
             height_rls.append(height_rls[idxDataNum] + height_K * (measured_height - H * height_rls[idxDataNum]))
             height_P_rls.append((1 - height_K * H) * height_P_rls[idxDataNum] * (1/(1 - height_K * H)) + height_K * pitch_R * (1/height_K))
 
-        # roll, pitch, height calibration
-        if est_method == 1:
-            calib_roll_result = np.mean(measured_roll_deg) * np.pi/180
-            calib_pitch_result = np.mean(measured_pitch_deg) * np.pi/180
-            calib_height_result = np.mean(measured_height_m)
+            index += 1
 
-        elif est_method == 2:
-            calib_roll_result = roll_rls[len(roll_rls)-1]
-            calib_pitch_result = pitch_rls[len(pitch_rls)-1]
-            calib_height_result = height_rls[len(height_rls)-1]
+        if iteration_percentage >= 99.8:
+            iteration_percentage = 100.0
+        thread.change_value.emit(int(iteration_percentage))
+
+        if has_error:
+            self.calib_result = [0.0, 0.0, 0.0]
+        else:
+            # roll, pitch, height calibration
+            if est_method == 1:
+                calib_roll_result = np.mean(measured_roll_deg) * np.pi/180
+                calib_pitch_result = np.mean(measured_pitch_deg) * np.pi/180
+                calib_height_result = np.mean(measured_height_m)
+
+            elif est_method == 2:
+                calib_roll_result = roll_rls[len(roll_rls)-1]
+                calib_pitch_result = pitch_rls[len(pitch_rls)-1]
+                calib_height_result = height_rls[len(height_rls)-1]
 
 
-        self.roll_deg = calib_roll_result * 180/np.pi
-        self.pitch_deg = calib_pitch_result * 180/np.pi
-        self.z_m = calib_height_result
-        thread.mutex.unlock()
+            roll_deg = calib_roll_result * 180/np.pi
+            pitch_deg = calib_pitch_result * 180/np.pi
+            z_m = calib_height_result
 
-        print("Complete Z, Roll, Pitch Calibrations")
+            self.calib_result = [roll_deg, pitch_deg, z_m]
+
+            thread.mutex.unlock()
+
+            print("Complete Z, Roll, Pitch Calibrations")

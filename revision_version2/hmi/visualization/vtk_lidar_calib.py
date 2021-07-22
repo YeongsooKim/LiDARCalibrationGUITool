@@ -264,6 +264,74 @@ def GetActors(lidar_info_list):
 
     return actors
 
+def GetLiDARActors(lidar_info_list):
+    # -------------------------------------------create vehicle instances
+    colors = vtk.vtkNamedColors()
+    color_list = ['salmon', 'royalblue', 'lightblue', 'mediumorchid', 'mediumseagreen', 'gold', 'mediumslateblue', 'darkorange']
+
+    #move position to origin with center of gravity
+    #transformed_vehicle_boundary = vehicle_actor.GetBounds()
+
+    # -------------------------------------------create LiDAR instances
+    # LiDAR Source
+    lidar_vtk_reader = vtk.vtkSTLReader()
+    global lidar_stl_path_
+    lidar_vtk_reader.SetFileName(lidar_stl_path_)
+
+    # Mapper
+    lidar_mapper = vtk.vtkPolyDataMapper()
+    lidar_mapper.SetInputConnection(lidar_vtk_reader.GetOutputPort())
+
+    # add lidar actors
+    lidar_num = len(lidar_info_list)
+    # print("number of LiDAR : " + str(lidar_num))
+    lidar_names = []
+    lidar_actors = []
+    lidar_transforms = []
+
+    for i in range(lidar_num):
+        lidar_names.append("LiDAR " + str(i))
+
+        # set actors
+        lidar_actors.append(vtk.vtkActor())
+        lidar_actors[i].SetMapper(lidar_mapper)
+        lidar_actors[i].GetProperty().SetDiffuse(0.8)
+        lidar_actors[i].GetProperty().SetDiffuseColor(colors.GetColor3d(color_list[i]))
+        lidar_actors[i].GetProperty().SetSpecular(0.3)
+        lidar_actors[i].GetProperty().SetSpecularPower(60.0)
+
+        # set LiDAR Properties
+        pose = lidar_info_list[i]
+        pos = pose[:3]
+
+        print("::::::::::Position of LiDAR::::::::::")
+        print(pos)
+
+        orientation = pose[3:]
+        lidar_transforms.append(vtk.vtkTransform())
+        # set size
+        lidar_size = LidarSizeScaling()
+        lidar_transforms[i].Scale(lidar_size)
+
+        # set orientation
+        r_rotation, p_rotation, y_rotation = RPY2Rotation(orientation[0], orientation[1], orientation[2])
+
+        # set position
+        aligned_pos = LidarTranslatePixel2Meter(pose[0], pose[1], pose[2])
+        lidar_transforms[i].Translate(aligned_pos)
+
+        lidar_transforms[i].RotateWXYZ(r_rotation[0], r_rotation[1], r_rotation[2], r_rotation[3])
+        lidar_transforms[i].RotateWXYZ(p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3])
+        lidar_transforms[i].RotateWXYZ(y_rotation[0], y_rotation[1], y_rotation[2], y_rotation[3])
+
+        lidar_actors[i].SetUserTransform(lidar_transforms[i])
+
+    actors = []
+    actors.append(vehicle_actor)
+    for actor in lidar_actors:
+        actors.append(actor)
+
+    return actors
 
 def GetVehicleActor():
     colors = vtk.vtkNamedColors()
@@ -288,7 +356,7 @@ def GetVehicleActor():
     actor.GetProperty().SetDiffuseColor(colors.GetColor3d('silver'))
     actor.GetProperty().SetSpecular(0.0)
     actor.GetProperty().SetSpecularPower(60.0)
-    actor.GetProperty().SetOpacity(0.5)
+    actor.GetProperty().SetOpacity(1.0)
 
     # Set Vehicle size and pose
     transformation = vtk.vtkTransform()
