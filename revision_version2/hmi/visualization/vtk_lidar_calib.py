@@ -6,6 +6,7 @@
 @author email: kimkys768@gmail.com
 """
 import vtk
+
 '''
 #TODO 
 1. Make same coordinate with vehicle and Lidar
@@ -17,34 +18,77 @@ import vtk
 '''
 
 # Length, Width, Height, x rotation, y rotation, z rotation
-vehicle_info_ = [0., 0., 0., 0., 0., 0., 0., 0., 0.]
+vehicle_info_ = [0., 0., 0., 0., 0., 0.]
 vehicle_stl_path_ = ''
 lidar_stl_path_ = ''
+ground_stl_path_ = ''
 
-X_PIX2METER = 1.0/0.0006887739372658
-Y_PIX2METER = 1.0/0.0006887739372658
-Z_PIX2METER = 100.0/0.07200000000000001
+X_PIX2METER = 1.0 / 0.0006887739372658
+Y_PIX2METER = 1.0 / 0.0006887739372658
+Z_PIX2METER = 100.0 / 0.07200000000000001
 
 # Parameters for tranlsation in meter.
-X_TRANSLATE_PIX2METER = 1.0/1.008755986325648 
-Y_TRANSLATE_PIX2METER = 1.0/0.89637191416309
-Z_TRANSLATE_PIX2METER = 1.0/1.007424376155878
+X_TRANSLATE_PIX2METER = 1.0 / 1.008755986325648
+Y_TRANSLATE_PIX2METER = 1.0 / 0.89637191416309
+Z_TRANSLATE_PIX2METER = 1.0 / 1.007424376155878
+
+
+def SetVehicleStlPath(path):
+    global vehicle_stl_path_
+    vehicle_stl_path_ = path
+
+
+def SetLidarStlPath(path):
+    global lidar_stl_path_
+    lidar_stl_path_ = path
+
+
+def SetGridStlPath(path):
+    global ground_stl_path_
+    ground_stl_path_ = path
+
+
+def SetVehicleInfo(vehicle_info):
+    global vehicle_info_
+    vehicle_info_ = vehicle_info
 
 
 # move vehicle to center
-def moveCenterVehicleTranslation(boundary):
-    centerlize_yaxis = -(boundary[2] + boundary[3]) / 2
-    height2zero = -boundary[4]
-    return [0, centerlize_yaxis, height2zero]
+def VehicleCentralize(boundary):
+    lens = {}
+    for i in range(3):
+        lens[i] = abs(boundary[i*2] - boundary[i*2 + 1])
 
-# Rotate vehicle according to the value of vehicle_info_[6,7,8]
+    max = -1
+    max_key = -1
+    for len in lens:
+        if lens[len] > max:
+            max = lens[len]
+            max_key = len
+
+    trans = []
+    for i in range(3):
+        if i == max_key:
+            trans.append(-(boundary[i*2] + boundary[i*2+1]) / 2)
+        else:
+            trans.append(0.0)
+
+    # print(boundary)
+    # centerlize_yaxis = -(boundary[2] + boundary[3]) / 2
+    # # height2zero = -boundary[4]
+    # # return [0, centerlize_yaxis, height2zero]
+    return trans
+
+
+# Rotate vehicle according to the value of vehicle_info_[3,4,5]
 def GetRotation(vehicleTransfromObject):
     global vehicle_info_
-    vehicleTransfromObject.RotateX(vehicle_info_[6])
-    vehicleTransfromObject.RotateY(vehicle_info_[7])
-    vehicleTransfromObject.RotateZ(vehicle_info_[8])
+    vehicleTransfromObject.RotateX(vehicle_info_[3])
+    vehicleTransfromObject.RotateY(vehicle_info_[4])
+    vehicleTransfromObject.RotateZ(vehicle_info_[5])
 
     return vehicleTransfromObject
+
 
 # Move vehicle in Meter.
 def TranslateVehicle(x, y, z):  # Pixel to Meter
@@ -52,17 +96,6 @@ def TranslateVehicle(x, y, z):  # Pixel to Meter
 
     return aligned_poision
 
-def SetVehicleStlPath(path):
-    global vehicle_stl_path_
-    vehicle_stl_path_ = path
-
-def SetLidarStlPath(path):
-    global lidar_stl_path_
-    lidar_stl_path_ = path
-
-def SetVehicleInfo(vehicle_info):
-    global vehicle_info_
-    vehicle_info_ = vehicle_info
 
 def GetBoundarySize(boundary):
     if boundary[0] * boundary[1] > 0.0:
@@ -104,8 +137,9 @@ def GetBoundarySize(boundary):
 
 def GetOrientation(boundary):
     boundary_size = GetBoundarySize(boundary)
-    
+
     pass
+
 
 def VehicleSizeScaling(boundary):
     boundary_size = GetBoundarySize(boundary)
@@ -124,23 +158,25 @@ def VehicleSizeScaling(boundary):
 
     # the unit is in meter
     # make the car size to real size in meter
-    vehicle_size = [length/length_m, width/width_m, height/height_m]
+    vehicle_size = [length / length_m, width / width_m, height / height_m]
 
     return vehicle_size
+
 
 def LidarSizeScaling():
     # the unit is in meter
     # make the car size to real size in meter
-    width_m = 103.3/1000  # 75.6 mm to meter
-    heigth_m = 75.6/1000
-    length_m = 103.3/1000
+    width_m = 103.3 / 1000  # 75.6 mm to meter
+    heigth_m = 75.6 / 1000
+    length_m = 103.3 / 1000
     width_pix = 150
     heigth_pix = 105
     length_pix = 149.9766387939453
 
-    lidar_size = [length_m/length_pix, width_m/width_pix, heigth_m/heigth_pix]
+    lidar_size = [length_m / length_pix, width_m / width_pix, heigth_m / heigth_pix]
 
     return lidar_size
+
 
 def LidarTranslatePixel2Meter(x, y, z):
     translate_x = x * X_PIX2METER
@@ -150,6 +186,7 @@ def LidarTranslatePixel2Meter(x, y, z):
     pos = [translate_x, translate_y, translate_z]
 
     return pos
+
 
 def TranslateCoordinateVehicle2origin(x, y, z):
     alignedPoision = [y, x, z]
@@ -165,186 +202,92 @@ def RPY2Rotation(r, p, y):
     return r_rotation, p_rotation, y_rotation
 
 
-def GetActors(lidar_info_list):
+def GetActors(lidar_info_dict):
+    actors = []
+
+    ground_actor = GetGridActor()
+    actors.append(ground_actor)
+
+    vehicle_actor = GetVehicleActor()
+    actors.append(vehicle_actor)
+
+    lidar_actors = GetLiDARActors(lidar_info_dict)
+    for actor in lidar_actors:
+        actors.append(actor)
+
+    return actors
+
+
+def GetLiDARActors(lidar_info_dict):
     # -------------------------------------------create vehicle instances
     colors = vtk.vtkNamedColors()
-    color_list = ['salmon', 'royalblue', 'lightblue', 'mediumorchid', 'mediumseagreen', 'gold', 'mediumslateblue', 'darkorange']
+    color_list = ['salmon', 'royalblue', 'lightblue', 'mediumorchid', 'mediumseagreen', 'gold', 'mediumslateblue',
+                  'darkorange']
 
-    # Vehicle Source
-    vehicle_stl_reader = vtk.vtkSTLReader()
-    global vehicle_stl_path_
-    vehicle_stl_reader.SetFileName(vehicle_stl_path_)
-    # objreader = vtk.vtkOBJReader('evoque_old.obj')
+    # -------------------------------------------create LiDAR instances
+    # LiDAR Source
+    vtk_reader = vtk.vtkSTLReader()
+    global lidar_stl_path_
+    vtk_reader.SetFileName(lidar_stl_path_)
 
     # Mapper
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(vehicle_stl_reader.GetOutputPort())
-    # mapper.SetInputConnection(objreader.GetOutputPort())
-
-    # Actor
-    vehicle_actor = vtk.vtkActor()
-    vehicle_actor.SetMapper(mapper)
-
-    # Set VehicleActor Property
-    vehicle_actor.GetProperty().SetDiffuse(0.8)
-    vehicle_actor.GetProperty().SetDiffuseColor(colors.GetColor3d('silver'))
-    vehicle_actor.GetProperty().SetSpecular(0.0)
-    vehicle_actor.GetProperty().SetSpecularPower(60.0)
-    vehicle_actor.GetProperty().SetOpacity(0.5)
-
-    # Set Vehicle size and pose
-    vehicle_transform = vtk.vtkTransform()
-
-    # make real size unit
-    boundary = vehicle_actor.GetBounds()
-    scaled_vehicle_size = VehicleSizeScaling(boundary)
-    vehicle_transform.Scale(scaled_vehicle_size)
-
-    #move position to origin with center of gravity
-    #transformed_vehicle_boundary = vehicle_actor.GetBounds()
-
-    # -------------------------------------------create LiDAR instances
-    # LiDAR Source
-    lidar_vtk_reader = vtk.vtkSTLReader()
-    global lidar_stl_path_
-    lidar_vtk_reader.SetFileName(lidar_stl_path_)
-
-    # Mapper
-    lidar_mapper = vtk.vtkPolyDataMapper()
-    lidar_mapper.SetInputConnection(lidar_vtk_reader.GetOutputPort())
+    mapper.SetInputConnection(vtk_reader.GetOutputPort())
 
     # add lidar actors
-    lidar_num = len(lidar_info_list)
-    # print("number of LiDAR : " + str(lidar_num))
-    lidar_names = []
-    lidar_actors = []
-    lidar_transforms = []
+    names = []
+    actors = []
+    transforms = []
 
-    for i in range(lidar_num):
-        lidar_names.append("LiDAR " + str(i))
+    for i, lidar_info_key in enumerate(lidar_info_dict):
+        names.append("LiDAR " + str(lidar_info_key))
 
         # set actors
-        lidar_actors.append(vtk.vtkActor())
-        lidar_actors[i].SetMapper(lidar_mapper)
-        lidar_actors[i].GetProperty().SetDiffuse(0.8)
-        lidar_actors[i].GetProperty().SetDiffuseColor(colors.GetColor3d(color_list[i]))
-        lidar_actors[i].GetProperty().SetSpecular(0.3)
-        lidar_actors[i].GetProperty().SetSpecularPower(60.0)
+        actors.append(vtk.vtkActor())
+        actors[i].SetMapper(mapper)
+        actors[i].GetProperty().SetDiffuse(0.8)
+        actors[i].GetProperty().SetDiffuseColor(colors.GetColor3d(color_list[i]))
+        actors[i].GetProperty().SetSpecular(0.3)
+        actors[i].GetProperty().SetSpecularPower(60.0)
 
         # set LiDAR Properties
-        pose = lidar_info_list[i]
+        pose = lidar_info_dict[lidar_info_key]
         pos = pose[:3]
 
-        print("::::::::::Position of LiDAR::::::::::")
-        print(pos)
-
         orientation = pose[3:]
-        lidar_transforms.append(vtk.vtkTransform())
+        transforms.append(vtk.vtkTransform())
         # set size
-        lidar_size = LidarSizeScaling()
-        lidar_transforms[i].Scale(lidar_size)
+        size = LidarSizeScaling()
+        transforms[i].Scale(size)
 
         # set orientation
         r_rotation, p_rotation, y_rotation = RPY2Rotation(orientation[0], orientation[1], orientation[2])
 
         # set position
         aligned_pos = LidarTranslatePixel2Meter(pose[0], pose[1], pose[2])
-        lidar_transforms[i].Translate(aligned_pos)
+        transforms[i].Translate(aligned_pos)
 
-        lidar_transforms[i].RotateWXYZ(r_rotation[0], r_rotation[1], r_rotation[2], r_rotation[3])
-        lidar_transforms[i].RotateWXYZ(p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3])
-        lidar_transforms[i].RotateWXYZ(y_rotation[0], y_rotation[1], y_rotation[2], y_rotation[3])
+        transforms[i].RotateWXYZ(r_rotation[0], r_rotation[1], r_rotation[2], r_rotation[3])
+        transforms[i].RotateWXYZ(p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3])
+        transforms[i].RotateWXYZ(y_rotation[0], y_rotation[1], y_rotation[2], y_rotation[3])
 
-        lidar_actors[i].SetUserTransform(lidar_transforms[i])
-
-    actors = []
-    actors.append(vehicle_actor)
-    for actor in lidar_actors:
-        actors.append(actor)
+        actors[i].SetUserTransform(transforms[i])
 
     return actors
 
-def GetLiDARActors(lidar_info_list):
-    # -------------------------------------------create vehicle instances
-    colors = vtk.vtkNamedColors()
-    color_list = ['salmon', 'royalblue', 'lightblue', 'mediumorchid', 'mediumseagreen', 'gold', 'mediumslateblue', 'darkorange']
-
-    #move position to origin with center of gravity
-    #transformed_vehicle_boundary = vehicle_actor.GetBounds()
-
-    # -------------------------------------------create LiDAR instances
-    # LiDAR Source
-    lidar_vtk_reader = vtk.vtkSTLReader()
-    global lidar_stl_path_
-    lidar_vtk_reader.SetFileName(lidar_stl_path_)
-
-    # Mapper
-    lidar_mapper = vtk.vtkPolyDataMapper()
-    lidar_mapper.SetInputConnection(lidar_vtk_reader.GetOutputPort())
-
-    # add lidar actors
-    lidar_num = len(lidar_info_list)
-    # print("number of LiDAR : " + str(lidar_num))
-    lidar_names = []
-    lidar_actors = []
-    lidar_transforms = []
-
-    for i in range(lidar_num):
-        lidar_names.append("LiDAR " + str(i))
-
-        # set actors
-        lidar_actors.append(vtk.vtkActor())
-        lidar_actors[i].SetMapper(lidar_mapper)
-        lidar_actors[i].GetProperty().SetDiffuse(0.8)
-        lidar_actors[i].GetProperty().SetDiffuseColor(colors.GetColor3d(color_list[i]))
-        lidar_actors[i].GetProperty().SetSpecular(0.3)
-        lidar_actors[i].GetProperty().SetSpecularPower(60.0)
-
-        # set LiDAR Properties
-        pose = lidar_info_list[i]
-        pos = pose[:3]
-
-        print("::::::::::Position of LiDAR::::::::::")
-        print(pos)
-
-        orientation = pose[3:]
-        lidar_transforms.append(vtk.vtkTransform())
-        # set size
-        lidar_size = LidarSizeScaling()
-        lidar_transforms[i].Scale(lidar_size)
-
-        # set orientation
-        r_rotation, p_rotation, y_rotation = RPY2Rotation(orientation[0], orientation[1], orientation[2])
-
-        # set position
-        aligned_pos = LidarTranslatePixel2Meter(pose[0], pose[1], pose[2])
-        lidar_transforms[i].Translate(aligned_pos)
-
-        lidar_transforms[i].RotateWXYZ(r_rotation[0], r_rotation[1], r_rotation[2], r_rotation[3])
-        lidar_transforms[i].RotateWXYZ(p_rotation[0], p_rotation[1], p_rotation[2], p_rotation[3])
-        lidar_transforms[i].RotateWXYZ(y_rotation[0], y_rotation[1], y_rotation[2], y_rotation[3])
-
-        lidar_actors[i].SetUserTransform(lidar_transforms[i])
-
-    actors = []
-    actors.append(vehicle_actor)
-    for actor in lidar_actors:
-        actors.append(actor)
-
-    return actors
 
 def GetVehicleActor():
     colors = vtk.vtkNamedColors()
 
     # Vehicle Source
-    vehicle_stl_reader = vtk.vtkSTLReader()
+    vtk_reader = vtk.vtkSTLReader()
     global vehicle_stl_path_
-    vehicle_stl_reader.SetFileName(vehicle_stl_path_)
+    vtk_reader.SetFileName(vehicle_stl_path_)
     # objreader = vtk.vtkOBJReader('evoque_old.obj')
 
     # Mapper
     mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(vehicle_stl_reader.GetOutputPort())
+    mapper.SetInputConnection(vtk_reader.GetOutputPort())
     # mapper.SetInputConnection(objreader.GetOutputPort())
 
     # Actor
@@ -361,18 +304,122 @@ def GetVehicleActor():
     # Set Vehicle size and pose
     transformation = vtk.vtkTransform()
 
+    # trans = VehicleCentralize(actor.GetBounds())
+    # transformation.Translate((trans[0], trans[1], trans[2]))
     rotation = GetRotation(transformation)
     actor.SetUserTransform(rotation)
 
     # make real size unit
     boundary = actor.GetBounds()
-    scaled_vehicle_size = VehicleSizeScaling(boundary)
-    transformation.Scale(scaled_vehicle_size)
 
-    #move position to origin with center of gravity
-    centerlize = moveCenterVehicleTranslation(actor.GetBounds())
-    aligned_poision = TranslateVehicle(centerlize[0], centerlize[1], centerlize[2])
-    transformation.Translate(aligned_poision)
-    #transformed_vehicle_boundary = actor.GetBounds()
+    # scaled_vehicle_size = VehicleSizeScaling(boundary)
+    # transformation.Scale(scaled_vehicle_size)
+    # # actor.SetUserTransform(transformation)
+    # boundary = actor.GetBounds()
+
+    # move position to origin with center of gravity
+    # cCentralize = VehicleCentralize(actor.GetBounds())
+    # aligned_poision = TranslateVehicle(cCentralize[0], cCentralize[1], cCentralize[2])
+    # transformation.Translate(aligned_poision)
+    transformed_vehicle_boundary = actor.GetBounds()
 
     return actor
+
+
+def GetAxis(iren, widget):
+    # Get axis
+    axes = vtk.vtkAxesActor()
+
+    rgba = [0] * 4
+    colors = vtk.vtkNamedColors()
+    colors.GetColor('Carrot', rgba)
+    widget.SetOutlineColor(rgba[0], rgba[1], rgba[2])
+    widget.SetOrientationMarker(axes)
+    widget.SetInteractor(iren)
+    widget.SetViewport(0, 0, 0.2, 0.2)
+    widget.SetEnabled(1)
+    widget.InteractiveOn()
+
+
+def GetGridActor():
+    colors = vtk.vtkNamedColors()
+
+    # Vehicle Source
+    vtk_reader = vtk.vtkSTLReader()
+    global ground_stl_path_
+    vtk_reader.SetFileName(ground_stl_path_)
+
+    # Mapper
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(vtk_reader.GetOutputPort())
+
+    # Actor
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    # Set VehicleActor Property
+    actor.GetProperty().SetDiffuse(0.8)
+    actor.GetProperty().SetDiffuseColor(colors.GetColor3d('black'))
+    actor.GetProperty().SetSpecular(0.0)
+    actor.GetProperty().SetSpecularPower(60.0)
+    actor.GetProperty().SetOpacity(0.05)
+
+    # Set Vehicle size and pose
+    actor.SetScale(1/1000, 1/1000, 1/1000)
+
+    return actor
+
+
+if __name__ == '__main__':
+    import sys
+
+    vtk.vtkObject.GlobalWarningDisplayOff()
+
+    # [x, y, z, roll, pitch, yaw]
+    lidar_info_dict = {}
+    lidar_info_dict[0] = [0, 0, 0, 0, 0, 0]
+    lidar_info_dict[1] = [3.55, -0.19, 0.65, 0.42, 0.99, 0.48]
+    lidar_info_dict[2] = [3.55, 0.19, 0.69, 0.75, -1.71, -0.52]
+    lidar_info_dict[3] = [1.24, 0.56, 1.67, -25, .64, 0.82, -0.13]
+    lidar_info_dict[4] = [1.25, -0.0, 1.7, -0.12, 0.08, 1.3]
+    lidar_info_dict[5] = [1.22, -0.56, 1.67, 25, 0.46, -0.31]
+
+    SetVehicleStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/vehicles/evoque_old.stl')
+    SetLidarStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/lidars/lidar.stl')
+    SetGridStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/grid/grid.stl')
+    SetVehicleInfo([4.371, 1.904, 1.649, 90, 90, 0, 0, 0, 0])
+
+    ren = vtk.vtkRenderer()
+    renWin = vtk.vtkRenderWindow()
+    renWin.AddRenderer(ren)
+    iren = vtk.vtkRenderWindowInteractor()
+    iren.SetRenderWindow(renWin)
+
+    # Assign actor to the renderer
+    actors = GetActors(lidar_info_dict)
+    for actor in actors:
+        ren.AddActor(actor)
+
+    widget = vtk.vtkOrientationMarkerWidget()
+    GetAxis(iren, widget)
+
+    colors = vtk.vtkNamedColors()
+    ren.SetBackground(colors.GetColor3d('white'))
+
+    # Add the actors to the renderer, set the background and size
+    renWin.SetSize(1000, 1000)
+    renWin.SetWindowName('Result of LiDAR Calibration')
+
+    iren.Initialize()
+
+    ren.GetActiveCamera().SetPosition(0, 1, 0)
+    # ren.GetActiveCamera().SetFocalPoint(0, 0, -90)
+    # ren.GetActiveCamera().GetViewUp()
+
+    ren.ResetCamera()
+    ren.GetActiveCamera().Zoom(1.5)
+    renWin.Render()
+
+    iren.Start()
+
+    # CalibResult(lidar_info_list, vehicle_info_)

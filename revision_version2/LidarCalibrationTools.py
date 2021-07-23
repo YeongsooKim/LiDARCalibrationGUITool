@@ -153,6 +153,21 @@ class ConfigurationTab(QWidget):
         vbox.addWidget(self.vtkWidget)
         self.VTKInit(self.cb.currentText())
 
+        hbox = QHBoxLayout()
+
+        btn = QPushButton('xy plane')
+        btn.clicked.connect(self.XY)
+        hbox.addWidget(btn)
+
+        btn = QPushButton('yz plane')
+        btn.clicked.connect(self.YZ)
+        hbox.addWidget(btn)
+
+        btn = QPushButton('zx plane')
+        btn.clicked.connect(self.ZX)
+        hbox.addWidget(btn)
+        vbox.addLayout(hbox)
+
         groupbox.setLayout(vbox)
         return groupbox
 
@@ -167,6 +182,8 @@ class ConfigurationTab(QWidget):
             self.VTKInit(text)
 
     def VTKInit(self, text):
+        vtk.vtkObject.GlobalWarningDisplayOff()
+
         stl_path = self.form_widget.config.PATH['VehicleMesh'] + text
         vtk_lidar_calib.SetVehicleStlPath(stl_path)
 
@@ -181,19 +198,38 @@ class ConfigurationTab(QWidget):
         self.renWin.AddRenderer(self.ren)
 
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
-
         self.iren.SetRenderWindow(self.renWin)
-
-        self.ren.SetBackground(colors.GetColor3d("white"))
-        self.iren.Initialize()
 
         # Assign actor to the renderer
         self.ren.AddActor(vtk_lidar_calib.GetVehicleActor())
+        self.ren.AddActor(vtk_lidar_calib.GetGridActor())
+        self.widget = vtk.vtkOrientationMarkerWidget()
+        vtk_lidar_calib.GetAxis(self.iren, self.widget)
 
+        self.ren.SetBackground(colors.GetColor3d("white"))
+
+        self.iren.Initialize()
         self.ren.ResetCamera()
         self.renWin.Render()
 
         self.iren.Start()
+
+    def XY(self):
+        # self.ren.GetActiveCamera().SetPosition(1, 0, 0)
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(0, 0, 1)
+
+        self.ren.ResetCamera()
+
+    def YZ(self):
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(1, 0, 0)
+        self.ren.ResetCamera()
+
+    def ZX(self):
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(0, 1, 0)
+        self.ren.ResetCamera()
 
 class ImportDataTab(QWidget):
     def __init__(self, form_widget):
@@ -807,7 +843,22 @@ class XYYaw_CalibrationTab(QWidget):
 
         self.vtkWidget = QVTKRenderWindowInteractor()
         vbox.addWidget(self.vtkWidget)
-        self.VTKInit()
+        self.VTKInit(is_default=True)
+
+        hbox = QHBoxLayout()
+
+        btn = QPushButton('xy plane')
+        btn.clicked.connect(self.XY)
+        hbox.addWidget(btn)
+
+        btn = QPushButton('yz plane')
+        btn.clicked.connect(self.YZ)
+        hbox.addWidget(btn)
+
+        btn = QPushButton('zx plane')
+        btn.clicked.connect(self.ZX)
+        hbox.addWidget(btn)
+        vbox.addLayout(hbox)
 
         btn = QPushButton('View')
         btn.clicked.connect(self.ViewLiDAR)
@@ -927,25 +978,21 @@ class XYYaw_CalibrationTab(QWidget):
         iren = vtk.vtkRenderWindowInteractor()
         iren.SetRenderWindow(renWin)
 
-        lidar_info_list = []
+        lidar_info_dict = {}
         for i in range(len(self.PARM_LIDAR['CheckedSensorList'])):
-            idxSensor = list(self.PARM_LIDAR['CheckedSensorList'])
+            idxSensors = list(self.PARM_LIDAR['CheckedSensorList'])
 
             lidar_info = [self.calib_x[i], self.calib_y[i], 0, 0, 0, self.calib_yaw[i]]
-            lidar_info_list.append(lidar_info)
+            lidar_info_dict[idxSensors[i]] = lidar_info
 
-        # lidar_info_list = [[0, 0, 0, 0, 0, 0],
-        #                    [3.01, -0.03, 0.65, 0.42, 0.99, 0.48],
-        #                    [3.05, -0.19, 0.69, 0.75, -1.71, -0.52],
-        #                    [0.74, 0.56, 1.56, -25.64, 0.82, -0.13],
-        #                    [0.75, -0.06, 1.7, -0.12, 0.08, 1.3],
-        #                    [0.72, -0.83, 1.57, 4.58, 0.46, -0.31]]
-
-        actors = vtk_lidar_calib.GetActors(lidar_info_list)
+        actors = vtk_lidar_calib.GetActors(lidar_info_dict)
 
         # Assign actor to the renderer
         for actor in actors:
             ren.AddActor(actor)
+
+        vtk_lidar_calib.GetAxis(self.iren, self.widget)
+
         colors = vtk.vtkNamedColors()
         ren.SetBackground(colors.GetColor3d('white'))
 
@@ -960,6 +1007,23 @@ class XYYaw_CalibrationTab(QWidget):
         renWin.Render()
 
         iren.Start()
+
+    def XY(self):
+        # self.ren.GetActiveCamera().SetPosition(1, 0, 0)
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(0, 0, 1)
+
+        self.ren.ResetCamera()
+
+    def YZ(self):
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(1, 0, 0)
+        self.ren.ResetCamera()
+
+    def ZX(self):
+        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        self.ren.GetActiveCamera().SetViewUp(0, 1, 0)
+        self.ren.ResetCamera()
 
     def ViewPointCloud(self):
         pass
@@ -983,19 +1047,35 @@ class XYYaw_CalibrationTab(QWidget):
             self.using_gnss_motion = True
         self.prev_checkID = self.button_group.checkedId()
 
-    def VTKInit(self):
+    def VTKInit(self, is_default):
+        vtk.vtkObject.GlobalWarningDisplayOff()
         colors = vtk.vtkNamedColors()
+
         self.ren = vtk.vtkRenderer()
 
         self.renWin = self.vtkWidget.GetRenderWindow()
         self.renWin.AddRenderer(self.ren)
 
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.widget = vtk.vtkOrientationMarkerWidget()
 
         self.iren.SetRenderWindow(self.renWin)
 
         self.ren.SetBackground(colors.GetColor3d("white"))
         self.iren.Initialize()
+
+        if is_default:
+            vtk_lidar_calib.GetAxis(self.iren, self.widget)
+            self.ren.AddActor(vtk_lidar_calib.GetGridActor())
+            self.ren.AddActor(vtk_lidar_calib.GetVehicleActor())
+
+            colors = vtk.vtkNamedColors()
+            self.ren.SetBackground(colors.GetColor3d('white'))
+
+            self.ren.ResetCamera()
+            self.renWin.Render()
+
+            self.iren.Start()
 
 class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def __init__(self, form_widget):
@@ -1744,8 +1824,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
             self.xyyaw_result_labels[idxSensor].label_edit3.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
-        self.VTKInit()
-        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin)
+        self.VTKInit(is_default=False)
+        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
@@ -1928,8 +2008,8 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
             self.xyyaw_result_labels[idxSensor].label_edit3.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
-        self.VTKInit()
-        self.form_widget.DisplayLiDAR(None, None, None, None, None, None, PARM_LIDAR, self.ren, self.iren, self.renWin)
+        self.VTKInit(is_default=False)
+        self.form_widget.DisplayLiDAR(None, None, None, None, None, None, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2610,6 +2690,7 @@ class FormWidget(QWidget):
         self.config.WriteDefaultFile()
         self.config.WriteVehicleInfoFile()
         self.config.InitConfiguration()
+        self.InitMesh()
 
         ### Initialise configuration
         self.InitUi()
@@ -2658,6 +2739,18 @@ class FormWidget(QWidget):
         self.hbox.addWidget(self.tabs)
         self.setLayout(self.hbox)
         self.setGeometry(300, 100, 1000, 600)
+
+    def InitMesh(self):
+        ### Setting VTK path
+        stl_path = self.config.PATH['LidarMesh'] + 'lidar.stl'
+        stl_path = stl_path.replace('/', '\\')  # path is gui_tool.exe directory
+        vtk_lidar_calib.SetLidarStlPath(stl_path)
+
+        stl_path = self.config.PATH['GridMesh'] + 'grid.stl'
+        stl_path = stl_path.replace('/', '\\')  # path is gui_tool.exe directory
+        vtk_lidar_calib.SetGridStlPath(stl_path)
+
+        print('Set mesh pathes')
 
     def SetConfiguration(self):
         ### Setting configuration tab
@@ -2718,19 +2811,6 @@ class FormWidget(QWidget):
         self.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.config.PARM_LIDAR['CheckedSensorList'])
         self.evaluation_tab.sampling_interval_layout.spin_box.setValue(PARM_EV['SamplingInterval'])
         self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['VehicleSpeedThreshold'])
-
-        ### Setting VTK path
-        stl_path = self.config.PATH['LidarMesh'] + 'lidar.stl'
-        stl_path = stl_path.replace('/', '\\')  # path is gui_tool.exe directory
-        vtk_lidar_calib.SetLidarStlPath(stl_path)
-
-        text = self.config_tab.cb.currentText()
-        stl_path = self.config.PATH['VehicleMesh'] + text
-        vtk_lidar_calib.SetVehicleStlPath(stl_path)
-
-        words = text.split('.')
-        vehicle_info = self.config.VEHICLE_INFO[words[0]]
-        vtk_lidar_calib.SetVehicleInfo(vehicle_info)
 
         print('Set all tab\'s configuration')
 
@@ -2833,22 +2913,17 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def DisplayLiDAR(self, calib_x, calib_y, calib_z, calib_roll, calib_pitch, calib_yaw, PARM_LIDAR, ren, iren, renWin):
+    def DisplayLiDAR(self, calib_x, calib_y, calib_z, calib_roll, calib_pitch, calib_yaw, PARM_LIDAR, ren, iren, renWin, widget):
 
-        lidar_info_list = []
+        lidar_info_dict = {}
         for i in range(len(PARM_LIDAR['CheckedSensorList'])):
-            idxSensor = list(PARM_LIDAR['CheckedSensorList'])
+            idxSensors = list(PARM_LIDAR['CheckedSensorList'])
 
             lidar_info = [calib_x[i], calib_y[i], 0, 0, 0, calib_yaw[i]]
-            lidar_info_list.append(lidar_info)
+            lidar_info_dict[idxSensors[i]] = lidar_info
 
-        # lidar_info_list = [[0, 0, 0, 0, 0, 0],
-        #                    [3.01, -0.03, 0.65, 0.42, 0.99, 0.48],
-        #                    [3.05, -0.19, 0.69, 0.75, -1.71, -0.52],
-        #                    [0.74, 0.56, 1.56, -25.64, 0.82, -0.13],
-        #                    [0.75, -0.06, 1.7, -0.12, 0.08, 1.3],
-        #                    [0.72, -0.83, 1.57, 4.58, 0.46, -0.31]]
-        actors = vtk_lidar_calib.GetActors(lidar_info_list)
+        actors = vtk_lidar_calib.GetActors(lidar_info_dict)
+        vtk_lidar_calib.GetAxis(iren, widget)
 
         # Assign actor to the renderer
         for actor in actors:
@@ -3039,8 +3114,7 @@ class FormWidget(QWidget):
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             root.mainloop()    
-            
-    
+
     def ViewTranslationError(self, error, PARM_LIDAR,  ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'

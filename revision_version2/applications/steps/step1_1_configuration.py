@@ -16,6 +16,7 @@ class Configuration:
     image_path = 'common/image/'
     vehicle_mesh_path = 'common/meshes/vehicles/'
     lidar_mesh_path = 'common/meshes/lidars/'
+    grid_mesh_path = 'common/meshes/grid/'
 
     def __init__(self):
         # Path and file
@@ -101,20 +102,21 @@ class Configuration:
         self.PATH['Image'] = config_param['Path']['Image']
         self.PATH['VehicleMesh'] = config_param['Path']['VehicleMesh']
         self.PATH['LidarMesh'] = config_param['Path']['LidarMesh']
+        self.PATH['GridMesh'] = config_param['Path']['GridMesh']
 
         # Vehicle info
         config_param.read(self.vehicle_info_file)
         self.VEHICLE_INFO['evoque_old'] = [float(config_param['evoque_old']['Length']), float(config_param['evoque_old']['Width']),
                                         float(config_param['evoque_old']['Height']), float(config_param['evoque_old']['XRotation']),
-                                        float(config_param['evoque_old']['YRotation']), float(config_param['evoque_old']['ZRotation']),
-                                        float(config_param['evoque_old']['XTrans']), float(config_param['evoque_old']['YTrans']),
-                                        float(config_param['evoque_old']['ZTrans'])]
+                                        float(config_param['evoque_old']['YRotation']), float(config_param['evoque_old']['ZRotation'])]
 
         self.VEHICLE_INFO['sonata'] = [float(config_param['sonata']['Length']), float(config_param['sonata']['Width']),
                                         float(config_param['sonata']['Height']), float(config_param['sonata']['XRotation']),
-                                        float(config_param['sonata']['YRotation']), float(config_param['sonata']['ZRotation']),
-                                        float(config_param['sonata']['XTrans']), float(config_param['sonata']['YTrans']),
-                                        float(config_param['sonata']['ZTrans'])]
+                                        float(config_param['sonata']['YRotation']), float(config_param['sonata']['ZRotation'])]
+
+        self.VEHICLE_INFO['VW_Passat_CC'] = [float(config_param['VW_Passat_CC']['Length']), float(config_param['VW_Passat_CC']['Width']),
+                                        float(config_param['VW_Passat_CC']['Height']), float(config_param['VW_Passat_CC']['XRotation']),
+                                        float(config_param['VW_Passat_CC']['YRotation']), float(config_param['VW_Passat_CC']['ZRotation'])]
 
         print('Initialize configuration parameter')
 
@@ -185,6 +187,7 @@ class Configuration:
         f.write('Image = ' + self.path + '/' + self.image_path + '\n')
         f.write('VehicleMesh = ' + self.path + '/' + self.vehicle_mesh_path + '\n')
         f.write('LidarMesh = ' + self.path + '/' + self.lidar_mesh_path + '\n')
+        f.write('GridMesh = ' + self.path + '/' + self.grid_mesh_path + '\n')
         f.close()
 
         print('Write default configuration parameter in ' + file)
@@ -201,19 +204,21 @@ class Configuration:
         f.write('XRotation = 90\n')
         f.write('YRotation = 90\n')
         f.write('ZRotation = 0\n')
-        f.write('XTrans = 0\n')
-        f.write('YTrans = 0\n')
-        f.write('ZTrans = 0\n')
         f.write('\n')
         f.write('[sonata]\n')
         f.write('Length = 4.371\n')
         f.write('Width = 1.904\n')
         f.write('Height = 1.649\n')
-        f.write('XRotation = 90\n')
-        f.write('YRotation = 90\n')
-        f.write('ZRotation = 0\n')
-        f.write('XTrans = 0\n')
-        f.write('YTrans = 0\n')
-        f.write('ZTrans = 0\n')
+        f.write('XRotation = 0\n')
+        f.write('YRotation = 0\n')
+        f.write('ZRotation = -90\n')
+        f.write('\n')
+        f.write('[VW_Passat_CC]\n')
+        f.write('Length = 4.371\n')
+        f.write('Width = 1.904\n')
+        f.write('Height = 1.649\n')
+        f.write('XRotation = 0\n')
+        f.write('YRotation = 0\n')
+        f.write('ZRotation = -90\n')
 
         f.close()
