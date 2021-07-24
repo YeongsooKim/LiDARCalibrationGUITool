@@ -11,7 +11,7 @@ import math
 import sys
 import copy
 #import pdb
-from id import *
+from instance_id import *
 
 import matplotlib.pyplot as plt
 
@@ -451,6 +451,9 @@ class ImportDataTab(QWidget):
         self.form_widget.zrollpitch_tab.limit_time_layout.start_time = default_start_time
         self.form_widget.zrollpitch_tab.limit_time_layout.end_time = default_end_time
 
+        ## Clear Plot
+        self.form_widget.zrollpitch_tab.Clear()
+
         # Evaluation tab
         ## set slider default time
         self.form_widget.evaluation_tab.limit_time_layout.start_time_layout.slider.setMaximum(default_end_time)
@@ -764,6 +767,640 @@ class ZRollPitch_CalibrationTab(QWidget):
     def OptimizeRadioButton(self):
         pass
 
+class ZRollPitchTab(ZRollPitch_CalibrationTab):
+    def __init__(self, form_widget):
+        super().__init__(form_widget)
+
+        self.plane_method = self.button_group1.checkedId()
+        self.est_method = self.button_group2.checkedId()
+
+    ## Groupbox
+    def Configuration_LimitTime_Groupbox(self):
+        groupbox = QGroupBox('Limit Time Data')
+        vbox = QVBoxLayout()
+
+        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        vbox.addLayout(self.limit_time_layout)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Configuration_SetConfiguration_Groupbox(self):
+        groupbox = QGroupBox('Configuration Info')
+        vbox = QVBoxLayout()
+
+        liDAR_configuration_label = QLabel('[ Select LiDAR ]', self)
+        vbox.addWidget(liDAR_configuration_label)
+
+        self.select_lidar_to_calib_layout = element.ComboBoxLabelLayout('Select Lidar To Calib Layout', self.form_widget)
+        vbox.addLayout(self.select_lidar_to_calib_layout)
+
+        roi_configuration_label = QLabel('[ ROI Configuration ]', self)
+        vbox.addWidget(roi_configuration_label)
+
+        self.maximum_x_layout = element.DoubleSpinBoxLabelLayout('Maximum X Distance [m]', self.form_widget)
+        vbox.addLayout(self.maximum_x_layout)
+
+        self.minimum_x_layout = element.DoubleSpinBoxLabelLayout('Minimum X Distance [m]', self.form_widget)
+        vbox.addLayout(self.minimum_x_layout)
+
+        self.maximum_y_layout = element.DoubleSpinBoxLabelLayout('Maximum Y Distance [m]', self.form_widget)
+        vbox.addLayout(self.maximum_y_layout)
+
+        self.minimum_y_layout = element.DoubleSpinBoxLabelLayout('Minimum Y Distance [m]', self.form_widget)
+        vbox.addLayout(self.minimum_y_layout)
+
+        self.maximum_z_layout = element.DoubleSpinBoxLabelLayout('Maximum Z Distance [m]', self.form_widget)
+        vbox.addLayout(self.maximum_z_layout)
+
+        self.minimum_z_layout = element.DoubleSpinBoxLabelLayout('Minimum Z Distance [m]', self.form_widget)
+        vbox.addLayout(self.minimum_z_layout)
+
+        apply_btn = QPushButton('Apply')
+        apply_btn.clicked.connect(lambda: self.Apply(self.form_widget.zrollpitch.DisplayGroundPoint,
+                                                     self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
+                                                     self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
+                                                     self.form_widget.config.PARM_ZRP,
+                                                     self.idxSensor,
+                                                     self.EndApply))
+        vbox.addWidget(apply_btn)
+
+        groupbox.setLayout(vbox)
+
+        return groupbox
+
+    def Configuration_Calibration_Groupbox(self):
+        groupbox = QGroupBox('Z, Roll, Pitch Calibration')
+        vbox = QVBoxLayout(self)
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('Start')
+        btn.clicked.connect(lambda: self.StartCalibration(CONST_ZROLLPITCH,
+                                                          self.form_widget.zrollpitch.Calibration,
+                                                          self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
+                                                          self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
+                                                          self.form_widget.config.PARM_ZRP,
+                                                          self.plane_method,
+                                                          self.est_method,
+                                                          self.idxSensor,
+                                                          [self.text_edit.clear, self.calibration_pbar.reset],
+                                                          [self.text_edit.append, self.calibration_pbar.setValue],
+                                                          self.EndCalibration))
+        hbox.addWidget(btn)
+
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.Pause)
+        hbox.addWidget(self.pause_btn)
+
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.Cancel)
+        hbox.addWidget(stop_btn)
+        vbox.addLayout(hbox)
+
+        self.label = QLabel('[ Z, Roll, Pitch Calibration Progress ]')
+        vbox.addWidget(self.label)
+
+        self.calibration_pbar = QProgressBar(self)
+        vbox.addWidget(self.calibration_pbar)
+
+        self.text_edit = QTextEdit()
+        vbox.addWidget(self.text_edit, 30)
+
+        self.scroll_box = ScrollAreaV()
+        vbox.addWidget(self.scroll_box, 70)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+    def Pause(self):
+        if self.progress_status is CONST_PLAY:
+            self.progress_status = CONST_PAUSE
+
+            self.form_widget.rpz_thread.pause = True
+            self.pause_btn.setText("Resume")
+
+        elif self.progress_status is CONST_PAUSE:
+            self.progress_status = CONST_PLAY
+
+            self.form_widget.rpz_thread.pause = False
+            self.pause_btn.setText("Pause")
+
+        else:
+            return False
+
+    def Cancel(self):
+        self.progress_status = CONST_IDLE
+        self.form_widget.rpz_thread.pause = False
+        self.pause_btn.setText("Pause")
+        self.form_widget.rpz_thread.toggle_status()
+
+    def ViewGroundPoints1(self):
+        self.form_widget.ViewGruondPoint2D(self.form_widget.zrollpitch.pointcloud,
+                                           self.form_widget.zrollpitch.filtered_pointcloud)
+
+    def ViewGroundPoints2(self):
+        self.form_widget.ViewGroundPoint3D(self.form_widget.zrollpitch.pointcloud,
+                                           self.form_widget.zrollpitch.filtered_pointcloud)
+
+    def ViewMeanDistance(self):
+        self.form_widget.ViewDistanceGraph(self.form_widget.zrollpitch.timestamp,
+                                           self.form_widget.zrollpitch.mean_distance)
+
+    def ViewGroundSlope(self):
+        self.form_widget.ViewGroundSlopeGraph(self.form_widget.zrollpitch.timestamp,
+                                              self.form_widget.zrollpitch.ground_slope)
+
+    def PlaneExtractRadioButton(self):
+        status = self.button_group1.checkedId()
+        self.plane_method = status
+
+    def OptimizeRadioButton(self):
+        status = self.button_group2.checkedId()
+        self.est_method = status
+
+    def EndApply(self):
+        self.progress_status = CONST_IDLE
+        self.form_widget.zrollpitch.complete_calibration = True
+
+        # ## Plot 'Result Data'
+        # self.result_2d_data_pose_ax.clear()
+        # self.form_widget.ViewGroundPoints(self.form_widget.zrollpitch.pointcloud, self.form_widget.zrollpitch.filtered_pointcloud,
+        #                          self.form_widget.config.PARM_ZRP, self.result_2d_data_pose_ax, self.result_2d_data_pose_canvas)
+        #
+        #
+        # df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
+        #                                                                                    self.form_widget.handeye_tab.using_gnss_motion,
+        #                                                                                    self.form_widget.handeye.PARM_LIDAR,
+        #                                                                                    self.form_widget.handeye.CalibrationParam,
+        #                                                                                    self.form_widget.importing_tab.limit_time_layout.start_time,
+        #                                                                                    self.form_widget.importing_tab.limit_time_layout.end_time)
+        # ## Plot 'Result Graph'
+        # self.result_graph_ax.clear()
+        # self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
+
+        ## Plot 'Result Data'
+        self.result_2d_data_pose_ax.clear()
+        self.form_widget.ViewGruondPoint2D(self.form_widget.zrollpitch.pointcloud,
+                                           self.form_widget.zrollpitch.filtered_pointcloud, self.result_2d_data_pose_ax,
+                                           self.result_2d_data_pose_canvas)
+
+        ## Plot 'Result Data'
+        self.result_3d_data_pose_ax.clear()
+        self.form_widget.ViewGroundPoint3D(self.form_widget.zrollpitch.pointcloud,
+                                           self.form_widget.zrollpitch.filtered_pointcloud, self.result_3d_data_pose_ax,
+                                           self.result_3d_data_pose_canvas)
+
+        print("End Apply function")
+
+    def EndCalibration(self):
+        print("end z, roll, pitch calibration")
+        self.progress_status = CONST_IDLE
+        self.form_widget.zrollpitch.complete_calibration = True
+
+        # ZRP tab
+        self.result_graph1_ax.clear()
+        self.form_widget.ViewDistanceGraph(self.form_widget.zrollpitch.timestamp,
+                                           self.form_widget.zrollpitch.mean_distance,
+                                           self.result_graph1_ax,
+                                           self.result_graph1_canvas)
+
+        ## Plot 'Result Graph'
+        self.result_graph2_ax.clear()
+        self.form_widget.ViewGroundSlopeGraph(self.form_widget.zrollpitch.timestamp,
+                                              self.form_widget.zrollpitch.ground_slope,
+                                              self.result_graph2_ax,
+                                              self.result_graph2_canvas)
+
+        self.calib_result[self.idxSensor] = copy.deepcopy(self.form_widget.zrollpitch.calib_result)
+
+        ## Set 'Result Calibration Data'
+        self.result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.idxSensor][0], 4)))
+        self.result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
+        self.result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
+
+        # Data validation tab
+        ## Set 'Result Calibration Data'
+        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.SetDefault(self.form_widget.datavalidation_tab.manual_zrp_calib_result, self.calib_result)
+
+        # Handeye tab
+        ## Set 'Result Calibration Data'
+        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.SetDefault(self.form_widget.handeye_tab.manual_zrp_calib_result, self.calib_result)
+
+        # Unsupervised tab
+        ## Set 'Result Calibration Data'
+        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.SetDefault(self.form_widget.unsupervised_tab.manual_zrp_calib_result, self.calib_result)
+
+    def CopyList(self, source, target):
+        keys = list(source.keys())
+        values = list(source.values())
+
+        for i in range(len(keys)):
+            target[keys[i]] = values[i].copy()
+
+    ## Util funcs
+    def Clear(self):
+        self.result_graph1_ax.clear()
+        self.result_graph1_canvas.draw()
+
+        self.result_graph2_ax.clear()
+        self.result_graph2_canvas.draw()
+
+        self.result_2d_data_pose_ax.clear()
+        self.result_2d_data_pose_canvas.draw()
+
+        self.result_3d_data_pose_ax.clear()
+        self.result_3d_data_pose_canvas.draw()
+
+        self.calib_result.clear()
+        self.select_lidar_to_calib_layout.Clear()
+
+        self.text_edit.clear()
+
+    def SetDefault(self, manual_zrp_calib_result, calib_result):
+        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+            if manual_zrp_calib_result.get(self.idxSensor) is None:
+                manual_zrp_calib_result[self.idxSensor] = calib_result[self.idxSensor]
+
+
+class DataValidationTab(QWidget):
+    def __init__(self, form_widget):
+        super().__init__()
+        self.using_gnss_motion = False
+        self.form_widget = form_widget
+
+        self.progress_status = CONST_IDLE
+        self.zrp_result_labels = {}
+        self.xyyaw_result_labels = {}
+        self.manual_zrp_calib_result = {}        
+
+        self.label_heading_threshold = self.form_widget.config.PARM_DV['FilterHeadingThreshold']
+        self.label_distance_threshold = self.form_widget.config.PARM_DV['FilterDistanceThreshold']
+        self.initUi()
+
+    def initUi(self):
+        main_vbox = QVBoxLayout()
+        main_hbox = QHBoxLayout()
+
+        self.config_widget = QWidget()
+        self.config_widget.setLayout(self.Configuration_Layout())
+        main_hbox.addWidget(self.config_widget, 30)
+
+        self.result_widget = QWidget()
+        self.result_widget.setLayout(self.Result_Layout())
+        main_hbox.addWidget(self.result_widget, 70)
+
+        main_vbox.addLayout(main_hbox, 50)
+
+        skip_btn = QPushButton('Skip')
+        skip_btn.clicked.connect(self.Skip)
+        main_vbox.addWidget(skip_btn, 50)
+
+        self.setLayout(main_vbox)
+
+    ## Layout
+    def Configuration_Layout(self):
+        self.configuration_vbox = QVBoxLayout()
+
+        self.configuration_vbox.addWidget(self.Configuration_DataInfo_Groupbox())
+
+        hbox = QHBoxLayout()
+        label = QLabel('Used Data')
+        hbox.addWidget(label)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        rbn1 = QRadioButton('GNSS Data')
+        rbn1.setChecked(True)
+        rbn1.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn1)
+        self.button_group.addButton(rbn1, 1)
+
+        # button for unsupervised calibration
+        rbn2 = QRadioButton('Motion Data')
+        rbn2.clicked.connect(self.RadioButton)
+        hbox.addWidget(rbn2)
+        self.button_group.addButton(rbn2, 2)
+        self.configuration_vbox.addLayout(hbox)
+
+        self.configuration_vbox.addWidget(self.Configuration_Validation_Groupbox())
+
+        return self.configuration_vbox
+
+    def Result_Layout(self):
+        vbox = QVBoxLayout()
+
+        vbox.addWidget(self.Result_ResultData_Groupbox())
+        vbox.addWidget(self.Result_ResultGraph_Groupbox())
+
+        return vbox
+
+    ## Groupbox
+    def Configuration_DataInfo_Groupbox(self):
+        groupbox = QGroupBox('Configuration Info')
+        vbox = QVBoxLayout()
+
+        roll_pitch_height_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        vbox.addWidget(roll_pitch_height_param_label)
+
+        hbox = QHBoxLayout()
+        label = QLabel()
+        hbox.addWidget(label, 10)
+        label = QLabel('Automatic')
+        hbox.addWidget(label, 10)
+        label = QLabel('Manual')
+        hbox.addWidget(label, 10)
+        label = QLabel('roll [deg]')
+        hbox.addWidget(label, 10)
+        label = QLabel('pitch [deg]')
+        hbox.addWidget(label, 10)
+        label = QLabel('z [m]')
+        hbox.addWidget(label, 10)
+        vbox.addLayout(hbox)
+
+        self.zrp_scroll_box = ScrollAreaV()
+        vbox.addWidget(self.zrp_scroll_box)
+
+        ICP_configuration_label = QLabel('[ ICP Configuration ]', self)
+        vbox.addWidget(ICP_configuration_label)
+
+        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
+        vbox.addLayout(self.maximum_interation_layout)
+
+        self.tolerance_layout = element.DoubleSpinBoxLabelLayout('Tolerance', self.form_widget)
+        vbox.addLayout(self.tolerance_layout)
+
+        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout('Outlier Distance [m]', self.form_widget)
+        vbox.addLayout(self.outlier_distance_layout)
+
+        Threshold_configuration_label = QLabel('[ Threshold ]', self)
+        vbox.addWidget(Threshold_configuration_label)
+        self.heading_threshold_layout = element.DoubleSpinBoxLabelLayout('Heading Threshold (filter)', self.form_widget)
+        vbox.addLayout(self.heading_threshold_layout)
+
+        self.distance_threshold_layout = element.DoubleSpinBoxLabelLayout('Distance Threshold (filter)',
+                                                                          self.form_widget)
+        vbox.addLayout(self.distance_threshold_layout)
+
+        groupbox.setLayout(vbox)
+
+        return groupbox
+
+    def Configuration_Validation_Groupbox(self):
+        groupbox = QGroupBox('Data Validation')
+        vbox = QVBoxLayout(self)
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('Start')
+        btn.clicked.connect(lambda: self.StartValidation(self.form_widget.datavalidation.Validation,
+                                                         self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
+                                                         self.form_widget.importing_tab.limit_time_layout.start_time,
+                                                         self.form_widget.importing_tab.limit_time_layout.end_time,
+                                                         self.form_widget.config.PARM_LIDAR,
+                                                         self.GetZRPCalib(),
+                                                         [self.text_edit.clear, self.calibration_pbar.reset],
+                                                         [self.text_edit.append, self.calibration_pbar.setValue],
+                                                         self.EndValibration))
+
+        hbox.addWidget(btn)
+
+        self.pause_btn = QPushButton('Pause')
+        self.pause_btn.clicked.connect(self.Pause)
+        hbox.addWidget(self.pause_btn)
+        vbox.addLayout(hbox)
+
+        stop_btn = QPushButton('Stop')
+        stop_btn.clicked.connect(self.Cancel)
+        hbox.addWidget(stop_btn)
+
+        vbox.addLayout(hbox)
+
+        self.label = QLabel('[ Data Validation Progress ]')
+        vbox.addWidget(self.label)
+
+        self.calibration_pbar = QProgressBar(self)
+        vbox.addWidget(self.calibration_pbar)
+
+        self.text_edit = QTextEdit()
+        vbox.addWidget(self.text_edit, 30)
+
+        self.scroll_box = ScrollAreaV()
+        vbox.addWidget(self.scroll_box, 70)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_ResultData_Groupbox(self):
+        groupbox = QGroupBox('Translation RMSE')
+        vbox = QVBoxLayout()
+
+        self.result_data_pose_fig = plt.figure()
+        self.result_data_pose_canvas = FigureCanvas(self.result_data_pose_fig)
+        self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
+        self.result_data_pose_ax.grid()
+        self.result_data_pose_canvas.draw()
+        vbox.addWidget(self.result_data_pose_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.ViewTranslationError)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    def Result_ResultGraph_Groupbox(self):
+        groupbox = QGroupBox('Rotation RMSE')
+        vbox = QVBoxLayout()
+
+        self.result_graph_fig = plt.figure()
+        self.result_graph_canvas = FigureCanvas(self.result_graph_fig)
+        self.result_graph_ax = self.result_graph_fig.add_subplot(1, 1, 1)
+        self.result_graph_ax.grid()
+        self.result_graph_canvas.draw()
+        vbox.addWidget(self.result_graph_canvas)
+
+        btn = QPushButton('View')
+        btn.clicked.connect(self.ViewRotationError)
+        vbox.addWidget(btn)
+
+        groupbox.setLayout(vbox)
+        return groupbox
+
+    ## Callback func
+
+    def StartValidation(self, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
+                        zrp_calib, targets_clear, progress_callbacks, end_callback):
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        if self.progress_status is not CONST_IDLE:
+            return False
+        self.progress_status = CONST_PLAY
+
+        for idxSensor in sensor_list['CheckedSensorList']:
+            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
+                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
+                return False
+
+        for target_clear in targets_clear:
+            target_clear()
+
+        try:
+            self.result_data_pose_ax.clear()
+            self.result_data_pose_canvas.draw()
+            self.result_graph_ax.clear()
+            self.result_graph_canvas.draw()
+        except:
+            pass
+        self.form_widget.validation_thread._status = True
+        self.form_widget.validation_thread.SetFunc(validation,
+                                                   [start_time, end_time, sensor_list, self.using_gnss_motion,
+                                                    vehicle_speed_threshold, zrp_calib])
+        try:
+            self.form_widget.validation_thread.change_value.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.validation_thread.iteration_percentage.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.validation_thread.end.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.validation_thread.emit_string.disconnect()
+        except:
+            pass
+
+        self.form_widget.validation_thread.emit_string.connect(progress_callbacks[0])  # text_edit_callback
+        self.form_widget.validation_thread.change_value.connect(progress_callbacks[1])  # progress_callback
+
+        self.form_widget.validation_thread.end.connect(end_callback)
+        self.form_widget.validation_thread.start()
+
+    def Pause(self):
+        if self.progress_status is CONST_PLAY:
+            self.progress_status = CONST_PAUSE
+
+            self.form_widget.validation_thread.pause = True
+            self.pause_btn.setText("Resume")
+
+        elif self.progress_status is CONST_PAUSE:
+            self.progress_status = CONST_PLAY
+
+            self.form_widget.validation_thread.pause = False
+            self.pause_btn.setText("Pause")
+
+        else:
+            return False
+
+    def Cancel(self):
+        self.progress_status = CONST_IDLE
+        self.form_widget.validation_thread.pause = False
+        self.pause_btn.setText("Pause")
+        self.form_widget.validation_thread.toggle_status()
+
+    def EndValibration(self):
+        self.progress_status = CONST_IDLE
+        self.form_widget.datavalidation.complete_validation = True
+
+        # print(self.form_widget.config.PARM_DV['FilterHeadingThreshold'])
+
+        # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterHeadingThreshold'],".4f"))
+        # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterDistanceThreshold'],".4f"))
+
+        print(self.form_widget.config.PARM_DV['FilterHeadingThreshold'])
+
+        # self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.form_widget.config.PARM_DV['FilterHeadingThreshold']))
+
+        # self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
+
+        # self.label_heading_threshold.label_edit_heading_threshold.setText(format(self.label_heading_threshold, ".4f"))
+        # self.label_distance_threshold.label_edit_distance_threshold.setText(format(self.label_distance_threshold, ".4f"))
+        # self.xyyaw_result_labels[0].label_edit_heading_threshold.setText(format(self.label_heading_threshold, ".4f"))
+        # self.xyyaw_result_labels[0].label_edit_distance_threshold.setText(format(self.label_distance_threshold, ".4f"))
+
+        # validation tab
+        ## Set 'Result Calibration Data'
+
+        for idxSensor in self.form_widget.datavalidation.PARM_LIDAR['CheckedSensorList']:
+            self.xyyaw_result_labels[idxSensor].label_edit_translation_error.setText(format(self.form_widget.datavalidation.RMSETranslationErrorDict[idxSensor], ".4f"))
+            self.xyyaw_result_labels[idxSensor].label_edit_rotation_error.setText(format(self.form_widget.datavalidation.RMSERotationErrorDict[idxSensor], ".4f"))
+
+        ## Plot 'Result Data'
+        self.result_data_pose_ax.clear()
+        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
+                                              self.form_widget.datavalidation.PARM_LIDAR, self.result_data_pose_ax,
+                                              self.result_data_pose_canvas)
+
+        ## Plot 'Result Graph'
+        self.result_graph_ax.clear()
+        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
+                                           self.form_widget.datavalidation.PARM_LIDAR, self.result_graph_ax,
+                                           self.result_graph_canvas)
+
+    def ViewTranslationError(self):
+        if self.progress_status is not CONST_IDLE:
+            return False
+        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
+                                              self.form_widget.config.PARM_LIDAR)
+
+    def ViewRotationError(self):
+        if self.progress_status is not CONST_IDLE:
+            return False
+        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
+                                           self.form_widget.config.PARM_LIDAR)
+
+    def RadioButton(self):
+        '''
+        only one button can selected
+        '''
+        status = self.button_group.checkedId()
+        if status == 1:  # GNSS Data
+            if self.form_widget.importing.has_gnss_file == False:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.form_widget.ErrorPopUp('Please import Gnss.csv')
+                return False
+            self.using_gnss_motion = False
+        elif status == 2:  # Motion Data
+            if self.form_widget.importing.has_motion_file == False:
+                self.button_group.button(self.prev_checkID).setChecked(True)
+                self.form_widget.ErrorPopUp('Please import Motion.csv')
+                return False
+            self.using_gnss_motion = True
+        self.prev_checkID = self.button_group.checkedId()
+
+    def Skip(self):
+        self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
+
+    def GetZRPCalib(self):
+        calib = {}
+
+        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+
+            if status == CONST_AUTOMATIC:
+                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+
+                calib[idxSensor] = calib_result
+            elif status == CONST_MANUAL:
+                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+
+        return calib
+
 class XYYaw_CalibrationTab(QWidget):
     def __init__(self, form_widget):
         super().__init__()
@@ -773,6 +1410,7 @@ class XYYaw_CalibrationTab(QWidget):
         self.progress_status = CONST_IDLE
         self.zrp_result_labels = {}
         self.xyyaw_result_labels = {}
+        self.manual_zrp_calib_result = {}        
         self.prev_checkID = 1
 
         self.calib_x = []
@@ -887,7 +1525,8 @@ class XYYaw_CalibrationTab(QWidget):
 
     ## Callback func
 
-    def StartCalibration(self, calibration_id, calibration, vehicle_speed_threshold, start_time, end_time, sensor_list, targets_clear, progress_callbacks, end_callback):
+    def StartCalibration(self, calibration_id, calibration, vehicle_speed_threshold, start_time, end_time, sensor_list, zrp_calib, targets_clear, progress_callbacks, end_callback):
+
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
             return False
@@ -918,7 +1557,7 @@ class XYYaw_CalibrationTab(QWidget):
             self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
             self.form_widget.handeye_thread._status = True
             self.form_widget.handeye_thread.SetFunc(calibration,
-                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
+                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib])
             try:
                 self.form_widget.handeye_thread.change_value.disconnect()
             except:
@@ -945,7 +1584,7 @@ class XYYaw_CalibrationTab(QWidget):
 
             self.form_widget.opti_thread._status = True
             self.form_widget.opti_thread.SetFunc(calibration,
-                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold])
+                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib])
             try:
                 self.form_widget.opti_thread.change_value.disconnect()
             except:
@@ -1077,591 +1716,23 @@ class XYYaw_CalibrationTab(QWidget):
 
             self.iren.Start()
 
-class ZRollPitchTab(ZRollPitch_CalibrationTab):
-    def __init__(self, form_widget):
-        super().__init__(form_widget)
-
-        self.plane_method = self.button_group1.checkedId()
-        self.est_method = self.button_group2.checkedId()
-
-    ## Groupbox
-    def Configuration_LimitTime_Groupbox(self):
-        groupbox = QGroupBox('Limit Time Data')
-        vbox = QVBoxLayout()
-
-        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
-        vbox.addLayout(self.limit_time_layout)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Configuration_SetConfiguration_Groupbox(self):
-        groupbox = QGroupBox('Configuration Info')
-        vbox = QVBoxLayout()
-
-        liDAR_configuration_label = QLabel('[ Select LiDAR ]', self)
-        vbox.addWidget(liDAR_configuration_label)
-
-        self.select_lidar_to_calib_layout = element.ComboBoxLabelLayout('Select Lidar To Calib Layout', self.form_widget)
-        vbox.addLayout(self.select_lidar_to_calib_layout)
-
-        roi_configuration_label = QLabel('[ ROI Configuration ]', self)
-        vbox.addWidget(roi_configuration_label)
-
-        self.maximum_x_layout = element.DoubleSpinBoxLabelLayout('Maximum X Distance [m]', self.form_widget)
-        vbox.addLayout(self.maximum_x_layout)
-
-        self.minimum_x_layout = element.DoubleSpinBoxLabelLayout('Minimum X Distance [m]', self.form_widget)
-        vbox.addLayout(self.minimum_x_layout)
-
-        self.maximum_y_layout = element.DoubleSpinBoxLabelLayout('Maximum Y Distance [m]', self.form_widget)
-        vbox.addLayout(self.maximum_y_layout)
-
-        self.minimum_y_layout = element.DoubleSpinBoxLabelLayout('Minimum Y Distance [m]', self.form_widget)
-        vbox.addLayout(self.minimum_y_layout)
-
-        self.maximum_z_layout = element.DoubleSpinBoxLabelLayout('Maximum Z Distance [m]', self.form_widget)
-        vbox.addLayout(self.maximum_z_layout)
-
-        self.minimum_z_layout = element.DoubleSpinBoxLabelLayout('Minimum Z Distance [m]', self.form_widget)
-        vbox.addLayout(self.minimum_z_layout)
-
-        apply_btn = QPushButton('Apply')
-        apply_btn.clicked.connect(lambda: self.Apply(self.form_widget.zrollpitch.DisplayGroundPoint,
-                                                    self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
-                                                    self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                    self.form_widget.config.PARM_ZRP,
-                                                    self.idxSensor,
-                                                    self.EndApply))
-        vbox.addWidget(apply_btn)
-
-        groupbox.setLayout(vbox)
-
-        return groupbox
-
-    def Configuration_Calibration_Groupbox(self):
-        groupbox = QGroupBox('Z, Roll, Pitch Calibration')
-        vbox = QVBoxLayout(self)
-
-        hbox = QHBoxLayout()
-        btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartCalibration(CONST_ZROLLPITCH,
-                                                          self.form_widget.zrollpitch.Calibration,
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                          self.form_widget.config.PARM_ZRP,
-                                                          self.plane_method,
-                                                          self.est_method,
-                                                          self.idxSensor,
-                                                          [self.text_edit.clear, self.calibration_pbar.reset],
-                                                          [self.text_edit.append, self.calibration_pbar.setValue],
-                                                          self.EndCalibration))
-        hbox.addWidget(btn)
-
-        self.pause_btn = QPushButton('Pause')
-        self.pause_btn.clicked.connect(self.Pause)
-        hbox.addWidget(self.pause_btn)
-
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.Cancel)
-        hbox.addWidget(stop_btn)
-        vbox.addLayout(hbox)
-
-        self.label = QLabel('[ Z, Roll, Pitch Calibration Progress ]')
-        vbox.addWidget(self.label)
-
-        self.calibration_pbar = QProgressBar(self)
-        vbox.addWidget(self.calibration_pbar)
-
-        self.text_edit = QTextEdit()
-        vbox.addWidget(self.text_edit, 30)
-
-        self.scroll_box = ScrollAreaV()
-        vbox.addWidget(self.scroll_box, 70)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    ## Callback func
-    def Pause(self):
-        if self.progress_status is CONST_PLAY:
-            self.progress_status = CONST_PAUSE
-
-            self.form_widget.rpz_thread.pause = True
-            self.pause_btn.setText("Resume")
-
-        elif self.progress_status is CONST_PAUSE:
-            self.progress_status = CONST_PLAY
-
-            self.form_widget.rpz_thread.pause = False
-            self.pause_btn.setText("Pause")
-
-        else:
-            return False
-
-    def Cancel(self):
-        self.progress_status = CONST_IDLE
-        self.form_widget.rpz_thread.pause = False
-        self.pause_btn.setText("Pause")
-        self.form_widget.rpz_thread.toggle_status()
-
-    def ViewGroundPoints1(self):
-        self.form_widget.ViewGruondPoint2D(self.form_widget.zrollpitch.pointcloud,
-                                          self.form_widget.zrollpitch.filtered_pointcloud)
-    def ViewGroundPoints2(self):
-        self.form_widget.ViewGroundPoint3D(self.form_widget.zrollpitch.pointcloud,
-                                           self.form_widget.zrollpitch.filtered_pointcloud)
-										   
-    def ViewMeanDistance(self):
-        self.form_widget.ViewDistanceGraph(self.form_widget.zrollpitch.timestamp,
-                                           self.form_widget.zrollpitch.mean_distance)
-										   
-    def ViewGroundSlope(self):
-        self.form_widget.ViewGroundSlopeGraph(self.form_widget.zrollpitch.ground_slope)
-		
-    def PlaneExtractRadioButton(self):
-        status = self.button_group1.checkedId()
-        self.plane_method = status
-
-    def OptimizeRadioButton(self):
-        status = self.button_group2.checkedId()
-        self.est_method = status
-
-    def EndApply(self):
-        self.progress_status = CONST_IDLE
-        self.form_widget.zrollpitch.complete_calibration = True
-        
-        # ## Plot 'Result Data'
-        # self.result_2d_data_pose_ax.clear()
-        # self.form_widget.ViewGroundPoints(self.form_widget.zrollpitch.pointcloud, self.form_widget.zrollpitch.filtered_pointcloud,
-        #                          self.form_widget.config.PARM_ZRP, self.result_2d_data_pose_ax, self.result_2d_data_pose_canvas)
-        #
-        #
-        # df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
-        #                                                                                    self.form_widget.handeye_tab.using_gnss_motion,
-        #                                                                                    self.form_widget.handeye.PARM_LIDAR,
-        #                                                                                    self.form_widget.handeye.CalibrationParam,
-        #                                                                                    self.form_widget.importing_tab.limit_time_layout.start_time,
-        #                                                                                    self.form_widget.importing_tab.limit_time_layout.end_time)
-        # ## Plot 'Result Graph'
-        # self.result_graph_ax.clear()
-        # self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
-
-
-        ## Plot 'Result Data'
-        self.result_2d_data_pose_ax.clear()
-        self.form_widget.ViewGruondPoint2D(self.form_widget.zrollpitch.pointcloud,
-                                              self.form_widget.zrollpitch.filtered_pointcloud, self.result_2d_data_pose_ax,
-                                              self.result_2d_data_pose_canvas)
-        
-        ## Plot 'Result Data'
-        self.result_3d_data_pose_ax.clear()
-        self.form_widget.ViewGroundPoint3D(self.form_widget.zrollpitch.pointcloud,
-                                              self.form_widget.zrollpitch.filtered_pointcloud, self.result_3d_data_pose_ax,
-                                              self.result_3d_data_pose_canvas)
-
-        print("End Apply function")
-
-    def EndCalibration(self):
-        print("end z, roll, pitch calibration")
-        self.progress_status = CONST_IDLE
-        self.form_widget.zrollpitch.complete_calibration = True
-
-        # ZRP tab
-        ## remove plots
-        self.result_graph1_ax.clear()
-        self.form_widget.ViewDistanceGraph(self.form_widget.zrollpitch.timestamp,
-                                           self.form_widget.zrollpitch.mean_distance,
-                                           self.result_graph1_ax,
-                                           self.result_graph1_canvas)
-
-        ## Plot 'Result Graph'
-        self.result_graph2_ax.clear()
-        self.form_widget.ViewGroundSlopeGraph(self.form_widget.zrollpitch.ground_slope,
-                                           self.result_graph2_ax,
-                                           self.result_graph2_canvas)
-										   
-        self.calib_result[self.idxSensor] = copy.deepcopy(self.form_widget.zrollpitch.calib_result)
-
-        ## Set 'Result Calibration Data'
-        self.result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.idxSensor][0], 4)))
-        self.result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
-        self.result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
-
-        # Data validation tab
-        ## Set 'Result Calibration Data'
-        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.idxSensor][0], 4)))
-        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
-        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
-
-        # Handeye tab
-        ## Set 'Result Calibration Data'
-        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.idxSensor][0], 4)))
-        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
-        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
-
-        # Unsupervised tab
-        ## Set 'Result Calibration Data'
-        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].label_edit1.setText(str(round(self.calib_result[self.idxSensor][0], 4)))
-        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
-        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
-
-        self.form_widget.zrollpitch.calib_result
-
-    def CopyList(self, source, target):
-        keys = list(source.keys())
-        values = list(source.values())
-
-        for i in range(len(keys)):
-            target[keys[i]] = values[i].copy()
-
-class DataValidationTab(QWidget):
-    def __init__(self, form_widget):
-        super().__init__()
-        self.using_gnss_motion = False
-        self.form_widget = form_widget
-
-        self.progress_status = CONST_IDLE
-        self.zrp_result_labels = {}
-        self.xyyaw_result_labels = {}
-        self.label_heading_threshold = self.form_widget.config.PARM_DV['FilterHeadingThreshold']
-        self.label_distance_threshold = self.form_widget.config.PARM_DV['FilterDistanceThreshold']
-        self.initUi()
-
-    def initUi(self):
-        main_vbox = QVBoxLayout()
-        main_hbox = QHBoxLayout()
-
-        self.config_widget = QWidget()
-        self.config_widget.setLayout(self.Configuration_Layout())
-        main_hbox.addWidget(self.config_widget, 30)
-
-        self.result_widget = QWidget()
-        self.result_widget.setLayout(self.Result_Layout())
-        main_hbox.addWidget(self.result_widget, 70)
-
-        main_vbox.addLayout(main_hbox, 50)
-
-        skip_btn = QPushButton('Skip')
-        skip_btn.clicked.connect(self.Skip)
-        main_vbox.addWidget(skip_btn, 50)
-
-        self.setLayout(main_vbox)
-
-    ## Layout
-    def Configuration_Layout(self):
-        self.configuration_vbox = QVBoxLayout()
-
-        self.configuration_vbox.addWidget(self.Configuration_DataInfo_Groupbox())
-
-        hbox = QHBoxLayout()
-        label = QLabel('Used Data')
-        hbox.addWidget(label)
-
-        # button for Handeye calibration
-        self.button_group = QButtonGroup()
-        rbn1 = QRadioButton('GNSS Data')
-        rbn1.setChecked(True)
-        rbn1.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn1)
-        self.button_group.addButton(rbn1, 1)
-
-        # button for unsupervised calibration
-        rbn2 = QRadioButton('Motion Data')
-        rbn2.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn2)
-        self.button_group.addButton(rbn2, 2)
-        self.configuration_vbox.addLayout(hbox)
-
-        self.configuration_vbox.addWidget(self.Configuration_Validation_Groupbox())
-
-        return self.configuration_vbox
-
-    def Result_Layout(self):
-        vbox = QVBoxLayout()
-
-        vbox.addWidget(self.Result_ResultData_Groupbox())
-        vbox.addWidget(self.Result_ResultGraph_Groupbox())
-
-        return vbox
-
-    ## Groupbox
-    def Configuration_DataInfo_Groupbox(self):
-        groupbox = QGroupBox('Configuration Info')
-        vbox = QVBoxLayout()
-
-        roll_pitch_height_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
-        vbox.addWidget(roll_pitch_height_param_label)
-
-        hbox = QHBoxLayout()
-        label = QLabel()
-        hbox.addWidget(label, 10)
-        label = QLabel('Automatic')
-        hbox.addWidget(label, 10)
-        label = QLabel('Manual')
-        hbox.addWidget(label, 10)
-        label = QLabel('roll [deg]')
-        hbox.addWidget(label, 10)
-        label = QLabel('pitch [deg]')
-        hbox.addWidget(label, 10)
-        label = QLabel('z [m]')
-        hbox.addWidget(label, 10)
-        vbox.addLayout(hbox)
-
-        self.zrp_scroll_box = ScrollAreaV()
-        vbox.addWidget(self.zrp_scroll_box)
-
-        ICP_configuration_label = QLabel('[ ICP Configuration ]', self)
-        vbox.addWidget(ICP_configuration_label)
-
-        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
-        vbox.addLayout(self.maximum_interation_layout)
-
-        self.tolerance_layout = element.DoubleSpinBoxLabelLayout('Tolerance', self.form_widget)
-        vbox.addLayout(self.tolerance_layout)
-
-        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout('Outlier Distance [m]', self.form_widget)
-        vbox.addLayout(self.outlier_distance_layout)
-
-        Threshold_configuration_label = QLabel('[ Threshold ]', self)
-        vbox.addWidget(Threshold_configuration_label)
-        self.heading_threshold_layout = element.DoubleSpinBoxLabelLayout('Heading Threshold (filter)', self.form_widget)
-        vbox.addLayout(self.heading_threshold_layout)
-
-        self.distance_threshold_layout = element.DoubleSpinBoxLabelLayout('Distance Threshold (filter)',
-                                                                          self.form_widget)
-        vbox.addLayout(self.distance_threshold_layout)
-
-        groupbox.setLayout(vbox)
-
-        return groupbox
-
-    def Configuration_Validation_Groupbox(self):
-        groupbox = QGroupBox('Data Validation')
-        vbox = QVBoxLayout(self)
-
-        hbox = QHBoxLayout()
-        btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartValidation(self.form_widget.datavalidation.Validation,
-                                                         self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                                         self.form_widget.importing_tab.limit_time_layout.start_time,
-                                                         self.form_widget.importing_tab.limit_time_layout.end_time,
-                                                         self.form_widget.config.PARM_LIDAR,
-                                                         [self.text_edit.clear, self.calibration_pbar.reset],
-                                                         [self.text_edit.append, self.calibration_pbar.setValue],
-                                                         self.EndValibration))
-
-        hbox.addWidget(btn)
-
-        self.pause_btn = QPushButton('Pause')
-        self.pause_btn.clicked.connect(self.Pause)
-        hbox.addWidget(self.pause_btn)
-        vbox.addLayout(hbox)
-
-        stop_btn = QPushButton('Stop')
-        stop_btn.clicked.connect(self.Cancel)
-        hbox.addWidget(stop_btn)
-
-        vbox.addLayout(hbox)
-
-        self.label = QLabel('[ Data Validation Progress ]')
-        vbox.addWidget(self.label)
-
-        self.calibration_pbar = QProgressBar(self)
-        vbox.addWidget(self.calibration_pbar)
-
-        self.text_edit = QTextEdit()
-        vbox.addWidget(self.text_edit, 30)
-
-        self.scroll_box = ScrollAreaV()
-        vbox.addWidget(self.scroll_box, 70)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Result_ResultData_Groupbox(self):
-        groupbox = QGroupBox('Translation RMSE')
-        vbox = QVBoxLayout()
-
-        self.result_data_pose_fig = plt.figure()
-        self.result_data_pose_canvas = FigureCanvas(self.result_data_pose_fig)
-        self.result_data_pose_ax = self.result_data_pose_fig.add_subplot(1, 1, 1)
-        self.result_data_pose_ax.grid()
-        self.result_data_pose_canvas.draw()
-        vbox.addWidget(self.result_data_pose_canvas)
-
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewTranslationError)
-        vbox.addWidget(btn)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    def Result_ResultGraph_Groupbox(self):
-        groupbox = QGroupBox('Rotation RMSE')
-        vbox = QVBoxLayout()
-
-        self.result_graph_fig = plt.figure()
-        self.result_graph_canvas = FigureCanvas(self.result_graph_fig)
-        self.result_graph_ax = self.result_graph_fig.add_subplot(1, 1, 1)
-        self.result_graph_ax.grid()
-        self.result_graph_canvas.draw()
-        vbox.addWidget(self.result_graph_canvas)
-
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewRotationError)
-        vbox.addWidget(btn)
-
-        groupbox.setLayout(vbox)
-        return groupbox
-
-    ## Callback func
-
-    def StartValidation(self, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
-                        targets_clear, progress_callbacks, end_callback):
-        if self.form_widget.config_tab.is_lidar_num_changed == True:
-            self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
-        self.progress_status = CONST_PLAY
-
-        for idxSensor in sensor_list['CheckedSensorList']:
-            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
-                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
-
-        for target_clear in targets_clear:
-            target_clear()
-
-        try:
-            self.result_data_pose_ax.clear()
-            self.result_data_pose_canvas.draw()
-            self.result_graph_ax.clear()
-            self.result_graph_canvas.draw()
-        except:
-            pass
-        self.form_widget.validation_thread._status = True
-        self.form_widget.validation_thread.SetFunc(validation,
-                                                   [start_time, end_time, sensor_list, self.using_gnss_motion,
-                                                    vehicle_speed_threshold])
-        try:
-            self.form_widget.validation_thread.change_value.disconnect()
-        except:
-            pass
-        try:
-            self.form_widget.validation_thread.iteration_percentage.disconnect()
-        except:
-            pass
-        try:
-            self.form_widget.validation_thread.end.disconnect()
-        except:
-            pass
-        try:
-            self.form_widget.validation_thread.emit_string.disconnect()
-        except:
-            pass
-
-        self.form_widget.validation_thread.emit_string.connect(progress_callbacks[0])  # text_edit_callback
-        self.form_widget.validation_thread.change_value.connect(progress_callbacks[1])  # progress_callback
-
-        self.form_widget.validation_thread.end.connect(end_callback)
-        self.form_widget.validation_thread.start()
-
-    def Pause(self):
-        if self.progress_status is CONST_PLAY:
-            self.progress_status = CONST_PAUSE
-
-            self.form_widget.validation_thread.pause = True
-            self.pause_btn.setText("Resume")
-
-        elif self.progress_status is CONST_PAUSE:
-            self.progress_status = CONST_PLAY
-
-            self.form_widget.validation_thread.pause = False
-            self.pause_btn.setText("Pause")
-
-        else:
-            return False
-
-    def Cancel(self):
-        self.progress_status = CONST_IDLE
-        self.form_widget.validation_thread.pause = False
-        self.pause_btn.setText("Pause")
-        self.form_widget.validation_thread.toggle_status()
-
-    def EndValibration(self):
-        self.progress_status = CONST_IDLE
-        self.form_widget.datavalidation.complete_validation = True
-
-        # print(self.form_widget.config.PARM_DV['FilterHeadingThreshold'])
-
-        # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterHeadingThreshold'],".4f"))
-        # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterDistanceThreshold'],".4f"))
-
-        print(self.form_widget.config.PARM_DV['FilterHeadingThreshold'])
-
-        # self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.form_widget.config.PARM_DV['FilterHeadingThreshold']))
-
-        # self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
-
-        # self.label_heading_threshold.label_edit_heading_threshold.setText(format(self.label_heading_threshold, ".4f"))
-        # self.label_distance_threshold.label_edit_distance_threshold.setText(format(self.label_distance_threshold, ".4f"))
-        # self.xyyaw_result_labels[0].label_edit_heading_threshold.setText(format(self.label_heading_threshold, ".4f"))
-        # self.xyyaw_result_labels[0].label_edit_distance_threshold.setText(format(self.label_distance_threshold, ".4f"))
-
-        # validation tab
-        ## Set 'Result Calibration Data'
-
-        for idxSensor in self.form_widget.datavalidation.PARM_LIDAR['CheckedSensorList']:
-            self.xyyaw_result_labels[idxSensor].label_edit_translation_error.setText(format(self.form_widget.datavalidation.RMSETranslationErrorDict[idxSensor], ".4f"))
-            self.xyyaw_result_labels[idxSensor].label_edit_rotation_error.setText(format(self.form_widget.datavalidation.RMSERotationErrorDict[idxSensor], ".4f"))
-
-        ## Plot 'Result Data'
-        self.result_data_pose_ax.clear()
-        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
-                                              self.form_widget.datavalidation.PARM_LIDAR, self.result_data_pose_ax,
-                                              self.result_data_pose_canvas)
-
-        ## Plot 'Result Graph'
-        self.result_graph_ax.clear()
-        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
-                                           self.form_widget.datavalidation.PARM_LIDAR, self.result_graph_ax,
-                                           self.result_graph_canvas)
-
-    def ViewTranslationError(self):
-        if self.progress_status is not CONST_IDLE:
-            return False
-        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
-                                              self.form_widget.config.PARM_LIDAR)
-
-    def ViewRotationError(self):
-        if self.progress_status is not CONST_IDLE:
-            return False
-        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
-                                           self.form_widget.config.PARM_LIDAR)
-
-    def RadioButton(self):
-        '''
-        only one button can selected
-        '''
-        status = self.button_group.checkedId()
-        if status == 1:  # GNSS Data
-            if self.form_widget.importing.has_gnss_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Gnss.csv')
-                return False
-            self.using_gnss_motion = False
-        elif status == 2:  # Motion Data
-            if self.form_widget.importing.has_motion_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Motion.csv')
-                return False
-            self.using_gnss_motion = True
-        self.prev_checkID = self.button_group.checkedId()
-
-    def Skip(self):
-        self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
+    def GetZRPCalib(self):
+        calib = {}
+
+        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+
+            if status == CONST_AUTOMATIC:
+                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+
+                calib[idxSensor] = calib_result
+            elif status == CONST_MANUAL:
+                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+
+        return calib
 
 class HandEyeTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
@@ -1720,12 +1791,14 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
+
         btn.clicked.connect(lambda: self.StartCalibration(CONST_HANDEYE,
                                                           self.form_widget.handeye.Calibration,
                                                           self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
                                                           self.form_widget.importing_tab.limit_time_layout.start_time,
                                                           self.form_widget.importing_tab.limit_time_layout.end_time,
                                                           self.form_widget.config.PARM_LIDAR,
+                                                          self.GetZRPCalib(),
                                                           [self.text_edit.clear, self.calibration_pbar.reset],
                                                           [self.text_edit.append, self.calibration_pbar.setValue],
                                                           self.EndCalibration))
@@ -1935,6 +2008,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
                                                           self.form_widget.importing_tab.limit_time_layout.start_time,
                                                           self.form_widget.importing_tab.limit_time_layout.end_time,
                                                           self.form_widget.config.PARM_LIDAR,
+                                                          self.GetZRPCalib(),
                                                           [self.text_edit.clear],
                                                           [self.text_edit.append],
                                                           self.EndCalibration))
@@ -2872,11 +2946,11 @@ class FormWidget(QWidget):
 
             elif label_type is CONST_ZRB_LABEL:
                 buttons = {0:True, 1:False}
-                result_label = element.RadioWithEditLabel(CONST_EVALUATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
-                # if calibration_param.get(idxSensor) is not None:
-                #     result_label.label_edit1.setText(str(round(calibration_param[idxSensor][0], 4)))
-                #     result_label.label_edit2.setText(str(round(calibration_param[idxSensor][1], 4)))
-                #     result_label.label_edit3.setText(str(round(calibration_param[idxSensor][2], 4)))
+                result_label = element.RadioWithEditLabel(CONST_ZRP_CALIBRATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
+                if calibration_param.get(idxSensor) is not None:
+                    result_label.spinbox1.setValue(round(calibration_param[idxSensor][0], 4))
+                    result_label.spinbox2.setValue(round(calibration_param[idxSensor][1], 4))
+                    result_label.spinbox3.setValue(round(calibration_param[idxSensor][2], 4))
 
             labels[idxSensor] = result_label
             layout.addLayout(result_label)
@@ -3000,7 +3074,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Selected Ground Point')
-            ax.set_xlabel('X [m]]')
+            ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             canvas.draw()
         else:
@@ -3035,7 +3109,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Selected Ground Point')
-            ax.set_xlabel('X [m]]')
+            ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             ax.set_ylabel('Z [m]')
             canvas.draw()
@@ -3051,17 +3125,17 @@ class FormWidget(QWidget):
         fig = plt.figure(figsize=(16, 12), dpi=70)
                 
         if ax is not None:
-            ax.plot(timestamp, measured_distance,'b-o',label='Mean distance between point and plane [m]')
+            ax.stem(timestamp, measured_distance,'-.',label='Mean distance between point and plane [m]')
             
         if canvas is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.plot(timestamp, measured_distance,'b-o',label='Mean distance between point and plane [m]')
+            ax.stem(timestamp, measured_distance,'-.',label='Mean distance between point and plane [m]')
             val = np.max(measured_distance) * 1.4
             ax.set_ylim([0 -val/2, np.max(measured_distance) + val/2])
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Distance Error')
-            ax.set_xlabel('Step [cnt]')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('Error [m]')
             
         if canvas is not None:
@@ -3070,7 +3144,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Distance Error')
-            ax.set_xlabel('Step [cnt]]')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('Error [m]')
             canvas.draw()
         else:
@@ -3081,30 +3155,43 @@ class FormWidget(QWidget):
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             root.mainloop()
         
-    def ViewGroundSlopeGraph(self, ground_slope,  ax=None, canvas=None):
+    def ViewGroundSlopeGraph(self, timestamp, ground_slope,  ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
                 
         if ax is not None:
-            
-            ax.bar('DJwJRN',ground_slope, label='Transformed Ground Slope [deg]')
+            ax.stem(timestamp, ground_slope,'-.', label='Transformed Ground Slope [deg]')
+            val = np.max(ground_slope) * 1.4
+            ax.set_xlim([timestamp[0] - 3, timestamp[len(timestamp) - 1] + 3])
+            ax.set_ylim([0 -val/2, np.max(ground_slope) + val/2])            
+            ax.axhline(3,color = 'gray',label='Threshold')
+            if np.max(ground_slope) > 3:
+                ax.fill_betweenx([3, np.max(ground_slope) + val/2], [timestamp[len(timestamp)-1]+3, timestamp[len(timestamp)-1]+3], color = 'gray', alpha = 0.2)
+                ax.text(timestamp[0]+5, np.max(ground_slope) + 20,'Fault',fontsize=13, color = 'gray')
             
         if canvas is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.bar('DJwJRN', ground_slope,label='Transformed Ground Slope [deg]')
-            ax.axis('equal')
+            ax.stem(timestamp, ground_slope, '-.', label='Transformed Ground Slope [deg]')
+            ax.axhline(3,color = 'gray',label='Threshold')
+            ax.text(timestamp[0] + 5,max(ground_slope) + 20,'Fault',fontsize=13, color = 'gray')
+            val = np.max(ground_slope) * 1.4
+            ax.set_xlim([timestamp[0] - 3, timestamp[len(timestamp) - 1] + 3])
+            ax.set_ylim([0 -val/2, np.max(ground_slope) + val/2])            
+            if np.max(ground_slope) > 3:
+                ax.fill_betweenx([3, np.max(ground_slope) + val/2], [timestamp[len(timestamp)-1]+3, timestamp[len(timestamp)-1]+3], color = 'gray', alpha = 0.2)
+                ax.text(timestamp[0] + 5,max(ground_slope) + 20,'Fault',fontsize=13, color = 'gray')
             ax.grid()
             ax.legend(markerscale=2)
-            ax.text(0, ground_slope*1.02, '%.3f' % ground_slope, rotation=90, ha='center', va='bottom')
+            #ax.text(0, ground_slope*1.02, '%.3f' % ground_slope, rotation=90, ha='center', va='bottom')
             ax.set_title('Ground Slope')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('Slope [deg]')
             
 
         if canvas is not None:
-            ax.axis('equal')
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Ground Slope')
-            ax.text(0, ground_slope*1.02, '%.3f' % ground_slope, rotation=90, ha='center', va='bottom')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('Slope [deg]')
             canvas.draw()
         else:
@@ -3134,24 +3221,30 @@ class FormWidget(QWidget):
             ax.plot(error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
 
             if canvas is None:
-                ax.axis('equal')
                 ax.grid()
                 ax.legend(markerscale=2)
                 ax.set_title('Translation RMSE between Vehicle and LiDAR' + str(idxSensor[i]))
                 ax.set_xlabel('Step [cnt]')
                 ax.set_ylabel('RMSE [m]')
-                ax.set_xlim([-10,len(error[idxSensor[i]])+10])
-                ax.set_ylim([-1,1])
+                ax.set_xlim([-10,len(error[idxSensor[i]])+10])               
+                val = np.max(error[idxSensor[i]]) * 1.4
+                ax.set_ylim([0 -val/2, np.max(error[idxSensor[i]]) + val/2])
                 #plt.axis('scaled')
 
 
         if canvas is not None:
-            ax.axis('equal')
+            max_err = []
+            for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+                idxSensor = list(PARM_LIDAR['CheckedSensorList'])
+                max_err.append(np.max(error[idxSensor[i]]))
+            
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Translation RMSE')
             ax.set_xlabel('Step [cnt]')
-            ax.set_ylabel('RMSE [m]')
+            ax.set_ylabel('RMSE [m]')           
+            val = np.max(max_err) * 1.4
+            ax.set_ylim([0 -val/2, np.max(max_err) + val/2]) 
             canvas.draw()
         else:
             root = Tk.Tk()
@@ -3165,8 +3258,8 @@ class FormWidget(QWidget):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
-        #fig = plt.figure(figsize=(16, 12), dpi=70)
-        fig = plt.figure(figsize=(16, 12))
+        fig = plt.figure(figsize=(16, 12), dpi=70)
+        #fig = plt.figure(figsize=(16, 12))
         
         #if ax is not None:
 
@@ -3181,25 +3274,28 @@ class FormWidget(QWidget):
             ax.plot(error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
 
             if canvas is None:
-                ax.axis('equal')
                 ax.grid()
                 ax.legend(markerscale=2)
                 ax.set_title('Rotation RMSE between Vehicle and LiDAR' + str(idxSensor[i]))
                 ax.set_xlabel('Step [cnt]')
                 ax.set_ylabel('RMSE [deg]')
-                ax.set_xlim([-10,len(error[idxSensor[i]])+10])
-                ax.set_ylim([-1,1])
-                #plt.axis('scaled')
-                #ax.set_ylim([-np.trunc(np.max(error[i])) -1, np.trunc(np.max(error[i]))+1])
-                #plt.ylim([-np.trunc(np.max(error[i])) -1, np.trunc(np.max(error[i]))+1])
+                ax.set_xlim([-10,len(error[idxSensor[i]])+10])            
+                val = np.max(error[idxSensor[i]]) * 1.4
+                ax.set_ylim([0 -val/2, np.max(error[idxSensor[i]]) + val/2])
 
         if canvas is not None:
-            ax.axis('equal')
+            max_err = []
+            for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+                idxSensor = list(PARM_LIDAR['CheckedSensorList'])
+                max_err.append(np.max(error[idxSensor[i]]))
+                
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Rotation RMSE')
             ax.set_xlabel('Step [cnt]')
             ax.set_ylabel('RMSE [deg]')
+            val = np.max(max_err) * 1.4
+            ax.set_ylim([0 -val/2, np.max(max_err) + val/2])
             canvas.draw()
         else:
             root = Tk.Tk()

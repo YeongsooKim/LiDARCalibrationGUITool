@@ -59,24 +59,15 @@ def VehicleCentralize(boundary):
     for i in range(3):
         lens[i] = abs(boundary[i*2] - boundary[i*2 + 1])
 
-    max = -1
+    max_len = -1
     max_key = -1
     for len in lens:
-        if lens[len] > max:
-            max = lens[len]
+        if lens[len] > max_len:
+            max_len = lens[len]
             max_key = len
 
-    trans = []
-    for i in range(3):
-        if i == max_key:
-            trans.append(-(boundary[i*2] + boundary[i*2+1]) / 2)
-        else:
-            trans.append(0.0)
+    trans = (-(boundary[max_key*2] + boundary[max_key*2+1]) / 2, 0.0, 0.0)
 
-    # print(boundary)
-    # centerlize_yaxis = -(boundary[2] + boundary[3]) / 2
-    # # height2zero = -boundary[4]
-    # # return [0, centerlize_yaxis, height2zero]
     return trans
 
 
@@ -304,24 +295,9 @@ def GetVehicleActor():
     # Set Vehicle size and pose
     transformation = vtk.vtkTransform()
 
-    # trans = VehicleCentralize(actor.GetBounds())
-    # transformation.Translate((trans[0], trans[1], trans[2]))
+    transformation.Translate(VehicleCentralize(actor.GetBounds()))
     rotation = GetRotation(transformation)
     actor.SetUserTransform(rotation)
-
-    # make real size unit
-    boundary = actor.GetBounds()
-
-    # scaled_vehicle_size = VehicleSizeScaling(boundary)
-    # transformation.Scale(scaled_vehicle_size)
-    # # actor.SetUserTransform(transformation)
-    # boundary = actor.GetBounds()
-
-    # move position to origin with center of gravity
-    # cCentralize = VehicleCentralize(actor.GetBounds())
-    # aligned_poision = TranslateVehicle(cCentralize[0], cCentralize[1], cCentralize[2])
-    # transformation.Translate(aligned_poision)
-    transformed_vehicle_boundary = actor.GetBounds()
 
     return actor
 

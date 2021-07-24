@@ -61,8 +61,6 @@ class ZRollPitch:
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
-        print(df_info)
-
         dXMaxThreshold_m = PARM_ZRP['MaxDistanceX_m']
         dXMinThreshold_m = PARM_ZRP['MinDistanceX_m']
         dYMaxThreshold_m = PARM_ZRP['MaxDistanceY_m']
@@ -146,6 +144,7 @@ class ZRollPitch:
         measured_pitch_deg = []
         measured_height_m = []
         measured_distance_m = []
+        filtered_pointcloud_list = []
 
         dNumOfPointCloudData = len(df_info)
 
@@ -174,7 +173,7 @@ class ZRollPitch:
 
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
             filtered_pointcloud_in_lidar_frame_homogeneous = np.insert(filtered_pointcloud_in_lidar_frame, 3, 1, axis = 1)
-
+            filtered_pointcloud_list.append(filtered_pointcloud_in_lidar_frame_homogeneous)
             self.timestamp = df_info[strColIndex].index
 
             if len(filtered_pointcloud_in_lidar_frame_homogeneous) < 3:
@@ -292,26 +291,34 @@ class ZRollPitch:
                         [0, np.cos(calib_roll_result), -1*np.sin(calib_roll_result), 0.],
                         [-1*np.sin(calib_pitch_result), np.cos(calib_pitch_result)*np.sin(calib_roll_result), np.cos(calib_pitch_result)*np.cos(calib_roll_result), calib_height_result],
                         [0., 0., 0., 1.]])
-            filtered_pointcloud_in_veh_frame = np.matmul(Transformation_veh2lidar, np.transpose(filtered_pointcloud_in_lidar_frame_homogeneous))
+            
+            slope_list = []
+            for i in list(range(len(filtered_pointcloud_list))):
 
-            filtered_pointcloud_in_veh_frame = np.transpose(filtered_pointcloud_in_veh_frame)
-
-            SVD_veh = utils_plane.fitPlaneSVD(filtered_pointcloud_in_veh_frame)
-            if SVD_veh[2] < 0:
-                SVD_veh = -SVD_veh
-
-            x1 = SVD_veh[0]
-            y1 = SVD_veh[1]
-            z1 = SVD_veh[2]
-
-            x2 = 0
-            y2 = 0
-            z2 = 1
-
-            theta = np.arccos((x1*x2+y1*y2+z1*z2)/(np.sqrt(x1*x1 + y1*y1 + z1*z1)*np.sqrt(x2*x2 + y2*y2 + z2*z2)))
-
-            min_theta = np.minimum(theta, np.pi-theta)
-
+                filtered_pointcloud_in_veh_frame = np.matmul(Transformation_veh2lidar, np.transpose(filtered_pointcloud_list[i]))
+    
+                filtered_pointcloud_in_veh_frame = np.transpose(filtered_pointcloud_in_veh_frame)
+    
+                SVD_veh = utils_plane.fitPlaneSVD(filtered_pointcloud_in_veh_frame)
+                if SVD_veh[2] < 0:
+                    SVD_veh = -SVD_veh
+    
+                x1 = SVD_veh[0]
+                y1 = SVD_veh[1]
+                z1 = SVD_veh[2]
+    
+                x2 = 0
+                y2 = 0
+                z2 = 1
+    
+                theta = np.arccos((x1*x2+y1*y2+z1*z2)/(np.sqrt(x1*x1 + y1*y1 + z1*z1)*np.sqrt(x2*x2 + y2*y2 + z2*z2)))
+    
+                min_theta = np.minimum(theta, np.pi-theta)*180/np.pi
+                
+                slope_list.append(min_theta)
+                
+                #print(slope_list)
+            
             roll_deg = calib_roll_result * 180/np.pi
             pitch_deg = calib_pitch_result * 180/np.pi
             z_m = calib_height_result
@@ -319,6 +326,8 @@ class ZRollPitch:
             print("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor))
             self.calib_result = [roll_deg, pitch_deg, z_m]
             self.mean_distance = measured_distance_m
+            #self.ground_slope = min_theta
+            self.ground_slope = slope_list
             thread.emit_string.emit(str("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor)))
 
         thread.mutex.unlock()
