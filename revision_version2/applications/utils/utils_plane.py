@@ -38,6 +38,8 @@ def fitPlaneSVD(XYZ):
     [u, d, v] = np.linalg.svd(AB,0)        
     B = v[3,:]                    # Solution is last column of v.
     nn = np.linalg.norm(B[0:3])
+    if nn < 0.003:
+        nn = 0.003
     B = B / nn
     return B[0:3]
 

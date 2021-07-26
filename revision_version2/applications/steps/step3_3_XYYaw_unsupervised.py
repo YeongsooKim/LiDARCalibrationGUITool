@@ -50,7 +50,6 @@ class Unsupervised:
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
         is_single_optimization = args[6]
-        print(is_single_optimization)
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
@@ -145,6 +144,7 @@ class Unsupervised:
                            calib_param[2],
                            args=(calib_param[3], calib_param[4], pose, pointcloud,
                                  self.config.PARM_IM, self.config.PARM_SO, thread),
+                           thread=thread,
                            method='Powell',
                            options={'ftol': 1e-10, 'disp': True})
             # set data
@@ -267,6 +267,7 @@ class Unsupervised:
                                calib_param[2],
                                args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
                                      self.config.PARM_IM, self.config.PARM_MO, thread),
+                               thread=thread,
                                method='Powell',
                                options={'ftol': 1e-10, 'disp': True})
                 # set data

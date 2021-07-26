@@ -63,21 +63,7 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         main_vbox.addWidget(self.next_btn)
 
-        # self.btn1 = QPushButton('Next step')
-        # self.btn1.clicked.connect(self.debug1)
-        # main_vbox.addWidget(lambda: self.btn1(self.cnt))
-        #
-        # self.btn2 = QPushButton('Next step')
-        # self.btn2.clicked.connect(self.debug2)
-        # main_vbox.addWidget(self.btn2)
-
         self.setLayout(main_vbox)
-
-    # def debug1(self, cnt):
-    #     print(cnt)
-    #
-    # def debug2(self):
-    #     self.cnt += 1
 
     ## Layout
     def SetConfiguration_Layout(self):
@@ -680,64 +666,6 @@ class ZRollPitch_CalibrationTab(QWidget):
     def ViewGroundSlope(self):
         pass
 
-    def StartCalibration(self, calibration_id, calibration, start_time, end_time, PARM_ZRP, plane_method, est_method,
-                         selected_sensor, targets_clear, progress_callbacks, end_callback):
-        if self.form_widget.config_tab.is_lidar_num_changed == True:
-            self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
-        if self.form_widget.importing.PointCloudSensorList.get(selected_sensor) is None:
-            imported_pc = ''
-            for pc in self.form_widget.importing.PointCloudSensorList:
-                imported_pc += (str(pc) + ' ')
-
-            self.form_widget.ErrorPopUp('Import pointcloud {}\nImported pointcloud: {}'.format(selected_sensor, imported_pc))
-            return False
-
-        self.progress_status = CONST_PLAY
-
-        for target_clear in targets_clear:
-            target_clear()
-
-        # remove plots
-        try:
-            self.result_graph1_ax.clear()
-            self.result_graph1_canvas.draw()
-
-            self.result_graph2_ax.clear()
-            self.result_graph2_canvas.draw()
-        except:
-            pass
-
-        if calibration_id == CONST_ZROLLPITCH:
-            self.form_widget.rpz_thread._status = True
-            self.form_widget.rpz_thread.SetFunc(calibration,
-                                                [start_time, end_time, PARM_ZRP, plane_method, est_method, selected_sensor])
-            try:
-                self.form_widget.rpz_thread.change_value.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.rpz_thread.iteration_percentage.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.rpz_thread.end.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.rpz_thread.emit_string.disconnect()
-            except:
-                pass
-
-            print('Start z, roll, pitch calibration')
-            self.form_widget.rpz_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-            self.form_widget.rpz_thread.change_value.connect(progress_callbacks[1]) # progress_bar_callback
-
-            self.form_widget.rpz_thread.end.connect(end_callback)
-            self.form_widget.rpz_thread.start()
-
     def Apply(self, display_groundpoint, start_time, end_time, PARM_ZRP, selected_sensor, end_callback):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
@@ -781,6 +709,44 @@ class ZRollPitch_CalibrationTab(QWidget):
 
     def OptimizeRadioButton(self):
         pass
+
+    # Util functions
+
+    def Graph1Clear(self):
+        # remove plots
+        try:
+            self.result_graph1_ax.clear()
+            self.result_graph1_canvas.draw()
+        except:
+            pass
+
+    def Graph2Clear(self):
+        # remove plots
+        try:
+            self.result_graph2_ax.clear()
+            self.result_graph2_canvas.draw()
+        except:
+            pass
+
+    def PlotClear(self):
+        self.Graph1Clear()
+        self.Graph2Clear()
+
+    def ErrorCheck(self):
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        if self.progress_status is not CONST_IDLE:
+            return False
+
+        if self.form_widget.importing.PointCloudSensorList.get(self.idxSensor) is None:
+            imported_pc = ''
+            for pc in self.form_widget.importing.PointCloudSensorList:
+                imported_pc += (str(pc) + ' ')
+
+            self.form_widget.ErrorPopUp(
+                'Import pointcloud {}\nImported pointcloud: {}'.format(self.idxSensor, imported_pc))
+            return False
 
 class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def __init__(self, form_widget):
@@ -850,17 +816,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
-        btn.clicked.connect(lambda: self.StartCalibration(CONST_ZROLLPITCH,
-                                                          self.form_widget.zrollpitch.Calibration,
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
-                                                          self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                          self.form_widget.config.PARM_ZRP,
-                                                          self.plane_method,
-                                                          self.est_method,
-                                                          self.idxSensor,
-                                                          [self.text_edit.clear, self.calibration_pbar.reset],
-                                                          [self.text_edit.append, self.calibration_pbar.setValue],
-                                                          self.EndCalibration))
+        btn.clicked.connect(self.Start)
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
@@ -888,6 +844,46 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         return groupbox
 
     ## Callback func
+
+    def Start(self):
+        self.ErrorCheck()
+        self.progress_status = CONST_PLAY
+
+        self.PlotClear()
+        self.text_edit.clear()
+        self.calibration_pbar.reset()
+
+        self.form_widget.rpz_thread._status = True
+        self.form_widget.rpz_thread.SetFunc(self.form_widget.zrollpitch.Calibration,
+                                            [self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
+                                             self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
+                                             self.form_widget.config.PARM_ZRP,
+                                             self.plane_method,
+                                             self.est_method,
+                                             self.idxSensor])
+        try:
+            self.form_widget.rpz_thread.change_value.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.rpz_thread.iteration_percentage.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.rpz_thread.end.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.rpz_thread.emit_string.disconnect()
+        except:
+            pass
+
+        self.form_widget.rpz_thread.emit_string.connect(self.text_edit.append)
+        self.form_widget.rpz_thread.change_value.connect(self.calibration_pbar.setValue)
+
+        self.form_widget.rpz_thread.end.connect(self.EndCalibration)
+        self.form_widget.rpz_thread.start()
+
     def Pause(self):
         if self.progress_status is CONST_PLAY:
             self.progress_status = CONST_PAUSE
@@ -1348,8 +1344,6 @@ class DataValidationTab(QWidget):
         # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterHeadingThreshold'],".4f"))
         # element.ValidationConfigLabel.label_edit_heading_threshold.setText(format(self.form_widget.config.PARM_DV['FilterDistanceThreshold'],".4f"))
 
-        print(self.form_widget.config.PARM_DV['FilterHeadingThreshold'])
-
         # self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.form_widget.config.PARM_DV['FilterHeadingThreshold']))
 
         # self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
@@ -1517,90 +1511,6 @@ class XYYaw_CalibrationTab(QWidget):
 
     ## Callback func
 
-    def StartCalibration(self, calibration_id, calibration, vehicle_speed_threshold, start_time, end_time,
-                         sensor_list, zrp_calib, targets_clear, progress_callbacks, end_callback, is_single=False):
-        print("Start calib")
-        print(is_single)
-
-        if self.form_widget.config_tab.is_lidar_num_changed == True:
-            self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
-        self.progress_status = CONST_PLAY
-
-        for idxSensor in sensor_list['CheckedSensorList']:
-            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
-                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
-
-        for target_clear in targets_clear:
-            target_clear()
-
-        # remove plots
-        try:
-            self.result_data_pose_ax.clear()
-            self.result_data_pose_canvas.draw()
-            self.result_graph_ax.clear()
-            self.result_graph_canvas.draw()
-        except:
-            pass
-
-        if calibration_id == CONST_HANDEYE:
-            # disable access to unsupervised tab until complete handeye calibration
-            self.form_widget.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
-            self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
-            self.form_widget.handeye_thread._status = True
-            self.form_widget.handeye_thread.SetFunc(calibration,
-                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib])
-            try:
-                self.form_widget.handeye_thread.change_value.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.handeye_thread.iteration_percentage.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.handeye_thread.end.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.handeye_thread.emit_string.disconnect()
-            except:
-                pass
-
-            self.form_widget.handeye_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-            self.form_widget.handeye_thread.change_value.connect(progress_callbacks[1]) # progress_bar_callback
-
-            self.form_widget.handeye_thread.end.connect(end_callback)
-            self.form_widget.handeye_thread.start()
-        elif calibration_id == CONST_UNSUPERVISED:
-            self.form_widget.opti_thread._status = True
-            self.form_widget.opti_thread.SetFunc(calibration,
-                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib, self.form_widget.unsupervised_tab.is_single])
-            try:
-                self.form_widget.opti_thread.change_value.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.opti_thread.iteration_percentage.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.opti_thread.end.disconnect()
-            except:
-                pass
-            try:
-                self.form_widget.opti_thread.emit_string.disconnect()
-            except:
-                pass
-
-
-            self.form_widget.opti_thread.emit_string.connect(progress_callbacks[0]) # text_edit_callback
-            self.form_widget.opti_thread.end.connect(end_callback)
-            self.form_widget.opti_thread.start()
-
     def ViewLiDAR(self):
         if self.progress_status is not CONST_IDLE:
             return False
@@ -1660,6 +1570,40 @@ class XYYaw_CalibrationTab(QWidget):
 
     def ViewPointCloud(self):
         pass
+
+    ## Util functions
+
+    def DataPoseClear(self):
+        # remove plots
+        try:
+            self.result_data_pose_ax.clear()
+            self.result_data_pose_canvas.draw()
+        except:
+            pass
+
+    def GraphClear(self):
+        # remove plots
+        try:
+            self.result_graph_ax.clear()
+            self.result_graph_canvas.draw()
+        except:
+            pass
+
+    def PlotClear(self):
+        self.DataPoseClear()
+        self.GraphClear()
+        
+    def ErrorCheck(self, sensor_list):
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        if self.progress_status is not CONST_IDLE:
+            return False
+
+        for idxSensor in sensor_list['CheckedSensorList']:
+            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
+                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
+                return False
 
     def VTKInit(self, is_default):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1771,16 +1715,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
 
-        btn.clicked.connect(lambda: self.StartCalibration(CONST_HANDEYE,
-                                                          self.form_widget.handeye.Calibration,
-                                                          self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                                          self.form_widget.importing_tab.limit_time_layout.start_time,
-                                                          self.form_widget.importing_tab.limit_time_layout.end_time,
-                                                          self.form_widget.config.PARM_LIDAR,
-                                                          self.GetZRPCalib(),
-                                                          [self.text_edit.clear, self.calibration_pbar.reset],
-                                                          [self.text_edit.append, self.calibration_pbar.setValue],
-                                                          self.form_widget.handeye_tab.EndCalibration))
+        btn.clicked.connect(self.Start)
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
@@ -1809,6 +1744,48 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
     ## Callback func
 
+    def Start(self):
+        self.ErrorCheck(self.form_widget.config.PARM_LIDAR)
+        self.progress_status = CONST_PLAY
+
+        self.PlotClear()
+        self.text_edit.clear()
+        self.calibration_pbar.reset()
+
+        # disable access to unsupervised tab until complete handeye calibration
+        self.form_widget.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
+        self.form_widget.handeye_thread._status = True
+        self.form_widget.handeye_thread.SetFunc(self.form_widget.handeye.Calibration,
+                               [self.form_widget.importing_tab.limit_time_layout.start_time, 
+                                self.form_widget.importing_tab.limit_time_layout.end_time,
+                                self.form_widget.config.PARM_LIDAR, 
+                                self.using_gnss_motion, 
+                                self.form_widget.config.PARM_IM['VehicleSpeedThreshold'], 
+                                self.GetZRPCalib()])
+        try:
+            self.form_widget.handeye_thread.change_value.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.handeye_thread.iteration_percentage.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.handeye_thread.end.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.handeye_thread.emit_string.disconnect()
+        except:
+            pass
+
+        self.form_widget.handeye_thread.emit_string.connect(self.text_edit.append)
+        self.form_widget.handeye_thread.change_value.connect(self.calibration_pbar.setValue)
+
+        self.form_widget.handeye_thread.end.connect(self.EndCalibration)
+        self.form_widget.handeye_thread.start()
+    
     def Pause(self):
         if self.progress_status is CONST_PLAY:
             self.progress_status = CONST_PAUSE
@@ -1951,7 +1928,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         vbox.addWidget(liDAR_configuration_label)
 
         buttons = {0:'Single LiDAR', 1:'Multi LiDAR'}
-        self.select_lidar_num_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Select Lidar Number', buttons, self.form_widget)
+        self.select_lidar_num_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Select Lidar Type', buttons, self.form_widget)
         vbox.addLayout(self.select_lidar_num_layout)
 
         self.select_lidar_combobox_layout = element.ComboBoxLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB, 'Select Single Lidar To Calibration', self.form_widget)
@@ -1988,23 +1965,11 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         hbox = QHBoxLayout(self)
         btn = QPushButton('Start')
-        print("in unsupervised tab")
-        print(self.is_single)
-        btn.clicked.connect(lambda: self.StartCalibration(CONST_UNSUPERVISED,
-                                self.form_widget.unsupervised.Calibration,
-                                self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                self.form_widget.importing_tab.limit_time_layout.start_time,
-                                self.form_widget.importing_tab.limit_time_layout.end_time,
-                                self.form_widget.config.PARM_LIDAR,
-                                self.GetZRPCalib(),
-                                [self.text_edit.clear],
-                                [self.text_edit.append],
-                                self.EndCalibration),
-                                self.is_single)
+        btn.clicked.connect(self.Start)
         hbox.addWidget(btn)
 
         self.stop_btn = QPushButton('Stop')
-        self.stop_btn.clicked.connect(self.StopCalibartion)
+        self.stop_btn.clicked.connect(self.Stop)
         hbox.addWidget(self.stop_btn)
         vbox.addLayout(hbox)
 
@@ -2023,8 +1988,45 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         return groupbox
 
     ## Callback func
+    def Start(self):
+        self.ErrorCheck(self.form_widget.config.PARM_LIDAR)
+        self.progress_status = CONST_PLAY
 
-    def StopCalibartion(self):
+        self.PlotClear()
+        self.text_edit.clear()
+
+        self.form_widget.opti_thread._status = True
+        self.form_widget.opti_thread.SetFunc(self.form_widget.unsupervised.Calibration, 
+                                            [self.form_widget.importing_tab.limit_time_layout.start_time,
+                                            self.form_widget.importing_tab.limit_time_layout.end_time,
+                                            self.form_widget.config.PARM_LIDAR,
+                                            self.using_gnss_motion,
+                                            self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
+                                            self.GetZRPCalib(), 
+                                            self.is_single])
+        try:
+            self.form_widget.opti_thread.change_value.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.opti_thread.iteration_percentage.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.opti_thread.end.disconnect()
+        except:
+            pass
+        try:
+            self.form_widget.opti_thread.emit_string.disconnect()
+        except:
+            pass
+
+
+        self.form_widget.opti_thread.emit_string.connect(self.text_edit.append)
+        self.form_widget.opti_thread.end.connect(self.EndCalibration)
+        self.form_widget.opti_thread.start()
+
+    def Stop(self):
         self.progress_status = CONST_IDLE
 
         self.form_widget.opti_thread.toggle_status()
@@ -2072,7 +2074,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -3024,14 +3026,18 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def DisplayLiDAR(self, calib_x, calib_y, calib_z, calib_roll, calib_pitch, calib_yaw, PARM_LIDAR, ren, iren, renWin, widget):
+    def DisplayLiDAR(self, calib_x, calib_y, calib_z, calib_roll, calib_pitch, calib_yaw, PARM_LIDAR, ren, iren, renWin, widget, is_single=False):
 
         lidar_info_dict = {}
-        for i in range(len(PARM_LIDAR['CheckedSensorList'])):
-            idxSensors = list(PARM_LIDAR['CheckedSensorList'])
 
-            lidar_info = [calib_x[i], calib_y[i], 0, 0, 0, calib_yaw[i]]
-            lidar_info_dict[idxSensors[i]] = lidar_info
+        if is_single:
+            lidar_info_dict[self.config.PARM_LIDAR['SingleSensor']] = [calib_x[0], calib_y[0], 0, 0, 0, calib_yaw[0]]
+        else:
+            for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+                idxSensors = list(PARM_LIDAR['CheckedSensorList'])
+
+                lidar_info = [calib_x[i], calib_y[i], 0, 0, 0, calib_yaw[i]]
+                lidar_info_dict[idxSensors[i]] = lidar_info
 
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
         vtk_lidar_calib.GetAxis(iren, widget)
@@ -3047,6 +3053,84 @@ class FormWidget(QWidget):
         renWin.Render()
 
         iren.Start()
+
+    # def ViewLiDAR(self, calib_x, calib_y, calib_yaw, PARM_LIDAR,  ax=None, canvas=None):
+    #     lidar_num = len(PARM_LIDAR['CheckedSensorList'])
+    #     column = '2'
+    #     row = str(math.ceil(lidar_num / 2))
+    #     fig = plt.figure(figsize=(16, 12), dpi=70)
+    #     veh_path = self.config.PATH['Image'] + 'vehicle2.png'
+    #     # veh = plt.imread(veh_path)
+    #     # Open vehicle image
+    #     veh = Image.open(veh_path)
+    #     veh2 = veh.resize((1100, 1100))
+    #     veh = np.asarray(veh2)
+    #
+    #     # veh = plt.imread(veh_path)
+    #     # veh = plt.set_size_inches(18.5, 10.5, forward=True)
+    #     for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+    #         idxSensor = list(PARM_LIDAR['CheckedSensorList'])
+    #         if canvas is None:
+    #             plot_num_str = column + row + str(i + 1)
+    #             ax = fig.add_subplot(int(plot_num_str))
+    #
+    #         # T = np.array([[np.cos(calib_yaw[i]), -np.sin(calib_yaw[i]), calib_x[i]],[np.sin(calib_yaw[i]), np.cos(calib_yaw[i]), calib_y[i]],[0,0,1]])
+    #         # inv_T = np.linalg.inv(T)
+    #         # calib_x[i] = inv_T[0][2]
+    #         # calib_y[i] = inv_T[1][2]
+    #         # calib_yaw[i] = np.arctan2(inv_T[1, 0], inv_T[0, 0])
+    #         # x = int(calib_x[i]) * 200 + 520
+    #         # y = 1000 - 1 * int(calib_y[i]) * 200 - 500
+    #         x = -calib_y[i] * 120 + 542
+    #         y = 725 - 1 * calib_x[i] * 160
+    #         # car_length = 1.75
+    #         lidar_num = 'lidar' + str(idxSensor[i])
+    #         ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i]) % len(self.color_list)],
+    #                    edgecolor='none', alpha=0.5)
+    #
+    #         s = 'x[m]: ' + str(round(calib_x[i], 4)) + '\ny[m]: ' + str(round(calib_y[i], 4)) + '\nyaw[deg]: ' + str(
+    #             round(calib_yaw[i], 4))
+    #
+    #         if canvas is None:
+    #             if calib_y[i] > 0:
+    #                 ax.text(x, y + 300, s, fontsize=7)
+    #             else:
+    #                 ax.text(x, y - 70, s, fontsize=7)
+    #
+    #         ax.arrow(x, y, 100 * np.cos((calib_yaw[i] + 90) * np.pi / 180),
+    #                  -100 * np.sin((calib_yaw[i] + 90) * np.pi / 180), head_width=10,
+    #                  head_length=10,
+    #                  fc='k', ec='k')
+    #         ax.plot(np.linspace(542, x, 100), np.linspace(725, y, 100),
+    #                 self.color_list[(idxSensor[i]) % len(self.color_list)] + '--')
+    #
+    #         if canvas is None:
+    #             ax.imshow(veh)
+    #             ax.set_xlim([-460, 1540])
+    #             ax.set_ylim([1000, 200])
+    #             ax.grid()
+    #             ax.legend()
+    #             ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
+    #             ax.axes.xaxis.set_visible(False)
+    #             ax.axes.yaxis.set_visible(False)
+    #
+    #     if canvas is not None:
+    #         ax.imshow(veh)
+    #         ax.set_xlim([-460, 1540])
+    #         ax.set_ylim([1000, 200])
+    #         ax.grid()
+    #         ax.legend()
+    #         ax.set_title('Result of calibration')
+    #         ax.axes.xaxis.set_visible(False)
+    #         ax.axes.yaxis.set_visible(False)
+    #         canvas.draw()
+    #     else:
+    #         root = Tk.Tk()
+    #         canvas = FigureCanvasTkAgg(fig, master=root)
+    #         nav = NavigationToolbar2Tk(canvas, root)
+    #         canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    #         canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    #         root.mainloop()
 
     def ViewPointCloud(self, df_info, pointcloud, PARM_LIDAR, ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
@@ -3199,6 +3283,7 @@ class FormWidget(QWidget):
             ax.stem(timestamp, ground_slope,'-.', label='Transformed Ground Slope [deg]')
             val = np.max(ground_slope) * 1.4
             ax.set_xlim([timestamp[0] - 3, timestamp[len(timestamp) - 1] + 3])
+            print("val: %f, max: %f" %(val, np.max(ground_slope)))
             ax.set_ylim([0 -val/2, np.max(ground_slope) + val/2])            
             ax.axhline(3,color = 'gray',label='Threshold')
             if np.max(ground_slope) > 3:
