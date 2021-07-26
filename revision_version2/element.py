@@ -20,6 +20,7 @@ from instance_id import *
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
+
     def __init__(self, label_str, form_widget):
         super().__init__()
         self.id = FileInputWithCheckBtnLayout.instance_number
@@ -144,12 +145,12 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         return False
 
     def CheckGnssFile(self):
-        '''
+        """
         Checking the GNSS file and Moiton file
         GNSS file is 'file_path/Gnss.csv'
         Motion file is 'file_path/Motion.csv'
         If this files are being, then each flag(has_gnss_file or has_motion_file) be true
-        '''
+        """
         self.form_widget.importing.gnss_logging_file = self.path_file_str
         self.form_widget.RemoveLayout(self.form_widget.importing_tab.gnss_scroll_box.layout)
         if os.path.isfile(self.form_widget.importing.gnss_logging_file + '/Gnss.csv'):
@@ -223,11 +224,9 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
                 self.form_widget.importing_tab.lidar_scroll_box.layout.addWidget(btn)
 
 class CheckBoxListLayout(QVBoxLayout):
-    instance_num = 1
-    def __init__(self, form_widget, label_str=None):
+    def __init__(self, instance_id, form_widget, label_str=None):
         super().__init__()
-        self.id = CheckBoxListLayout.instance_num
-        CheckBoxListLayout.instance_num += 1
+        self.id = instance_id
 
         self.label_str = label_str
         self.form_widget = form_widget
@@ -241,30 +240,20 @@ class CheckBoxListLayout(QVBoxLayout):
             self.label = QLabel(self.label_str)
             self.addWidget(self.label)
 
-        if self.id == 1: # Instance name is 'select_using_sensor_list_layout'
+        if self.id == CONST_SELECT_USING_SENSOR_LIST: # Instance name is 'select_using_sensor_list_layout'
             self.config_scroll_box = ScrollAreaH()
             self.addWidget(self.config_scroll_box)
-        else:   # Instance name is 'select_principle_sensor_list_layout'
-            self.listWidget = QListWidget()
-            self.listWidget.itemChanged.connect(self.ItemChanged)
-            self.addWidget(self.listWidget)
 
     def AddWidgetItem(self, PARM_LIDAR_SENSOR_LIST, PARM_LIDAR_CHECKED_SENSOR_LIST):
         self.LiDAR_list.clear()
         self.lidar_buttons.clear()
-        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
+        if self.id == CONST_SELECT_USING_SENSOR_LIST:    # instance name is 'select_using_sensor_list_layout'
             self.form_widget.RemoveLayout(self.config_scroll_box.layout)
-        else:   # Instance name is 'select_principle_sensor_list_layout'
-            listItems = self.listWidget.count()
-            if not listItems == 0:
-                for item_index in reversed(range(listItems)):
-                    self.listWidget.takeItem(item_index)
-                    self.listWidget.removeItemWidget(self.listWidget.takeItem(item_index))
 
         self.button_group = QButtonGroup()
 
         ## Adding configuration tab sensor list
-        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
+        if self.id == CONST_SELECT_USING_SENSOR_LIST:    # instance name is 'select_using_sensor_list_layout'
             for sensor_index in PARM_LIDAR_SENSOR_LIST:
                 label = 'XYZRGB ' + str(sensor_index)
                 ## Add button
@@ -286,56 +275,37 @@ class CheckBoxListLayout(QVBoxLayout):
                 self.lidar_buttons[sensor_index] = check_btn
                 self.config_scroll_box.layout.addLayout(check_btn)
 
-        ## Adding unsupervised tab sensor list
-        elif self.id == 2:    # instance name is 'select_principle_sensor_list_layout'
-            for sensor_index in PARM_LIDAR_CHECKED_SENSOR_LIST:
-                item = QListWidgetItem()
-                item.setFlags(Qt.ItemIsEnabled)
-                self.listWidget.addItem(item)
-
-                radio_btn = QRadioButton('LiDAR %i' % sensor_index)
-                if sensor_index == self.form_widget.config.PARM_LIDAR['PrincipalSensor']:
-                    radio_btn.setChecked(True)
-                radio_btn.clicked.connect(self.SetPrincipalSensor)
-                self.button_group.addButton(radio_btn, sensor_index)
-
-                self.listWidget.setItemWidget(item, radio_btn)
-                self.LiDAR_list.append(item)
 
     def ItemChanged(self):
         items = []
-        if self.id == 1:     # Instance name is 'select_using_sensor_list_layout'
+        if self.id == CONST_SELECT_USING_SENSOR_LIST:     # Instance name is 'select_using_sensor_list_layout'
             for key in self.lidar_buttons.keys():
                 status = self.lidar_buttons[key].btn.status
                 if status == 'green':
                     items.append(key)
-        else:    # Instance name is 'select_principle_sensor_list_layout'
-            for item in self.LiDAR_list:
-                words = item.text().split()
-                if not item.checkState() == 0:
-                    items.append(int(words[1]))
-
-        if self.id == 1:    # instance name is 'select_using_sensor_list_layout'
+                    
             self.form_widget.config.PARM_LIDAR['CheckedSensorList'] = copy.deepcopy(items)
             self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(items)
 
             if not len(items) == 0:
                 configuration_first_checked_sensor = items[0]
-                checked_principal_sensor = self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.button_group.checkedId()
 
-                if checked_principal_sensor in items:
-                    self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = checked_principal_sensor
+                text = self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.currentText()
+                words = text.split(' ')
+                checked_sensor = int(words[-1])
+
+                if checked_sensor in items:
+                    self.form_widget.config.PARM_LIDAR['SingleSensor'] = checked_sensor
+                    self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = checked_sensor
                 else:
+                    self.form_widget.config.PARM_LIDAR['SingleSensor'] = configuration_first_checked_sensor
                     self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = configuration_first_checked_sensor
             else:
                 self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = None
 
-            self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
             self.form_widget.zrollpitch_tab.select_lidar_to_calib_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
+            self.form_widget.unsupervised_tab.select_lidar_combobox_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
             self.form_widget.ResetResultsLabels(self.form_widget.config.PARM_LIDAR)
-
-    def SetPrincipalSensor(self):
-        self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = self.button_group.checkedId()
 
 class CheckButton(QVBoxLayout):
     def __init__(self, click_status, label_str, color, btn_type, image_path, callback=None):
@@ -363,21 +333,19 @@ class CheckButton(QVBoxLayout):
         self.callback()
 
 class ComboBoxLabelLayout(QHBoxLayout):
-    instance_number = 1
-    def __init__(self, label_str, form_widget):
+    def __init__(self, intance_id, label_str, form_widget):
         super().__init__()
-        self.id = ComboBoxLabelLayout.instance_number
+        self.id = intance_id
         self.label_str = label_str
         self.form_widget = form_widget
 
-        ComboBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
         hbox = QHBoxLayout()
 
-        label = QLabel(self.label_str)
-        hbox.addWidget(label)
+        self.label = QLabel(self.label_str)
+        hbox.addWidget(self.label)
 
         self.cb = QComboBox()
         self.cb.currentTextChanged.connect(self.TextChanged)
@@ -390,7 +358,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
         self.addLayout(hbox)
 
     def AddWidgetItem(self, PARM_LIDAR_CHECKED_SENSOR_LIST):
-        if self.id == CONST_SELECT_LIDAR_TO_CALIB_LAYOUT:    # instance name is 'select_lidar_to_calib_layout'
+        if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB or CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:    # instance name is 'select_lidar_to_calib_layout', 'select_lidar_combobox_layout'
             self.cb.clear()
 
             labels = []
@@ -400,7 +368,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
             self.cb.addItems(labels)
 
     def Clear(self):
-        if self.id == CONST_SELECT_LIDAR_TO_CALIB_LAYOUT:    # instance name is 'select_lidar_to_calib_layout'
+        if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB:    # instance name is 'select_lidar_to_calib_layout'
             # Reset ZRP tab result label
             PARM_LIDAR = self.form_widget.config.PARM_LIDAR
             calib_result = {}
@@ -431,7 +399,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                calib_result)
 
     def TextChanged(self, text):
-        if self.id == CONST_SELECT_LIDAR_TO_CALIB_LAYOUT:    # instance name is 'select_lidar_to_calib_layout'
+        if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB:    # instance name is 'select_lidar_to_calib_layout'
             if text == '':
                 return
 
@@ -473,8 +441,18 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                self.form_widget.evaluation_tab.zrp_result_labels,
                                                calib_result)
 
+        if self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:  # instance name is 'select_lidar_combobox_layout'
+            if text == '':
+                return
+
+            words = text.split(' ')
+            if self.form_widget.unsupervised_tab.is_single:
+                self.form_widget.config.PARM_LIDAR['SingleSensor'] = int(words[-1])
+            else:
+                self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = int(words[-1])
+
 class SpinBoxLabelLayout(QVBoxLayout):
-    instance_number = 1 
+    instance_number = 1
     def __init__(self, label_str, form_widget):
         super().__init__()
         self.id = SpinBoxLabelLayout.instance_number
@@ -553,13 +531,13 @@ class SpinBoxLabelLayout(QVBoxLayout):
 
             ## Add widget item of lidar list in configuration tab and unsupervised tab
             self.form_widget.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
-            self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
             self.form_widget.zrollpitch_tab.select_lidar_to_calib_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
+            self.form_widget.unsupervised_tab.select_lidar_combobox_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
 
             ## Add Reset result label in rph tab, handeye tab, unsupervised tab and evaulation tab
             self.form_widget.ResetResultsLabels(self.form_widget.config.PARM_LIDAR)
 
-        
+
         elif self.id == CONST_IMPORT_DATA_SAMPLING_INTERVER:
             self.form_widget.config.PARM_IM['SamplingInterval'] = self.spin_box.value()
         elif self.id == CONST_VALIDATION_MAXIMUM_ITERATION:
@@ -837,21 +815,46 @@ class RadioLabelLayout(QHBoxLayout):
             self.addWidget(rbn)
             self.button_group.addButton(rbn, key+1)
 
-        # rbn1 = QRadioButton('GNSS Data')
-        # rbn1.setChecked(True)
-        # rbn1.clicked.connect(self.RadioButton)
-        # hbox.addWidget(rbn1)
-        # self.button_group.addButton(rbn1, 1)
-        #
-        # # button for unsupervised calibration
-        # rbn2 = QRadioButton('Motion Data')
-        # rbn2.clicked.connect(self.RadioButton)
-        # hbox.addWidget(rbn2)
-        # self.button_group.addButton(rbn2, 2)
-        # self.configuration_vbox.addLayout(hbox)
-
     def RadioButton(self):
-        print("pass")
+        '''
+        only one button can selected
+        '''
+        status = self.button_group.checkedId()
+        if self.id == CONST_DATAVALIDATION_USED_DATA or self.id == CONST_HANDEYE_USED_DATA or self.id == CONST_UNSUPERVISED_USED_DATA:
+            if status == 1:  # GNSS Data
+                if self.form_widget.importing.has_gnss_file == False:
+                    self.button_group.button(self.prev_checkID).setChecked(True)
+                    self.form_widget.ErrorPopUp('Please import Gnss.csv')
+                    return False
+                self.using_gnss_motion = False
+            elif status == 2:  # Motion Data
+                if self.form_widget.importing.has_motion_file == False:
+                    self.button_group.button(self.prev_checkID).setChecked(True)
+                    self.form_widget.ErrorPopUp('Please import Motion.csv')
+                    return False
+                self.using_gnss_motion = True
+
+        if self.id == CONST_UNSUPERVISED_SELECT_LIDAR:
+            if status == CONST_SINGLE_LIDAR:
+                self.form_widget.unsupervised_tab.select_lidar_combobox_layout.label.setText("Select Single Lidar To Calibration")
+                self.form_widget.unsupervised_tab.is_single = True
+                print("in single lidar")
+                print(self.form_widget.unsupervised_tab.is_single)
+
+                for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
+                    if idxSensor == self.form_widget.config.PARM_LIDAR['SingleSensor']:
+                        self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.setCurrentIndex(i)
+
+            elif status == CONST_MULTI_LIDAR:
+                self.form_widget.unsupervised_tab.select_lidar_combobox_layout.label.setText("Select Principal Lidar To Calibration")
+                self.form_widget.unsupervised_tab.is_single = False
+                print ("in multi lidar")
+                print(self.form_widget.unsupervised_tab.is_single)
+                for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
+                    if idxSensor == self.form_widget.config.PARM_LIDAR['PrincipalSensor']:
+                        self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.setCurrentIndex(i)
+
+        self.prev_checkID = self.button_group.checkedId()
 
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, string, form_widget, ):
@@ -1029,12 +1032,12 @@ class ValidationResultLabel(QVBoxLayout):
         #self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
         #self.addWidget(self.label_heading_threshold)
         #self.hbox = QHBoxLayout()
-    
-        
+
+
         self.label = QLabel('LiDAR {}'.format(self.idxSensor))
         self.addWidget(self.label)
         self.hbox = QHBoxLayout()
-        
+
         self.label_translation_error = QLabel('Translation Error RMSE [m]')
         self.hbox.addWidget(self.label_translation_error)
         self.label_edit_translation_error = QLineEdit()
@@ -1064,9 +1067,9 @@ class ValidationConfigLabel(QVBoxLayout):
 
     def InitUi(self):
     #    try:
-        
+
         self.hbox = QHBoxLayout()
-        
+
         '''
         self.label_heading_threshold = QLabel('Heading Threshold [deg]: ')
         self.hbox.addWidget(self.label_heading_threshold)
@@ -1353,7 +1356,7 @@ class EvaluationLable(QHBoxLayout):
             self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
             self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-            
+
         if status == CONST_HANDEYE:
             self.spinbox1.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][3])
             self.spinbox2.setValue(self.form_widget.handeye.CalibrationParam[self.idxSensor][4])

@@ -49,6 +49,8 @@ class Unsupervised:
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
+        is_single_optimization = args[6]
+        print(is_single_optimization)
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
@@ -66,15 +68,32 @@ class Unsupervised:
         # 3-1.  Accumulation
         # -----------------------------------------------------------------------------------------------------------------------------
 
+
         ##################
         # Get calibration data
-        idxSensor = PARM_LIDAR['PrincipalSensor']
+        if is_single_optimization:
+            idxSensor = PARM_LIDAR['SingleSensor']
+        else:
+            idxSensor = PARM_LIDAR['PrincipalSensor']
         calib_param = self.CalibrationParam[idxSensor]
 
         ##################
         # Remove rows by other sensors
         strColIndex = 'XYZRGB_' + str(idxSensor)
 
+        ## Calibration Initialization            
+        dZ_m = zrp_calib[idxSensor][0]
+        dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+        dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+        
+        print(dZ_m)
+        
+        
+        tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
+                              [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
+                              [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
+                              [0., 0., 0., 1.]])   
+        
         if not using_gnss_motion:
             df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
         elif using_gnss_motion:
@@ -95,10 +114,26 @@ class Unsupervised:
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
-        if len(self.importing.PointCloudSensorList) == 1:
-            is_single_optimization = True
-        elif len(self.importing.PointCloudSensorList) > 1:
-            is_single_optimization = False
+        print("\n############\n")
+        print(len(pointcloud))
+        print(pointcloud)
+        tmp_pc = []
+        for key in pointcloud:
+            pointcloud_lidar = pointcloud[key]
+
+            pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+
+            # PointCloud Conversion: Roll, Pitch, Height
+            pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
+            pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
+            pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
+
+            tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
+
+        pointcloud = tmp_pc
+        print("\n############\n")
+
+        print(pointcloud)
 
         if is_single_optimization:
             thread.mutex.lock()
@@ -122,10 +157,10 @@ class Unsupervised:
             self.calib_yaw.clear()
             self.calib_x.clear()
             self.calib_y.clear()
-            for idxSensor in PARM_LIDAR['CheckedSensorList']:
-                self.calib_yaw.append(self.CalibrationParam[idxSensor][2] * 180 / 3.141592)
-                self.calib_x.append(self.CalibrationParam[idxSensor][3])
-                self.calib_y.append(self.CalibrationParam[idxSensor][4])
+
+            self.calib_yaw.append(self.CalibrationParam[idxSensor][2] * 180 / 3.141592)
+            self.calib_x.append(self.CalibrationParam[idxSensor][3])
+            self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
             self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
             thread.mutex.unlock()
@@ -178,6 +213,19 @@ class Unsupervised:
                 # Remove rows by other sensors
                 strColIndex = 'XYZRGB_' + str(idxSensor)
 
+                ## Calibration Initialization            
+                dZ_m = zrp_calib[idxSensor][0]
+                dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+                dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+                
+                print(dZ_m)
+                
+                
+                tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
+                                      [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
+                                      [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
+                                      [0., 0., 0., 1.]])   
+
                 if not using_gnss_motion:
                     df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
                     df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
@@ -196,6 +244,22 @@ class Unsupervised:
                 # Get Point cloud list
                 pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
+                print("\n############\n")
+                print(pointcloud)
+                tmp_pc = []
+                for key in pointcloud:
+                    pointcloud_lidar = pointcloud[key]
+
+                    pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+
+                    # PointCloud Conversion: Roll, Pitch, Height
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
+
+                    tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
+                pointcloud = tmp_pc
+
                 ##### cost function for optimization
                 utils_cost_func.strFile = 'XYZRGB_' + str(idxSensor)
                 utils_cost_func.nFeval = 0
@@ -203,7 +267,6 @@ class Unsupervised:
                                calib_param[2],
                                args=(calib_param[3], calib_param[4], pose, pointcloud, accum_point_enup, nearest_neighbor,
                                      self.config.PARM_IM, self.config.PARM_MO, thread),
-                               thread=thread,
                                method='Powell',
                                options={'ftol': 1e-10, 'disp': True})
                 # set data

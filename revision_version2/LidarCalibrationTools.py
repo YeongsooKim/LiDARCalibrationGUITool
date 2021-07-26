@@ -49,6 +49,7 @@ class ConfigurationTab(QWidget):
         self.is_lidar_num_changed = False
         self.form_widget = form_widget
 
+        self.cnt = 10
         self.initUi()
 
     def initUi(self):
@@ -62,7 +63,21 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         main_vbox.addWidget(self.next_btn)
 
+        # self.btn1 = QPushButton('Next step')
+        # self.btn1.clicked.connect(self.debug1)
+        # main_vbox.addWidget(lambda: self.btn1(self.cnt))
+        #
+        # self.btn2 = QPushButton('Next step')
+        # self.btn2.clicked.connect(self.debug2)
+        # main_vbox.addWidget(self.btn2)
+
         self.setLayout(main_vbox)
+
+    # def debug1(self, cnt):
+    #     print(cnt)
+    #
+    # def debug2(self):
+    #     self.cnt += 1
 
     ## Layout
     def SetConfiguration_Layout(self):
@@ -90,7 +105,7 @@ class ConfigurationTab(QWidget):
         self.lidar_num_label_layout = element.SpinBoxLabelLayout('LiDAR Num', self.form_widget)
         vbox.addLayout(self.lidar_num_label_layout)
 
-        self.select_using_sensor_list_layout = element.CheckBoxListLayout(self.form_widget, 'Select Using Sensor List')
+        self.select_using_sensor_list_layout = element.CheckBoxListLayout(CONST_SELECT_USING_SENSOR_LIST, self.form_widget, 'Select Using Sensor List')
         vbox.addLayout(self.select_using_sensor_list_layout)
 
         self.lidar_config_groupbox.setLayout(vbox)
@@ -372,18 +387,18 @@ class ImportDataTab(QWidget):
         elif not self.form_widget.importing.has_gnss_file:
             ## Set button status in datavalidation_tab
             self.form_widget.datavalidation_tab.using_gnss_motion = True
-            self.form_widget.datavalidation_tab.button_group.button(2).setChecked(True)
-            self.form_widget.datavalidation_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.datavalidation_tab.radio_label_layout.button_group.button(2).setChecked(True)
+            self.form_widget.datavalidation_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
             ## Set button status in handeye_tab
             self.form_widget.handeye_tab.using_gnss_motion = True
-            self.form_widget.handeye_tab.button_group.button(2).setChecked(True)
-            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.handeye_tab.radio_label_layout.button_group.button(2).setChecked(True)
+            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
             ## Set button status in unsupervised_tab
             self.form_widget.unsupervised_tab.using_gnss_motion = True
-            self.form_widget.unsupervised_tab.button_group.button(2).setChecked(True)
-            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.unsupervised_tab.radio_label_layout.button_group.button(2).setChecked(True)
+            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
         if self.form_widget.importing.has_motion_file:
             ## Set intial value
@@ -400,18 +415,18 @@ class ImportDataTab(QWidget):
         elif not self.form_widget.importing.has_motion_file:
             ## Set button status in datavalidation_tab
             self.form_widget.datavalidation_tab.using_gnss_motion = False
-            self.form_widget.datavalidation_tab.button_group.button(1).setChecked(True)
-            self.form_widget.datavalidation_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.datavalidation_tab.radio_label_layout.button_group.button(1).setChecked(True)
+            self.form_widget.datavalidation_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
             ## Set button status in handeye_tab
             self.form_widget.handeye_tab.using_gnss_motion = False
-            self.form_widget.handeye_tab.button_group.button(1).setChecked(True)
-            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.handeye_tab.radio_label_layout.button_group.button(1).setChecked(True)
+            self.form_widget.handeye_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
             ## Setbutton status in unsupervised_tab
             self.form_widget.unsupervised_tab.using_gnss_motion = False
-            self.form_widget.unsupervised_tab.button_group.button(1).setChecked(True)
-            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.button_group.checkedId()
+            self.form_widget.unsupervised_tab.radio_label_layout.button_group.button(1).setChecked(True)
+            self.form_widget.unsupervised_tab.prev_checkID = self.form_widget.datavalidation_tab.radio_label_layout.button_group.checkedId()
 
             ## Change time_speed_threshold_layout status
             self.time_speed_threshold_layout.double_spin_box.setReadOnly(True)
@@ -792,7 +807,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         liDAR_configuration_label = QLabel('[ Select LiDAR ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.select_lidar_to_calib_layout = element.ComboBoxLabelLayout('Select Lidar To Calib Layout', self.form_widget)
+        self.select_lidar_to_calib_layout = element.ComboBoxLabelLayout(CONST_ZRP_SELECT_LIDAR_TO_CALIB, 'Select Lidar To Calibration', self.form_widget)
         vbox.addLayout(self.select_lidar_to_calib_layout)
 
         roi_configuration_label = QLabel('[ ROI Configuration ]', self)
@@ -1056,10 +1071,10 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
 
     def SetDefault(self, manual_zrp_calib_result, calib_result):
         for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
-            if manual_zrp_calib_result.get(idxSensor) is not None:
+            if (manual_zrp_calib_result.get(idxSensor) is not None) and (calib_result.get(idxSensor) is not None):
                 manual_zrp_calib_result[idxSensor] = calib_result[idxSensor]
-            if manual_zrp_calib_result.get(idxSensor) is None:
-                manual_zrp_calib_result[idxSensor] = [0.0, 0.0, 0.0 ]
+            else:
+                manual_zrp_calib_result[idxSensor] = [0.0, 0.0, 0.0]
 
 class DataValidationTab(QWidget):
     def __init__(self, form_widget):
@@ -1101,29 +1116,6 @@ class DataValidationTab(QWidget):
         self.configuration_vbox = QVBoxLayout()
 
         self.configuration_vbox.addWidget(self.Configuration_DataInfo_Groupbox())
-
-        hbox = QHBoxLayout()
-        label = QLabel('Used Data')
-        hbox.addWidget(label)
-
-        # button for Handeye calibration
-        self.button_group = QButtonGroup()
-        rbn1 = QRadioButton('GNSS Data')
-        rbn1.setChecked(True)
-        rbn1.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn1)
-        self.button_group.addButton(rbn1, 1)
-
-        # button for unsupervised calibration
-        rbn2 = QRadioButton('Motion Data')
-        rbn2.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn2)
-        self.button_group.addButton(rbn2, 2)
-        self.configuration_vbox.addLayout(hbox)
-
-        # buttons = {}
-        #
-        # self.configuration_vbox.addLayout(element.RadioLabelLayout(CONST_TEST, 'Used Data', ))
 
         self.configuration_vbox.addWidget(self.Configuration_Validation_Groupbox())
 
@@ -1191,6 +1183,10 @@ class DataValidationTab(QWidget):
     def Configuration_Validation_Groupbox(self):
         groupbox = QGroupBox('Data Validation')
         vbox = QVBoxLayout(self)
+
+        buttons = {0:'GNSS Data', 1:'Motion Data'}
+        self.radio_label_layout = element.RadioLabelLayout(CONST_DATAVALIDATION_USED_DATA, 'Used Data', buttons, self.form_widget)
+        vbox.addLayout(self.radio_label_layout)
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
@@ -1394,25 +1390,6 @@ class DataValidationTab(QWidget):
         self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
                                            self.form_widget.config.PARM_LIDAR)
 
-    def RadioButton(self):
-        '''
-        only one button can selected
-        '''
-        status = self.button_group.checkedId()
-        if status == 1:  # GNSS Data
-            if self.form_widget.importing.has_gnss_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Gnss.csv')
-                return False
-            self.using_gnss_motion = False
-        elif status == 2:  # Motion Data
-            if self.form_widget.importing.has_motion_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Motion.csv')
-                return False
-            self.using_gnss_motion = True
-        self.prev_checkID = self.button_group.checkedId()
-
     def Skip(self):
         self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
 
@@ -1455,6 +1432,7 @@ class XYYaw_CalibrationTab(QWidget):
 
         self.PARM_LIDAR = []
 
+        self.is_single = True
         self.initUi()
 
     def initUi(self):
@@ -1474,25 +1452,6 @@ class XYYaw_CalibrationTab(QWidget):
         self.configuration_vbox = QVBoxLayout()
 
         self.configuration_vbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
-
-        hbox = QHBoxLayout()
-        label = QLabel('Used Data')
-        hbox.addWidget(label)
-
-        # button for Handeye calibration
-        self.button_group = QButtonGroup()
-        rbn1 = QRadioButton('GNSS Data')
-        rbn1.setChecked(True)
-        rbn1.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn1)
-        self.button_group.addButton(rbn1, 1)
-
-        # button for unsupervised calibration
-        rbn2 = QRadioButton('Motion Data')
-        rbn2.clicked.connect(self.RadioButton)
-        hbox.addWidget(rbn2)
-        self.button_group.addButton(rbn2, 2)
-        self.configuration_vbox.addLayout(hbox)
 
         self.configuration_vbox.addWidget(self.Configuration_Calibration_Groupbox())
 
@@ -1558,7 +1517,10 @@ class XYYaw_CalibrationTab(QWidget):
 
     ## Callback func
 
-    def StartCalibration(self, calibration_id, calibration, vehicle_speed_threshold, start_time, end_time, sensor_list, zrp_calib, targets_clear, progress_callbacks, end_callback):
+    def StartCalibration(self, calibration_id, calibration, vehicle_speed_threshold, start_time, end_time,
+                         sensor_list, zrp_calib, targets_clear, progress_callbacks, end_callback, is_single=False):
+        print("Start calib")
+        print(is_single)
 
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
@@ -1614,10 +1576,9 @@ class XYYaw_CalibrationTab(QWidget):
             self.form_widget.handeye_thread.end.connect(end_callback)
             self.form_widget.handeye_thread.start()
         elif calibration_id == CONST_UNSUPERVISED:
-
             self.form_widget.opti_thread._status = True
             self.form_widget.opti_thread.SetFunc(calibration,
-                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib])
+                                   [start_time, end_time, sensor_list, self.using_gnss_motion, vehicle_speed_threshold, zrp_calib, self.form_widget.unsupervised_tab.is_single])
             try:
                 self.form_widget.opti_thread.change_value.disconnect()
             except:
@@ -1699,25 +1660,6 @@ class XYYaw_CalibrationTab(QWidget):
 
     def ViewPointCloud(self):
         pass
-
-    def RadioButton(self):
-        '''
-        only one button can selected
-        '''
-        status = self.button_group.checkedId()
-        if status == 1:  # GNSS Data
-            if self.form_widget.importing.has_gnss_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Gnss.csv')
-                return False
-            self.using_gnss_motion = False
-        elif status == 2:  # Motion Data
-            if self.form_widget.importing.has_motion_file == False:
-                self.button_group.button(self.prev_checkID).setChecked(True)
-                self.form_widget.ErrorPopUp('Please import Motion.csv')
-                return False
-            self.using_gnss_motion = True
-        self.prev_checkID = self.button_group.checkedId()
 
     def VTKInit(self, is_default):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1822,6 +1764,10 @@ class HandEyeTab(XYYaw_CalibrationTab):
         groupbox = QGroupBox('HandEye Calibration')
         vbox = QVBoxLayout(self)
 
+        buttons = {0:'GNSS Data', 1:'Motion Data'}
+        self.radio_label_layout = element.RadioLabelLayout(CONST_HANDEYE_USED_DATA, 'Used Data', buttons, self.form_widget)
+        vbox.addLayout(self.radio_label_layout)
+
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
 
@@ -1834,7 +1780,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
                                                           self.GetZRPCalib(),
                                                           [self.text_edit.clear, self.calibration_pbar.reset],
                                                           [self.text_edit.append, self.calibration_pbar.setValue],
-                                                          self.EndCalibration))
+                                                          self.form_widget.handeye_tab.EndCalibration))
         hbox.addWidget(btn)
 
         self.pause_btn = QPushButton('Pause')
@@ -1912,13 +1858,12 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
         self.form_widget.handeye.complete_calibration = True
 
-        self.form_widget.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.handeye.PARM_LIDAR['CheckedSensorList'])
-        self.form_widget.ResetResultsLabels(self.form_widget.handeye.PARM_LIDAR)
-        self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.form_widget.handeye.PARM_LIDAR['CheckedSensorList'])
+        self.form_widget.ResetResultsLabels(self.PARM_LIDAR)
+        self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'] = copy.deepcopy(self.PARM_LIDAR['CheckedSensorList'])
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
                                                                                            self.form_widget.handeye_tab.using_gnss_motion,
-                                                                                           self.form_widget.handeye.PARM_LIDAR,
+                                                                                           self.PARM_LIDAR,
                                                                                            self.form_widget.handeye.CalibrationParam,
                                                                                            self.form_widget.importing_tab.limit_time_layout.start_time,
                                                                                            self.form_widget.importing_tab.limit_time_layout.end_time)
@@ -2005,8 +1950,12 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         liDAR_configuration_label = QLabel('[ LiDAR Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.select_principle_sensor_list_layout = element.CheckBoxListLayout(self.form_widget, 'Select Principle Sensor List')
-        vbox.addLayout(self.select_principle_sensor_list_layout)
+        buttons = {0:'Single LiDAR', 1:'Multi LiDAR'}
+        self.select_lidar_num_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Select Lidar Number', buttons, self.form_widget)
+        vbox.addLayout(self.select_lidar_num_layout)
+
+        self.select_lidar_combobox_layout = element.ComboBoxLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB, 'Select Single Lidar To Calibration', self.form_widget)
+        vbox.addLayout(self.select_lidar_combobox_layout)
 
         liDAR_configuration_label = QLabel('[ Unsupervised Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
@@ -2033,18 +1982,25 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         groupbox = QGroupBox('Unsupervised Calibration')
         vbox = QVBoxLayout(self)
 
+        buttons = {0:'GNSS Data', 1:'Motion Data'}
+        self.radio_label_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Used Data', buttons, self.form_widget)
+        vbox.addLayout(self.radio_label_layout)
+
         hbox = QHBoxLayout(self)
         btn = QPushButton('Start')
+        print("in unsupervised tab")
+        print(self.is_single)
         btn.clicked.connect(lambda: self.StartCalibration(CONST_UNSUPERVISED,
-                                                          self.form_widget.unsupervised.Calibration,
-                                                          self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                                          self.form_widget.importing_tab.limit_time_layout.start_time,
-                                                          self.form_widget.importing_tab.limit_time_layout.end_time,
-                                                          self.form_widget.config.PARM_LIDAR,
-                                                          self.GetZRPCalib(),
-                                                          [self.text_edit.clear],
-                                                          [self.text_edit.append],
-                                                          self.EndCalibration))
+                                self.form_widget.unsupervised.Calibration,
+                                self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
+                                self.form_widget.importing_tab.limit_time_layout.start_time,
+                                self.form_widget.importing_tab.limit_time_layout.end_time,
+                                self.form_widget.config.PARM_LIDAR,
+                                self.GetZRPCalib(),
+                                [self.text_edit.clear],
+                                [self.text_edit.append],
+                                self.EndCalibration),
+                                self.is_single)
         hbox.addWidget(btn)
 
         self.stop_btn = QPushButton('Stop')
@@ -2100,8 +2056,8 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.form_widget.unsupervised.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
-                                                                                           self.form_widget.unsupervised_tab.using_gnss_motion,
-                                                                                           self.form_widget.unsupervised.PARM_LIDAR,
+                                                                                           self.using_gnss_motion,
+                                                                                           self.PARM_LIDAR,
                                                                                            self.form_widget.unsupervised.CalibrationParam,
                                                                                            self.form_widget.importing_tab.limit_time_layout.start_time,
                                                                                            self.form_widget.importing_tab.limit_time_layout.end_time)
@@ -2116,7 +2072,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(None, None, None, None, None, None, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2124,7 +2080,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         # Evaluation tab
 
-        for idxSensor in self.form_widget.unsupervised.PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in self.PARM_LIDAR['CheckedSensorList']:
             self.form_widget.evaluation_tab.userinterface_labels[idxSensor].button_group.button(CONST_UNSUPERVISED).setChecked(True)
             self.form_widget.evaluation_tab.userinterface_labels[idxSensor].prev_checkID = CONST_UNSUPERVISED
             self.form_widget.evaluation_tab.userinterface_labels[idxSensor].spinbox1.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][3])
@@ -2638,6 +2594,8 @@ class MyApp(QMainWindow):
         is_path = False
 
         for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
+            if 'SingleSensor' in line:
+                line = line.replace(line, 'SingleSensor = ' + str(self.form_widget.config.PARM_LIDAR['SingleSensor']) + '\n')
             if 'PrincipalSensor' in line:
                 line = line.replace(line, 'PrincipalSensor = ' + str(self.form_widget.config.PARM_LIDAR['PrincipalSensor']) + '\n')
             elif 'CheckedSensorList' in line:
@@ -2958,7 +2916,6 @@ class FormWidget(QWidget):
         self.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
         self.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
         self.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
-        self.unsupervised_tab.select_principle_sensor_list_layout.AddWidgetItem(self.config.PARM_LIDAR['SensorList'], self.config.PARM_LIDAR['CheckedSensorList'])
 
         ### Setting evaluation tab
         PARM_EV = self.config.PARM_EV
@@ -3007,7 +2964,7 @@ class FormWidget(QWidget):
                     result_label.label_edit3.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 4)))
 
             elif label_type is CONST_UNEDITABLE_LABEL2:
-                result_label = element.CalibrationResultLabel(idxSensor, 'roll [deg]', 'pitch [deg]', 'z [m]')
+                result_label = element.CalibrationResultLabel(idxSensor, 'z [m]', 'roll [deg]', 'pitch [deg]')
                 if calibration_param.get(idxSensor) is not None:
                     result_label.label_edit1.setText(str(round(calibration_param[idxSensor][0], 4)))
                     result_label.label_edit2.setText(str(round(calibration_param[idxSensor][1], 4)))
@@ -3441,7 +3398,6 @@ class FormWidget(QWidget):
             self.importing_tab.lidar_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
             self.importing_tab.gnss_scroll_box.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
 
-            self.unsupervised_tab.select_principle_sensor_list_layout.listWidget.setFixedHeight(CONST_SCROLL_BOX_HEIGHT-40)
             self.unsupervised_tab.text_edit.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
             self.unsupervised_tab.optimization_initial_value_tab.tabs.setFixedHeight(CONST_SCROLL_BOX_HEIGHT+50)
 

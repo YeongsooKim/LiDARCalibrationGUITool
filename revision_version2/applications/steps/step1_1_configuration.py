@@ -42,6 +42,7 @@ class Configuration:
         config_param.read(self.configuration_file)
 
         # LIDAR
+        self.PARM_LIDAR['SingleSensor'] = int(config_param['LIDAR']['SingleSensor'])
         self.PARM_LIDAR['PrincipalSensor'] = int(config_param['LIDAR']['PrincipalSensor'])
         self.PARM_LIDAR['CheckedSensorList'] = list(map(int, config_param['LIDAR']['CheckedSensorList'].split()))
         self.PARM_LIDAR['SensorList'] = list(map(int, config_param['LIDAR']['SensorList'].split()))
@@ -128,6 +129,7 @@ class Configuration:
     def WriteDefaultFileBase(self, file):
         f = open(file, 'w', encoding=None)
         f.write('[LIDAR]\n')
+        f.write('SingleSensor = 0\n')
         f.write('PrincipalSensor = 0\n')
         f.write('CheckedSensorList = 0\n')
         f.write('SensorList = 0\n')
