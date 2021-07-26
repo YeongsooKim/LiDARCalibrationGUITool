@@ -415,17 +415,17 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                self.form_widget.zrollpitch_tab.result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.datavalidation_tab.zrp_scroll_box.layout,
                                                self.form_widget.datavalidation_tab.zrp_result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.handeye_tab.zrp_scroll_box.layout,
                                                self.form_widget.handeye_tab.zrp_result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.unsupervised_tab.zrp_scroll_box.layout,
                                                self.form_widget.unsupervised_tab.zrp_result_labels,
                                                calib_result)
@@ -453,19 +453,24 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                self.form_widget.zrollpitch_tab.result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.datavalidation_tab.zrp_scroll_box.layout,
                                                self.form_widget.datavalidation_tab.zrp_result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.handeye_tab.zrp_scroll_box.layout,
                                                self.form_widget.handeye_tab.zrp_result_labels,
                                                calib_result)
 
-            self.form_widget.ResetResultsLabel(CONST_ZRB_LABEL, PARM_LIDAR,
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
                                                self.form_widget.unsupervised_tab.zrp_scroll_box.layout,
                                                self.form_widget.unsupervised_tab.zrp_result_labels,
+                                               calib_result)
+
+            self.form_widget.ResetResultsLabel(CONST_ZRP_LABEL, PARM_LIDAR,
+                                               self.form_widget.evaluation_tab.zrp_scroll_box.layout,
+                                               self.form_widget.evaluation_tab.zrp_result_labels,
                                                calib_result)
 
 class SpinBoxLabelLayout(QVBoxLayout):
@@ -805,6 +810,48 @@ class SlideLabelLayout(QGridLayout):
         self.double_spin_box.editingFinished.connect(self.parent.DoubleSpinBoxChanged)
         self.prev_double_spin_box_value = self.double_spin_box.value()
         self.addWidget(self.double_spin_box, 1, 1)
+
+class RadioLabelLayout(QHBoxLayout):
+    def __init__(self, instance_id, label_str, buttons, form_widget):
+        super().__init__()
+        self.id = instance_id
+        self.buttons = buttons
+        self.label_str = label_str
+        self.form_widget = form_widget
+
+        self.InitUi()
+
+    def InitUi(self):
+        label = QLabel(self.label_str)
+        self.addWidget(label)
+
+        # button for Handeye calibration
+        self.button_group = QButtonGroup()
+        for key in self.buttons:
+            rbn = QRadioButton(self.buttons[key])
+            if key == 0:
+                rbn.setChecked(True)
+            else:
+                rbn.setChecked(False)
+            rbn.clicked.connect(self.RadioButton)
+            self.addWidget(rbn)
+            self.button_group.addButton(rbn, key+1)
+
+        # rbn1 = QRadioButton('GNSS Data')
+        # rbn1.setChecked(True)
+        # rbn1.clicked.connect(self.RadioButton)
+        # hbox.addWidget(rbn1)
+        # self.button_group.addButton(rbn1, 1)
+        #
+        # # button for unsupervised calibration
+        # rbn2 = QRadioButton('Motion Data')
+        # rbn2.clicked.connect(self.RadioButton)
+        # hbox.addWidget(rbn2)
+        # self.button_group.addButton(rbn2, 2)
+        # self.configuration_vbox.addLayout(hbox)
+
+    def RadioButton(self):
+        print("pass")
 
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, string, form_widget, ):
@@ -1403,6 +1450,7 @@ class RadioWithEditLabel(QHBoxLayout):
         self.spinbox3.valueChanged.connect(self.DoubleSpinBoxChanged3)
         self.addWidget(self.spinbox3)
 
+    ## Callback functions
     def CheckBox(self):
         if self.id == CONST_EVALUATION_RESULT_LABEL:
             if self.checkbox.checkState() == 0:
@@ -1472,6 +1520,7 @@ class RadioWithEditLabel(QHBoxLayout):
         if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
             status = self.button_group.checkedId()
             if status == CONST_AUTOMATIC:
+                # Reset spinbox format
                 self.spinbox1.setReadOnly(True)
                 self.spinbox1.setStyleSheet("background-color: #F0F0F0;")
                 self.spinbox1.setButtonSymbols(QAbstractSpinBox.NoButtons)
@@ -1481,7 +1530,18 @@ class RadioWithEditLabel(QHBoxLayout):
                 self.spinbox3.setReadOnly(True)
                 self.spinbox3.setStyleSheet("background-color: #F0F0F0;")
                 self.spinbox3.setButtonSymbols(QAbstractSpinBox.NoButtons)
-            else:
+
+                # Set value to spinbox
+                if self.form_widget.zrollpitch_tab.calib_result.get(self.idxSensor) is None:
+                    self.form_widget.zrollpitch_tab.calib_result[self.idxSensor] = [0.0, 0.0, 0.0]
+
+                calib_result = self.form_widget.zrollpitch_tab.calib_result[self.idxSensor]
+
+                self.spinbox1.setValue(calib_result[0])
+                self.spinbox2.setValue(calib_result[1])
+                self.spinbox3.setValue(calib_result[2])
+            elif status == CONST_MANUAL:
+                # Reset spinbox format
                 self.spinbox1.setReadOnly(False)
                 self.spinbox1.setStyleSheet("background-color: #FFFFFF;")
                 self.spinbox1.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
@@ -1492,16 +1552,7 @@ class RadioWithEditLabel(QHBoxLayout):
                 self.spinbox3.setStyleSheet("background-color: #FFFFFF;")
                 self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
 
-            if status == CONST_AUTOMATIC:
-                if self.form_widget.zrollpitch_tab.calib_result.get(self.idxSensor) is None:
-                    self.form_widget.zrollpitch_tab.calib_result[self.idxSensor] = [0.0, 0.0, 0.0]
-
-                calib_result = self.form_widget.zrollpitch_tab.calib_result[self.idxSensor]
-
-                self.spinbox1.setValue(calib_result[0])
-                self.spinbox2.setValue(calib_result[1])
-                self.spinbox3.setValue(calib_result[2])
-            elif status == CONST_MANUAL:
+                # Set value to spinbox
                 current_tab = self.form_widget.tabs.currentIndex()
 
                 if current_tab == CONST_VALIDATION_TAB:
@@ -1510,6 +1561,8 @@ class RadioWithEditLabel(QHBoxLayout):
                     tab = self.form_widget.handeye_tab
                 elif current_tab == CONST_UNSUPERVISED_TAB:
                     tab = self.form_widget.unsupervised_tab
+                elif current_tab == CONST_EVALUATION_TAB:
+                    tab = self.form_widget.evaluation_tab
 
                 if tab.manual_zrp_calib_result.get(self.idxSensor) is None:
                     tab.manual_zrp_calib_result[self.idxSensor] = [0.0, 0.0, 0.0]
@@ -1538,6 +1591,8 @@ class RadioWithEditLabel(QHBoxLayout):
                 tab = self.form_widget.handeye_tab
             elif current_tab == CONST_UNSUPERVISED_TAB:
                 tab = self.form_widget.unsupervised_tab
+            elif current_tab == CONST_EVALUATION_TAB:
+                tab = self.form_widget.evaluation_tab
 
             tab.manual_zrp_calib_result[self.idxSensor][0] = self.spinbox1.value()
 
@@ -1558,6 +1613,8 @@ class RadioWithEditLabel(QHBoxLayout):
                 tab = self.form_widget.handeye_tab
             elif current_tab == CONST_UNSUPERVISED_TAB:
                 tab = self.form_widget.unsupervised_tab
+            elif current_tab == CONST_EVALUATION_TAB:
+                tab = self.form_widget.evaluation_tab
 
             tab.manual_zrp_calib_result[self.idxSensor][1] = self.spinbox2.value()
 
@@ -1578,7 +1635,13 @@ class RadioWithEditLabel(QHBoxLayout):
                 tab = self.form_widget.handeye_tab
             elif current_tab == CONST_UNSUPERVISED_TAB:
                 tab = self.form_widget.unsupervised_tab
+            elif current_tab == CONST_EVALUATION_TAB:
+                tab = self.form_widget.evaluation_tab
 
             tab.manual_zrp_calib_result[self.idxSensor][2] = self.spinbox3.value()
 
-
+    ## Util functions
+    def SetValue(self, value):
+        self.spinbox1.setValue(round(value[0], 4))
+        self.spinbox2.setValue(round(value[1], 4))
+        self.spinbox3.setValue(round(value[2], 4))

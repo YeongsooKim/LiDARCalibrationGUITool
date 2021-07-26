@@ -26,6 +26,9 @@ class Evaluation:
         PARM_LIDAR = args[2]
         CalibrationParam = copy.deepcopy(args[3])
         using_gnss_motion = args[4]
+        zrp_calib = args[5]
+        print(zrp_calib)
+
 
         # Get calibration data
         tmp_df_info = copy.deepcopy(self.importing.df_info)

@@ -979,26 +979,54 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         self.result_labels[self.idxSensor].label_edit2.setText(str(round(self.calib_result[self.idxSensor][1], 4)))
         self.result_labels[self.idxSensor].label_edit3.setText(str(round(self.calib_result[self.idxSensor][2], 4)))
 
+        # # Data validation tab
+        # ## Set 'Result Calibration Data'
+        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        # self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        # self.SetDefault(self.form_widget.datavalidation_tab.manual_zrp_calib_result, self.calib_result)
+        #
+        # # Handeye tab
+        # ## Set 'Result Calibration Data'
+        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        # self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        # self.SetDefault(self.form_widget.handeye_tab.manual_zrp_calib_result, self.calib_result)
+        #
+        # # Unsupervised tab
+        # ## Set 'Result Calibration Data'
+        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        # self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        # self.SetDefault(self.form_widget.unsupervised_tab.manual_zrp_calib_result, self.calib_result)
+        #
+        # # Evaluation tab
+        # ## Set 'Result Calibration Data'
+        # self.form_widget.evaluation_tab.zrp_result_labels[self.idxSensor].SetValue(self.calib_result[self.idxSensor])
+        # self.form_widget.evaluation_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
+        # self.form_widget.evaluation_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
+        # self.form_widget.evaluation_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        # self.SetDefault(self.form_widget.evaluation_tab.manual_zrp_calib_result, self.calib_result)
+
         # Data validation tab
         ## Set 'Result Calibration Data'
-        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
-        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
-        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.form_widget.datavalidation_tab.zrp_result_labels[self.idxSensor].SetValue(self.calib_result[self.idxSensor])
         self.SetDefault(self.form_widget.datavalidation_tab.manual_zrp_calib_result, self.calib_result)
 
         # Handeye tab
         ## Set 'Result Calibration Data'
-        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
-        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
-        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.form_widget.handeye_tab.zrp_result_labels[self.idxSensor].SetValue(self.calib_result[self.idxSensor])
         self.SetDefault(self.form_widget.handeye_tab.manual_zrp_calib_result, self.calib_result)
 
         # Unsupervised tab
         ## Set 'Result Calibration Data'
-        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox1.setValue(round(self.calib_result[self.idxSensor][0], 4))
-        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox2.setValue(round(self.calib_result[self.idxSensor][1], 4))
-        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].spinbox3.setValue(round(self.calib_result[self.idxSensor][2], 4))
+        self.form_widget.unsupervised_tab.zrp_result_labels[self.idxSensor].SetValue(self.calib_result[self.idxSensor])
         self.SetDefault(self.form_widget.unsupervised_tab.manual_zrp_calib_result, self.calib_result)
+
+        # Evaluation tab
+        ## Set 'Result Calibration Data'
+        self.form_widget.evaluation_tab.zrp_result_labels[self.idxSensor].SetValue(self.calib_result[self.idxSensor])
+        self.SetDefault(self.form_widget.evaluation_tab.manual_zrp_calib_result, self.calib_result)
 
     def CopyList(self, source, target):
         keys = list(source.keys())
@@ -1028,9 +1056,10 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
 
     def SetDefault(self, manual_zrp_calib_result, calib_result):
         for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
-            if manual_zrp_calib_result.get(self.idxSensor) is None:
-                manual_zrp_calib_result[self.idxSensor] = calib_result[self.idxSensor]
-
+            if manual_zrp_calib_result.get(idxSensor) is not None:
+                manual_zrp_calib_result[idxSensor] = calib_result[idxSensor]
+            if manual_zrp_calib_result.get(idxSensor) is None:
+                manual_zrp_calib_result[idxSensor] = [0.0, 0.0, 0.0 ]
 
 class DataValidationTab(QWidget):
     def __init__(self, form_widget):
@@ -1092,6 +1121,10 @@ class DataValidationTab(QWidget):
         self.button_group.addButton(rbn2, 2)
         self.configuration_vbox.addLayout(hbox)
 
+        # buttons = {}
+        #
+        # self.configuration_vbox.addLayout(element.RadioLabelLayout(CONST_TEST, 'Used Data', ))
+
         self.configuration_vbox.addWidget(self.Configuration_Validation_Groupbox())
 
         return self.configuration_vbox
@@ -1109,8 +1142,8 @@ class DataValidationTab(QWidget):
         groupbox = QGroupBox('Configuration Info')
         vbox = QVBoxLayout()
 
-        roll_pitch_height_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
-        vbox.addWidget(roll_pitch_height_param_label)
+        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
         label = QLabel()
@@ -1119,11 +1152,11 @@ class DataValidationTab(QWidget):
         hbox.addWidget(label, 10)
         label = QLabel('Manual')
         hbox.addWidget(label, 10)
+        label = QLabel('z [m]')
+        hbox.addWidget(label, 10)
         label = QLabel('roll [deg]')
         hbox.addWidget(label, 10)
         label = QLabel('pitch [deg]')
-        hbox.addWidget(label, 10)
-        label = QLabel('z [m]')
         hbox.addWidget(label, 10)
         vbox.addLayout(hbox)
 
@@ -1743,8 +1776,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
         groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        roll_pitch_height_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
-        vbox.addWidget(roll_pitch_height_param_label)
+        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
         label = QLabel()
@@ -1753,11 +1786,11 @@ class HandEyeTab(XYYaw_CalibrationTab):
         hbox.addWidget(label, 10)
         label = QLabel('Manual')
         hbox.addWidget(label, 10)
+        label = QLabel('z [m]')
+        hbox.addWidget(label, 10)
         label = QLabel('roll [deg]')
         hbox.addWidget(label, 10)
         label = QLabel('pitch [deg]')
-        hbox.addWidget(label, 10)
-        label = QLabel('z [m]')
         hbox.addWidget(label, 10)
         vbox.addLayout(hbox)
 
@@ -1948,8 +1981,8 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.optimization_configuration_groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        roll_pitch_height_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
-        vbox.addWidget(roll_pitch_height_param_label)
+        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
         label = QLabel()
@@ -1958,11 +1991,11 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         hbox.addWidget(label, 10)
         label = QLabel('Manual')
         hbox.addWidget(label, 10)
+        label = QLabel('z [m]')
+        hbox.addWidget(label, 10)
         label = QLabel('roll [deg]')
         hbox.addWidget(label, 10)
         label = QLabel('pitch [deg]')
-        hbox.addWidget(label, 10)
-        label = QLabel('z [m]')
         hbox.addWidget(label, 10)
         vbox.addLayout(hbox)
 
@@ -2121,6 +2154,9 @@ class EvaluationTab(QWidget):
         self.eval_calib_y = []
         self.eval_calib_yaw = []
 
+        self.zrp_result_labels = {}
+        self.manual_zrp_calib_result = {}
+
         self.initUi()
 
     def initUi(self):
@@ -2168,8 +2204,32 @@ class EvaluationTab(QWidget):
     ## Groupbox
 
     def UserInterface_SelectMethod_Groupbox(self):
-        groupbox = QGroupBox('Select The Method')
+        groupbox = QGroupBox('Select Evaluation Target')
         vbox = QVBoxLayout()
+
+        height_roll_pitch_param_label = QLabel('[ Select Z, Roll, Pitch ]', self)
+        vbox.addWidget(height_roll_pitch_param_label)
+
+        hbox = QHBoxLayout()
+        label = QLabel()
+        hbox.addWidget(label, 10)
+        label = QLabel('Automatic')
+        hbox.addWidget(label, 10)
+        label = QLabel('Manual')
+        hbox.addWidget(label, 10)
+        label = QLabel('z [m]')
+        hbox.addWidget(label, 10)
+        label = QLabel('roll [deg]')
+        hbox.addWidget(label, 10)
+        label = QLabel('pitch [deg]')
+        hbox.addWidget(label, 10)
+        vbox.addLayout(hbox)
+
+        self.zrp_scroll_box = ScrollAreaV()
+        vbox.addWidget(self.zrp_scroll_box)
+
+        height_roll_pitch_param_label = QLabel('[ Select X, Y, Yaw ]', self)
+        vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
         label = QLabel()
@@ -2354,6 +2414,7 @@ class EvaluationTab(QWidget):
                              self.limit_time_layout.end_time,
                              self.eval_lidar,
                              self.eval_calibration_param,
+                             self.GetZRPCalib(),
                              [self.text_edit.clear, self.pbar.reset],
                              self.text_edit.append,
                              self.pbar.setValue,
@@ -2363,7 +2424,7 @@ class EvaluationTab(QWidget):
         self.form_widget.thread.toggle_status()
         self.evaluation_status = CONST_IDLE
 
-    def StartEvaluation(self, start_time, end_time, sensor_list, calibration_param, targets_clear, text_edit_callback, progress_callback, end_callback):
+    def StartEvaluation(self, start_time, end_time, sensor_list, calibration_param, zrp_calib, targets_clear, text_edit_callback, progress_callback, end_callback):
         self.form_widget.thread._status = True
 
         if self.form_widget.handeye.complete_calibration:
@@ -2371,7 +2432,7 @@ class EvaluationTab(QWidget):
         elif self.form_widget.unsupervised.complete_calibration:
             using_gnss_motion = self.form_widget.unsupervised_tab.using_gnss_motion
 
-        self.form_widget.thread.SetFunc(self.form_widget.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param, using_gnss_motion])
+        self.form_widget.thread.SetFunc(self.form_widget.evaluation.Evaluation, [start_time, end_time, sensor_list, calibration_param, using_gnss_motion, zrp_calib])
         try:
             self.form_widget.thread.change_value.disconnect()
         except:
@@ -2425,6 +2486,25 @@ class EvaluationTab(QWidget):
                          self.eval_rmse_canvas)
         
         print('end evaluation')
+
+    # Utils
+    def GetZRPCalib(self):
+        calib = {}
+
+        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+
+            if status == CONST_AUTOMATIC:
+                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+
+                calib[idxSensor] = calib_result
+            elif status == CONST_MANUAL:
+                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+
+        return calib
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -2792,22 +2872,22 @@ class FormWidget(QWidget):
         self.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
 
         self.tabs.addTab(self.importing_tab, '1.2. Import Data')
-        self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, False)
+        self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, True)
 
         self.tabs.addTab(self.zrollpitch_tab, '2. Z, Roll, Pitch: Calibration')
-        self.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, False)
+        self.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, True)
 
         self.tabs.addTab(self.datavalidation_tab, '3.1. X, Y, Yaw: Data Validation')
-        self.tabs.setTabEnabled(CONST_VALIDATION_TAB, False)
+        self.tabs.setTabEnabled(CONST_VALIDATION_TAB, True)
 
         self.tabs.addTab(self.handeye_tab, '3.2. X, Y, Yaw: Hand-Eye Calibration')
-        self.tabs.setTabEnabled(CONST_HANDEYE_TAB, False)
+        self.tabs.setTabEnabled(CONST_HANDEYE_TAB, True)
 
         self.tabs.addTab(self.unsupervised_tab, '3.3. X, Y, Yaw: Unsupervised Calibration')
-        self.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
+        self.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
 
         self.tabs.addTab(self.evaluation_tab, '4. Evaluation')
-        self.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
+        self.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
 
         ### Set Basic Window
         self.hbox.addWidget(self.tabs)
@@ -2944,7 +3024,7 @@ class FormWidget(QWidget):
                 buttons = {0:True, 1:False, 2:False}
                 result_label = element.RadioWithEditLabel(CONST_EVALUATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=True)
 
-            elif label_type is CONST_ZRB_LABEL:
+            elif label_type is CONST_ZRP_LABEL:
                 buttons = {0:True, 1:False}
                 result_label = element.RadioWithEditLabel(CONST_ZRP_CALIBRATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
                 if calibration_param.get(idxSensor) is not None:

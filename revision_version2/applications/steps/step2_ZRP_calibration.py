@@ -324,7 +324,7 @@ class ZRollPitch:
             z_m = calib_height_result
 
             print("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor))
-            self.calib_result = [roll_deg, pitch_deg, z_m]
+            self.calib_result = [z_m, roll_deg, pitch_deg]
             self.mean_distance = measured_distance_m
             #self.ground_slope = min_theta
             self.ground_slope = slope_list
