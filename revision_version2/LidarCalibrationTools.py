@@ -3246,11 +3246,11 @@ class FormWidget(QWidget):
         fig = plt.figure(figsize=(16, 12), dpi=70)
                 
         if ax is not None:
-            ax.stem(timestamp, measured_distance,'-.',label='Mean distance between point and plane [m]')
+            ax.stem(timestamp, measured_distance, label='Mean distance between point and plane [m]')
             
         if canvas is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.stem(timestamp, measured_distance,'-.',label='Mean distance between point and plane [m]')
+            ax.stem(timestamp, measured_distance, label='Mean distance between point and plane [m]')
             val = np.max(measured_distance) * 1.4
             ax.set_ylim([0 -val/2, np.max(measured_distance) + val/2])
             ax.grid()
@@ -3280,11 +3280,10 @@ class FormWidget(QWidget):
         fig = plt.figure(figsize=(16, 12), dpi=70)
                 
         if ax is not None:
-            ax.stem(timestamp, ground_slope,'-.', label='Transformed Ground Slope [deg]')
+            ax.stem(timestamp, ground_slope, label='Transformed Ground Slope [deg]')
             val = np.max(ground_slope) * 1.4
             ax.set_xlim([timestamp[0] - 3, timestamp[len(timestamp) - 1] + 3])
-            print("val: %f, max: %f" %(val, np.max(ground_slope)))
-            ax.set_ylim([0 -val/2, np.max(ground_slope) + val/2])            
+            ax.set_ylim([0 -val/2, np.max(ground_slope) + val/2])
             ax.axhline(3,color = 'gray',label='Threshold')
             if np.max(ground_slope) > 3:
                 ax.fill_betweenx([3, np.max(ground_slope) + val/2], [timestamp[len(timestamp)-1]+3, timestamp[len(timestamp)-1]+3], color = 'gray', alpha = 0.2)
@@ -3292,7 +3291,7 @@ class FormWidget(QWidget):
             
         if canvas is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.stem(timestamp, ground_slope, '-.', label='Transformed Ground Slope [deg]')
+            ax.stem(timestamp, ground_slope, label='Transformed Ground Slope [deg]')
             ax.axhline(3,color = 'gray',label='Threshold')
             ax.text(timestamp[0] + 5,max(ground_slope) + 20,'Fault',fontsize=13, color = 'gray')
             val = np.max(ground_slope) * 1.4

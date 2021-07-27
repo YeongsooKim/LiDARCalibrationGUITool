@@ -98,8 +98,6 @@ class ZRollPitch:
         thread.mutex.lock()
         has_error = False
 
-        print(args)
-
         start_time = args[0]
         end_time = args[1]
         PARM_ZRP = copy.deepcopy(args[2])
@@ -186,7 +184,6 @@ class ZRollPitch:
 
             if plane_method == 1:
                 SVD = utils_plane.fitPlaneSVD(filtered_pointcloud_in_lidar_frame)
-                print(SVD)
                 if SVD[2] < 0:
                     SVD = -SVD
                 Plane_Norm = np.insert(SVD, 3, filtered_pointcloud_in_lidar_frame[0,0]*SVD[0] + filtered_pointcloud_in_lidar_frame[0,1]*SVD[1] + filtered_pointcloud_in_lidar_frame[0,2]*SVD[2])
@@ -315,17 +312,12 @@ class ZRollPitch:
                 y2 = 0
                 z2 = 1
 
-                denominator = np.sqrt(x1*x1 + y1*y1 + z1*z1)*np.sqrt(x2*x2 + y2*y2 + z2*z2)
-                if denominator < 0.003:
-                    denominator = 0.003
-                theta = np.arccos((x1*x2+y1*y2+z1*z2)/denominator)
+                theta = np.arccos((x1*x2+y1*y2+z1*z2)/(np.sqrt(x1*x1 + y1*y1 + z1*z1)*np.sqrt(x2*x2 + y2*y2 + z2*z2)))
     
                 min_theta = np.minimum(theta, np.pi-theta)*180/np.pi
                 
                 slope_list.append(min_theta)
                 
-                #print(slope_list)
-            
             roll_deg = calib_roll_result * 180/np.pi
             pitch_deg = calib_pitch_result * 180/np.pi
             z_m = calib_height_result
@@ -335,7 +327,6 @@ class ZRollPitch:
             self.mean_distance = measured_distance_m
             #self.ground_slope = min_theta
             self.ground_slope = slope_list
-            print(slope_list)
             thread.emit_string.emit(str("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor)))
 
         thread.mutex.unlock()

@@ -7,6 +7,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn import linear_model
 import math
 import scipy.optimize
+import scipy
 #import pcl
 
 
@@ -25,6 +26,7 @@ def fitPLaneLTSQ(XYZ):
     normal = (a,b,-1)
     nn = np.linalg.norm(normal)
     normal = normal / nn
+
     return normal
 
 
@@ -35,11 +37,15 @@ def fitPlaneSVD(XYZ):
     # in the form b(1)*X + b(2)*Y +b(3)*Z + b(4) = 0.
     p = (np.ones((rows,1)))
     AB = np.hstack([XYZ,p])
-    [u, d, v] = np.linalg.svd(AB,0)        
+    [u, d, v] = scipy.linalg.svd(AB,0)
     B = v[3,:]                    # Solution is last column of v.
+    if B[0]==0.:
+        B[0] = 10e-20
+
+    if B[1]==0.:
+        B[1] = 10e-20
+
     nn = np.linalg.norm(B[0:3])
-    if nn < 0.003:
-        nn = 0.003
     B = B / nn
     return B[0:3]
 
