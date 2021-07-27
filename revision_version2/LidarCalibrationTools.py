@@ -49,7 +49,6 @@ class ConfigurationTab(QWidget):
         self.is_lidar_num_changed = False
         self.form_widget = form_widget
 
-        self.cnt = 10
         self.initUi()
 
     def initUi(self):
@@ -157,15 +156,15 @@ class ConfigurationTab(QWidget):
         hbox = QHBoxLayout()
 
         btn = QPushButton('xy plane')
-        btn.clicked.connect(self.XY)
+        btn.clicked.connect(lambda: self.form_widget.XY(self.ren))
         hbox.addWidget(btn)
 
         btn = QPushButton('yz plane')
-        btn.clicked.connect(self.YZ)
+        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren))
         hbox.addWidget(btn)
 
         btn = QPushButton('zx plane')
-        btn.clicked.connect(self.ZX)
+        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren))
         hbox.addWidget(btn)
         vbox.addLayout(hbox)
 
@@ -214,23 +213,6 @@ class ConfigurationTab(QWidget):
         self.renWin.Render()
 
         self.iren.Start()
-
-    def XY(self):
-        # self.ren.GetActiveCamera().SetPosition(1, 0, 0)
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(0, 0, 1)
-
-        self.ren.ResetCamera()
-
-    def YZ(self):
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(1, 0, 0)
-        self.ren.ResetCamera()
-
-    def ZX(self):
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(0, 1, 0)
-        self.ren.ResetCamera()
 
 class ImportDataTab(QWidget):
     def __init__(self, form_widget):
@@ -1191,7 +1173,7 @@ class DataValidationTab(QWidget):
                                                          self.form_widget.importing_tab.limit_time_layout.start_time,
                                                          self.form_widget.importing_tab.limit_time_layout.end_time,
                                                          self.form_widget.config.PARM_LIDAR,
-                                                         self.GetZRPCalib(),
+                                                         self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result),
                                                          [self.text_edit.clear, self.calibration_pbar.reset],
                                                          [self.text_edit.append, self.calibration_pbar.setValue],
                                                          self.EndValibration))
@@ -1386,24 +1368,42 @@ class DataValidationTab(QWidget):
 
     def Skip(self):
         self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
-
-    def GetZRPCalib(self):
-        calib = {}
-
-        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
-            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
-
-            if status == CONST_AUTOMATIC:
-                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
-                    calib_result = [0.0, 0.0, 0.0]
-                else:
-                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
-
-                calib[idxSensor] = calib_result
-            elif status == CONST_MANUAL:
-                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
-
-        return calib
+    #
+    # def GetZRPCalibDict(self):
+    #     calib = {}
+    #
+    #     for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+    #         status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+    #
+    #         if status == CONST_AUTOMATIC:
+    #             if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+    #                 calib_result = [0.0, 0.0, 0.0]
+    #             else:
+    #                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+    #
+    #             calib[idxSensor] = calib_result
+    #         elif status == CONST_MANUAL:
+    #             calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+    #
+    #     return calib
+    #
+    # def GetZRPCalibList(self):
+    #     calib = []
+    #
+    #     for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+    #         status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+    #
+    #         if status == CONST_AUTOMATIC:
+    #             if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+    #                 calib_result = [0.0, 0.0, 0.0]
+    #             else:
+    #                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+    #
+    #             calib.append(calib_result)
+    #         elif status == CONST_MANUAL:
+    #             calib.append(self.manual_zrp_calib_result[idxSensor])
+    #
+    #     return calib
 
 class XYYaw_CalibrationTab(QWidget):
     def __init__(self, form_widget):
@@ -1472,15 +1472,15 @@ class XYYaw_CalibrationTab(QWidget):
         hbox = QHBoxLayout()
 
         btn = QPushButton('xy plane')
-        btn.clicked.connect(self.XY)
+        btn.clicked.connect(lambda: self.form_widget.XY(self.ren))
         hbox.addWidget(btn)
 
         btn = QPushButton('yz plane')
-        btn.clicked.connect(self.YZ)
+        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren))
         hbox.addWidget(btn)
 
         btn = QPushButton('zx plane')
-        btn.clicked.connect(self.ZX)
+        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren))
         hbox.addWidget(btn)
         vbox.addLayout(hbox)
 
@@ -1525,7 +1525,8 @@ class XYYaw_CalibrationTab(QWidget):
         for i in range(len(self.PARM_LIDAR['CheckedSensorList'])):
             idxSensors = list(self.PARM_LIDAR['CheckedSensorList'])
 
-            lidar_info = [self.calib_x[i], self.calib_y[i], 0, 0, 0, self.calib_yaw[i]]
+            lidar_info = [self.calib_result[0][i], self.calib_result[1][i], self.calib_result[2][i],
+                          self.calib_result[3][i], self.calib_result[4][i], self.calib_result[5][i]]
             lidar_info_dict[idxSensors[i]] = lidar_info
 
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
@@ -1550,23 +1551,6 @@ class XYYaw_CalibrationTab(QWidget):
         renWin.Render()
 
         iren.Start()
-
-    def XY(self):
-        # self.ren.GetActiveCamera().SetPosition(1, 0, 0)
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(0, 0, 1)
-
-        self.ren.ResetCamera()
-
-    def YZ(self):
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(1, 0, 0)
-        self.ren.ResetCamera()
-
-    def ZX(self):
-        self.ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        self.ren.GetActiveCamera().SetViewUp(0, 1, 0)
-        self.ren.ResetCamera()
 
     def ViewPointCloud(self):
         pass
@@ -1634,24 +1618,24 @@ class XYYaw_CalibrationTab(QWidget):
             self.renWin.Render()
 
             self.iren.Start()
-
-    def GetZRPCalib(self):
-        calib = {}
-
-        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
-            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
-
-            if status == CONST_AUTOMATIC:
-                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
-                    calib_result = [0.0, 0.0, 0.0]
-                else:
-                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
-
-                calib[idxSensor] = calib_result
-            elif status == CONST_MANUAL:
-                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
-
-        return calib
+    #
+    # def GetZRPCalibDict(self):
+    #     calib = {}
+    #
+    #     for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+    #         status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+    #
+    #         if status == CONST_AUTOMATIC:
+    #             if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+    #                 calib_result = [0.0, 0.0, 0.0]
+    #             else:
+    #                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+    #
+    #             calib[idxSensor] = calib_result
+    #         elif status == CONST_MANUAL:
+    #             calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+    #
+    #     return calib
 
 class HandEyeTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
@@ -1761,8 +1745,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
                                 self.form_widget.importing_tab.limit_time_layout.end_time,
                                 self.form_widget.config.PARM_LIDAR, 
                                 self.using_gnss_motion, 
-                                self.form_widget.config.PARM_IM['VehicleSpeedThreshold'], 
-                                self.GetZRPCalib()])
+                                self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
+                                self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result)])
         try:
             self.form_widget.handeye_thread.change_value.disconnect()
         except:
@@ -1822,12 +1806,10 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
 
     def EndCalibration(self):
-        self.calib_x = self.form_widget.handeye.calib_x
-        self.calib_y = self.form_widget.handeye.calib_y
-        # self.calib_z = self.form_widget.handeye.calib_z
-        # self.calib_r = self.form_widget.handeye.calib_r
-        # self.calib_p = self.form_widget.handeye.calib_p
-        self.calib_yaw = self.form_widget.handeye.calib_yaw
+        zrp_result = self.form_widget.GetZRPCalibList(self.zrp_result_labels, self.manual_zrp_calib_result)
+        self.calib_result = [self.form_widget.handeye.calib_y, self.form_widget.handeye.calib_x,
+                             zrp_result[0], zrp_result[1], zrp_result[2],
+                             self.form_widget.handeye.calib_yaw]
         self.PARM_LIDAR = self.form_widget.handeye.PARM_LIDAR
 
         self.progress_status = CONST_IDLE
@@ -1853,7 +1835,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
@@ -2002,7 +1984,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
                                             self.form_widget.config.PARM_LIDAR,
                                             self.using_gnss_motion,
                                             self.form_widget.config.PARM_IM['VehicleSpeedThreshold'],
-                                            self.GetZRPCalib(), 
+                                            self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result),
                                             self.is_single])
         try:
             self.form_widget.opti_thread.change_value.disconnect()
@@ -2046,12 +2028,10 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
 
     def EndCalibration(self):
-        self.calib_y = self.form_widget.unsupervised.calib_y
-        self.calib_x = self.form_widget.unsupervised.calib_x
-        # self.calib_z = self.form_widget.unsupervised.calib_z
-        # self.calib_r = self.form_widget.unsupervised.calib_r
-        # self.calib_p = self.form_widget.unsupervised.calib_p
-        self.calib_yaw = self.form_widget.unsupervised.calib_yaw
+        zrp_result = self.form_widget.GetZRPCalibList(self.zrp_result_labels, self.manual_zrp_calib_result)
+        self.calib_result = [self.form_widget.unsupervised.calib_y, self.form_widget.unsupervised.calib_x,
+                             zrp_result[0], zrp_result[1], zrp_result[2],
+                             self.form_widget.unsupervised.calib_yaw]
         self.PARM_LIDAR = self.form_widget.unsupervised.PARM_LIDAR
 
         self.progress_status = CONST_IDLE
@@ -2059,7 +2039,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
                                                                                            self.using_gnss_motion,
-                                                                                           self.PARM_LIDAR,
+                                                                                           self.form_widget.unsupervised.PARM_LIDAR,
                                                                                            self.form_widget.unsupervised.CalibrationParam,
                                                                                            self.form_widget.importing_tab.limit_time_layout.start_time,
                                                                                            self.form_widget.importing_tab.limit_time_layout.end_time)
@@ -2074,7 +2054,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_x, self.calib_y, None, None, None, self.calib_yaw, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
+        self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2372,7 +2352,7 @@ class EvaluationTab(QWidget):
                              self.limit_time_layout.end_time,
                              self.eval_lidar,
                              self.eval_calibration_param,
-                             self.GetZRPCalib(),
+                             self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result),
                              [self.text_edit.clear, self.pbar.reset],
                              self.text_edit.append,
                              self.pbar.setValue,
@@ -2445,24 +2425,42 @@ class EvaluationTab(QWidget):
         
         print('end evaluation')
 
-    # Utils
-    def GetZRPCalib(self):
-        calib = {}
-
-        for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
-            status = self.zrp_result_labels[idxSensor].button_group.checkedId()
-
-            if status == CONST_AUTOMATIC:
-                if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
-                    calib_result = [0.0, 0.0, 0.0]
-                else:
-                    calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
-
-                calib[idxSensor] = calib_result
-            elif status == CONST_MANUAL:
-                calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
-
-        return calib
+    # # Utils
+    # def GetZRPCalibDict(self):
+    #     calib = {}
+    #
+    #     for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+    #         status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+    #
+    #         if status == CONST_AUTOMATIC:
+    #             if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+    #                 calib_result = [0.0, 0.0, 0.0]
+    #             else:
+    #                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+    #
+    #             calib[idxSensor] = calib_result
+    #         elif status == CONST_MANUAL:
+    #             calib[idxSensor] = self.manual_zrp_calib_result[idxSensor]
+    #
+    #     return calib
+    #
+    # def GetZRPCalibList(self):
+    #     calib = []
+    #
+    #     for idxSensor in self.form_widget.config.PARM_LIDAR["CheckedSensorList"]:
+    #         status = self.zrp_result_labels[idxSensor].button_group.checkedId()
+    #
+    #         if status == CONST_AUTOMATIC:
+    #             if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
+    #                 calib_result = [0.0, 0.0, 0.0]
+    #             else:
+    #                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
+    #
+    #             calib.append(calib_result)
+    #         elif status == CONST_MANUAL:
+    #             calib.append(self.manual_zrp_calib_result[idxSensor])
+    #
+    #     return calib
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -3026,17 +3024,19 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def DisplayLiDAR(self, calib_x, calib_y, calib_z, calib_roll, calib_pitch, calib_yaw, PARM_LIDAR, ren, iren, renWin, widget, is_single=False):
+    def DisplayLiDAR(self, calib_result, PARM_LIDAR, ren, iren, renWin, widget, is_single=False):
 
         lidar_info_dict = {}
 
         if is_single:
-            lidar_info_dict[self.config.PARM_LIDAR['SingleSensor']] = [calib_x[0], calib_y[0], 0, 0, 0, calib_yaw[0]]
+            lidar_info_dict[self.config.PARM_LIDAR['SingleSensor']] = [calib_result[0][0], calib_result[1][0], calib_result[2][0],
+                                                                       calib_result[3][0], calib_result[4][0], calib_result[5][0]]
         else:
             for i in range(len(PARM_LIDAR['CheckedSensorList'])):
                 idxSensors = list(PARM_LIDAR['CheckedSensorList'])
 
-                lidar_info = [calib_x[i], calib_y[i], 0, 0, 0, calib_yaw[i]]
+                lidar_info = [calib_result[0][i], calib_result[1][i], calib_result[2][i],
+                           calib_result[3][i], calib_result[4][i], calib_result[5][i]]
                 lidar_info_dict[idxSensors[i]] = lidar_info
 
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
@@ -3054,83 +3054,83 @@ class FormWidget(QWidget):
 
         iren.Start()
 
-    # def ViewLiDAR(self, calib_x, calib_y, calib_yaw, PARM_LIDAR,  ax=None, canvas=None):
-    #     lidar_num = len(PARM_LIDAR['CheckedSensorList'])
-    #     column = '2'
-    #     row = str(math.ceil(lidar_num / 2))
-    #     fig = plt.figure(figsize=(16, 12), dpi=70)
-    #     veh_path = self.config.PATH['Image'] + 'vehicle2.png'
-    #     # veh = plt.imread(veh_path)
-    #     # Open vehicle image
-    #     veh = Image.open(veh_path)
-    #     veh2 = veh.resize((1100, 1100))
-    #     veh = np.asarray(veh2)
-    #
-    #     # veh = plt.imread(veh_path)
-    #     # veh = plt.set_size_inches(18.5, 10.5, forward=True)
-    #     for i in range(len(PARM_LIDAR['CheckedSensorList'])):
-    #         idxSensor = list(PARM_LIDAR['CheckedSensorList'])
-    #         if canvas is None:
-    #             plot_num_str = column + row + str(i + 1)
-    #             ax = fig.add_subplot(int(plot_num_str))
-    #
-    #         # T = np.array([[np.cos(calib_yaw[i]), -np.sin(calib_yaw[i]), calib_x[i]],[np.sin(calib_yaw[i]), np.cos(calib_yaw[i]), calib_y[i]],[0,0,1]])
-    #         # inv_T = np.linalg.inv(T)
-    #         # calib_x[i] = inv_T[0][2]
-    #         # calib_y[i] = inv_T[1][2]
-    #         # calib_yaw[i] = np.arctan2(inv_T[1, 0], inv_T[0, 0])
-    #         # x = int(calib_x[i]) * 200 + 520
-    #         # y = 1000 - 1 * int(calib_y[i]) * 200 - 500
-    #         x = -calib_y[i] * 120 + 542
-    #         y = 725 - 1 * calib_x[i] * 160
-    #         # car_length = 1.75
-    #         lidar_num = 'lidar' + str(idxSensor[i])
-    #         ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i]) % len(self.color_list)],
-    #                    edgecolor='none', alpha=0.5)
-    #
-    #         s = 'x[m]: ' + str(round(calib_x[i], 4)) + '\ny[m]: ' + str(round(calib_y[i], 4)) + '\nyaw[deg]: ' + str(
-    #             round(calib_yaw[i], 4))
-    #
-    #         if canvas is None:
-    #             if calib_y[i] > 0:
-    #                 ax.text(x, y + 300, s, fontsize=7)
-    #             else:
-    #                 ax.text(x, y - 70, s, fontsize=7)
-    #
-    #         ax.arrow(x, y, 100 * np.cos((calib_yaw[i] + 90) * np.pi / 180),
-    #                  -100 * np.sin((calib_yaw[i] + 90) * np.pi / 180), head_width=10,
-    #                  head_length=10,
-    #                  fc='k', ec='k')
-    #         ax.plot(np.linspace(542, x, 100), np.linspace(725, y, 100),
-    #                 self.color_list[(idxSensor[i]) % len(self.color_list)] + '--')
-    #
-    #         if canvas is None:
-    #             ax.imshow(veh)
-    #             ax.set_xlim([-460, 1540])
-    #             ax.set_ylim([1000, 200])
-    #             ax.grid()
-    #             ax.legend()
-    #             ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
-    #             ax.axes.xaxis.set_visible(False)
-    #             ax.axes.yaxis.set_visible(False)
-    #
-    #     if canvas is not None:
-    #         ax.imshow(veh)
-    #         ax.set_xlim([-460, 1540])
-    #         ax.set_ylim([1000, 200])
-    #         ax.grid()
-    #         ax.legend()
-    #         ax.set_title('Result of calibration')
-    #         ax.axes.xaxis.set_visible(False)
-    #         ax.axes.yaxis.set_visible(False)
-    #         canvas.draw()
-    #     else:
-    #         root = Tk.Tk()
-    #         canvas = FigureCanvasTkAgg(fig, master=root)
-    #         nav = NavigationToolbar2Tk(canvas, root)
-    #         canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-    #         canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-    #         root.mainloop()
+    def ViewLiDAR(self, calib_x, calib_y, calib_yaw, PARM_LIDAR,  ax=None, canvas=None):
+        lidar_num = len(PARM_LIDAR['CheckedSensorList'])
+        column = '2'
+        row = str(math.ceil(lidar_num / 2))
+        fig = plt.figure(figsize=(16, 12), dpi=70)
+        veh_path = self.config.PATH['Image'] + 'vehicle2.png'
+        # veh = plt.imread(veh_path)
+        # Open vehicle image
+        veh = Image.open(veh_path)
+        veh2 = veh.resize((1100, 1100))
+        veh = np.asarray(veh2)
+
+        # veh = plt.imread(veh_path)
+        # veh = plt.set_size_inches(18.5, 10.5, forward=True)
+        for i in range(len(PARM_LIDAR['CheckedSensorList'])):
+            idxSensor = list(PARM_LIDAR['CheckedSensorList'])
+            if canvas is None:
+                plot_num_str = column + row + str(i + 1)
+                ax = fig.add_subplot(int(plot_num_str))
+
+            # T = np.array([[np.cos(calib_yaw[i]), -np.sin(calib_yaw[i]), calib_x[i]],[np.sin(calib_yaw[i]), np.cos(calib_yaw[i]), calib_y[i]],[0,0,1]])
+            # inv_T = np.linalg.inv(T)
+            # calib_x[i] = inv_T[0][2]
+            # calib_y[i] = inv_T[1][2]
+            # calib_yaw[i] = np.arctan2(inv_T[1, 0], inv_T[0, 0])
+            # x = int(calib_x[i]) * 200 + 520
+            # y = 1000 - 1 * int(calib_y[i]) * 200 - 500
+            x = -calib_y[i] * 120 + 542
+            y = 725 - 1 * calib_x[i] * 160
+            # car_length = 1.75
+            lidar_num = 'lidar' + str(idxSensor[i])
+            ax.scatter(x, y, s=300, label=lidar_num, color=self.color_list[(idxSensor[i]) % len(self.color_list)],
+                       edgecolor='none', alpha=0.5)
+
+            s = 'x[m]: ' + str(round(calib_x[i], 4)) + '\ny[m]: ' + str(round(calib_y[i], 4)) + '\nyaw[deg]: ' + str(
+                round(calib_yaw[i], 4))
+
+            if canvas is None:
+                if calib_y[i] > 0:
+                    ax.text(x, y + 300, s, fontsize=7)
+                else:
+                    ax.text(x, y - 70, s, fontsize=7)
+
+            ax.arrow(x, y, 100 * np.cos((calib_yaw[i] + 90) * np.pi / 180),
+                     -100 * np.sin((calib_yaw[i] + 90) * np.pi / 180), head_width=10,
+                     head_length=10,
+                     fc='k', ec='k')
+            ax.plot(np.linspace(542, x, 100), np.linspace(725, y, 100),
+                    self.color_list[(idxSensor[i]) % len(self.color_list)] + '--')
+
+            if canvas is None:
+                ax.imshow(veh)
+                ax.set_xlim([-460, 1540])
+                ax.set_ylim([1000, 200])
+                ax.grid()
+                ax.legend()
+                ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
+                ax.axes.xaxis.set_visible(False)
+                ax.axes.yaxis.set_visible(False)
+
+        if canvas is not None:
+            ax.imshow(veh)
+            ax.set_xlim([-460, 1540])
+            ax.set_ylim([1000, 200])
+            ax.grid()
+            ax.legend()
+            ax.set_title('Result of calibration')
+            ax.axes.xaxis.set_visible(False)
+            ax.axes.yaxis.set_visible(False)
+            canvas.draw()
+        else:
+            root = Tk.Tk()
+            canvas = FigureCanvasTkAgg(fig, master=root)
+            nav = NavigationToolbar2Tk(canvas, root)
+            canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+            canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+            root.mainloop()
 
     def ViewPointCloud(self, df_info, pointcloud, PARM_LIDAR, ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
@@ -3484,6 +3484,69 @@ class FormWidget(QWidget):
 
             self.unsupervised_tab.text_edit.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
             self.unsupervised_tab.optimization_initial_value_tab.tabs.setFixedHeight(CONST_SCROLL_BOX_HEIGHT+50)
+
+    def XY(self, ren):
+        ren.GetActiveCamera().SetPosition(0, 0, 45)
+        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        ren.GetActiveCamera().SetViewUp(0, 0, 1)
+        ren.ResetCamera()
+
+    def YZ(self, ren):
+        ren.GetActiveCamera().SetPosition(45, 0, 0)
+        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        ren.GetActiveCamera().SetViewUp(0, 0, 1)
+        ren.ResetCamera()
+
+    def ZX(self, ren):
+        ren.GetActiveCamera().SetPosition(0, 45, 0)
+        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
+        ren.GetActiveCamera().SetViewUp(0, 1, 0)
+        ren.ResetCamera()
+
+    # Utils
+
+    def GetZRPCalibDict(self, zrp_result_labels, manual_zrp_calib_result):
+        calib = {}
+
+        for idxSensor in self.config.PARM_LIDAR["CheckedSensorList"]:
+            status = zrp_result_labels[idxSensor].button_group.checkedId()
+
+            if status == CONST_AUTOMATIC:
+                if self.zrollpitch_tab.calib_result.get(idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.zrollpitch_tab.calib_result[idxSensor]
+
+                calib[idxSensor] = calib_result
+            elif status == CONST_MANUAL:
+                calib[idxSensor] = manual_zrp_calib_result[idxSensor]
+
+        return calib
+
+    def GetZRPCalibList(self, zrp_result_labels, manual_zrp_calib_result):
+        calib_z = []
+        calib_r = []
+        calib_p = []
+
+        for idxSensor in self.config.PARM_LIDAR["CheckedSensorList"]:
+            status = zrp_result_labels[idxSensor].button_group.checkedId()
+
+            if status == CONST_AUTOMATIC:
+                if self.zrollpitch_tab.calib_result.get(idxSensor) is None:
+                    calib_result = [0.0, 0.0, 0.0]
+                else:
+                    calib_result = self.zrollpitch_tab.calib_result[idxSensor]
+
+                calib_z.append(calib_result[0])
+                calib_r.append(calib_result[1])
+                calib_p.append(calib_result[2])
+            elif status == CONST_MANUAL:
+                calib_z.append(manual_zrp_calib_result[idxSensor][0])
+                calib_r.append(manual_zrp_calib_result[idxSensor][1])
+                calib_p.append(manual_zrp_calib_result[idxSensor][2])
+
+        calib_result = [calib_z, calib_r, calib_p]
+        return calib_result
 
 ## Version
 def version():
