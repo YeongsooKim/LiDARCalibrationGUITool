@@ -115,10 +115,6 @@ class Configuration:
                                         float(config_param['sonata']['Height']), float(config_param['sonata']['XRotation']),
                                         float(config_param['sonata']['YRotation']), float(config_param['sonata']['ZRotation'])]
 
-        self.VEHICLE_INFO['VW_Passat_CC'] = [float(config_param['VW_Passat_CC']['Length']), float(config_param['VW_Passat_CC']['Width']),
-                                        float(config_param['VW_Passat_CC']['Height']), float(config_param['VW_Passat_CC']['XRotation']),
-                                        float(config_param['VW_Passat_CC']['YRotation']), float(config_param['VW_Passat_CC']['ZRotation'])]
-
         print('Initialize configuration parameter')
 
     def WriteDefaultFile(self):
@@ -208,14 +204,6 @@ class Configuration:
         f.write('ZRotation = 0\n')
         f.write('\n')
         f.write('[sonata]\n')
-        f.write('Length = 4.371\n')
-        f.write('Width = 1.904\n')
-        f.write('Height = 1.649\n')
-        f.write('XRotation = 0\n')
-        f.write('YRotation = 0\n')
-        f.write('ZRotation = -90\n')
-        f.write('\n')
-        f.write('[VW_Passat_CC]\n')
         f.write('Length = 4.371\n')
         f.write('Width = 1.904\n')
         f.write('Height = 1.649\n')

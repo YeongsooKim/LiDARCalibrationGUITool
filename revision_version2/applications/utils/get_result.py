@@ -31,6 +31,8 @@ def GetPlotParam(importing, using_gnss_motion, PARM_LIDAR, calibration_param, st
     calib_param_ = [0, 0, 0, 0, 0, 0]
     for idxSensor in PARM_LIDAR['CheckedSensorList']:
         calib_param = calibration_param[idxSensor]
+        calib_param[0] = calib_param[0]*np.pi/180
+        calib_param[1] = calib_param[1]*np.pi/180
 
         ##################
         # Remove rows by other sensors

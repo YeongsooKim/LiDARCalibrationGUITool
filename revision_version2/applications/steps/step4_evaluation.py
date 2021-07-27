@@ -240,8 +240,8 @@ class Evaluation:
                 # Downsampling HDMap_veh
                 HDMap_veh_pcd = o3d.geometry.PointCloud()
                 HDMap_veh_pcd.points = o3d.utility.Vector3dVector(HDMap_veh)
-                HDMap_veh_pcd.voxel_down_sample(0.3)
 
+                HDMap_veh_pcd = o3d.geometry.voxel_down_sample(HDMap_veh_pcd, voxel_size=0.3) # using voxel grid filter
                 HDMap_veh = np.asarray(HDMap_veh_pcd.points)
 
                 # Get Transformation between HD Map in Vehicle Frame and Pointcloud in LiDAR Frame
