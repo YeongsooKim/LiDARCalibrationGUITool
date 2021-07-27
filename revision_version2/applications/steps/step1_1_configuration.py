@@ -107,13 +107,13 @@ class Configuration:
 
         # Vehicle info
         config_param.read(self.vehicle_info_file)
-        self.VEHICLE_INFO['evoque_old'] = [float(config_param['evoque_old']['Length']), float(config_param['evoque_old']['Width']),
-                                        float(config_param['evoque_old']['Height']), float(config_param['evoque_old']['XRotation']),
-                                        float(config_param['evoque_old']['YRotation']), float(config_param['evoque_old']['ZRotation'])]
+        self.VEHICLE_INFO['Evoque'] = [float(config_param['Evoque']['Length']), float(config_param['Evoque']['Width']),
+                                        float(config_param['Evoque']['Height']), float(config_param['Evoque']['XRotation']),
+                                        float(config_param['Evoque']['YRotation']), float(config_param['Evoque']['ZRotation'])]
 
-        self.VEHICLE_INFO['sonata'] = [float(config_param['sonata']['Length']), float(config_param['sonata']['Width']),
-                                        float(config_param['sonata']['Height']), float(config_param['sonata']['XRotation']),
-                                        float(config_param['sonata']['YRotation']), float(config_param['sonata']['ZRotation'])]
+        self.VEHICLE_INFO['Sonata'] = [float(config_param['Sonata']['Length']), float(config_param['Sonata']['Width']),
+                                        float(config_param['Sonata']['Height']), float(config_param['Sonata']['XRotation']),
+                                        float(config_param['Sonata']['YRotation']), float(config_param['Sonata']['ZRotation'])]
 
         print('Initialize configuration parameter')
 
@@ -195,7 +195,7 @@ class Configuration:
         self.vehicle_info_file = vehicle_info_file
 
         f = open(vehicle_info_file, 'w', encoding=None)
-        f.write('[evoque_old]\n')
+        f.write('[Evoque]\n')
         f.write('Length = 4.371\n')
         f.write('Width = 1.904\n')
         f.write('Height = 1.649\n')
@@ -203,7 +203,7 @@ class Configuration:
         f.write('YRotation = 90\n')
         f.write('ZRotation = 0\n')
         f.write('\n')
-        f.write('[sonata]\n')
+        f.write('[Sonata]\n')
         f.write('Length = 4.371\n')
         f.write('Width = 1.904\n')
         f.write('Height = 1.649\n')

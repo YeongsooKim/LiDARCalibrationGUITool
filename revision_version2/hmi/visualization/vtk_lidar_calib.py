@@ -284,7 +284,7 @@ def GetVehicleActor():
     vtk_reader = vtk.vtkSTLReader()
     global vehicle_stl_path_
     vtk_reader.SetFileName(vehicle_stl_path_)
-    # objreader = vtk.vtkOBJReader('evoque_old.obj')
+    # objreader = vtk.vtkOBJReader('Evoque.obj')
 
     # Mapper
     mapper = vtk.vtkPolyDataMapper()
@@ -368,7 +368,7 @@ if __name__ == '__main__':
     lidar_info_dict[4] = [1.25, -0.0, 1.7, -0.12, 0.08, 1.3]
     lidar_info_dict[5] = [1.22, -0.56, 1.67, 25, 0.46, -0.31]
 
-    SetVehicleStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/vehicles/evoque_old.stl')
+    SetVehicleStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/vehicles/Evoque.stl')
     SetLidarStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/lidars/lidar.stl')
     SetGridStlPath('D:/git_ws/calibration_guitool/revision_version2/common/meshes/grid/grid.stl')
     SetVehicleInfo([4.371, 1.904, 1.649, 90, 90, 0, 0, 0, 0])

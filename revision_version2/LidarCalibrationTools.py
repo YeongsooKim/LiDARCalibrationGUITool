@@ -135,7 +135,6 @@ class ConfigurationTab(QWidget):
         self.cb = QComboBox()
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
         self.cb.addItems(qdir.entryList(QDir.Files))
-        self.cb.addItem('Add new 3d model')
         self.cb.activated[str].connect(self.SelectStl)
 
         pal = self.cb.palette()
@@ -153,21 +152,6 @@ class ConfigurationTab(QWidget):
         vbox.addWidget(self.vtkWidget)
         self.VTKInit(self.cb.currentText())
 
-        hbox = QHBoxLayout()
-
-        btn = QPushButton('xy plane')
-        btn.clicked.connect(lambda: self.form_widget.XY(self.ren))
-        hbox.addWidget(btn)
-
-        btn = QPushButton('yz plane')
-        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren))
-        hbox.addWidget(btn)
-
-        btn = QPushButton('zx plane')
-        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren))
-        hbox.addWidget(btn)
-        vbox.addLayout(hbox)
-
         groupbox.setLayout(vbox)
         return groupbox
 
@@ -178,46 +162,7 @@ class ConfigurationTab(QWidget):
         self.form_widget.tabs.setCurrentIndex(CONST_IMPORTDATA_TAB)
 
     def SelectStl(self, text):
-        if text != 'Add new 3d model':
-            self.VTKInit(text)
-        else:
-
-            widget = QWidget()
-            fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['VehicleMesh'],
-                                                "Configuration file (*.stl)")  # exist ini file path
-
-            print(fname)
-            if fname[0]:
-                qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
-
-                print(fname[0])
-
-                words = fname[0].split('/')
-                print(words)
-                adding_file_name = words[-1]
-                print(words[-1])
-                del words[-1]
-
-                adding_file_path = ''
-                for word in words:
-                    adding_file_path += (word + '/')
-                    pass
-                print(adding_file_path)
-                self.form_widget.config.PATH['VehicleMesh'] = adding_file_path
-
-                self.cb.clear()
-                files = qdir.entryList(QDir.Files)
-                files.append(adding_file_name)
-                self.cb.addItems(files)
-                self.cb.addItem('Add new 3d model')
-                # self.cb.nu
-
-                self.cb.setCurrentIndex()
-
-                # self.form_widget.config.configuration_file = fname[0]
-                # self.form_widget.config.InitConfiguration()
-                # self.form_widget.SetConfiguration()
-                # print('Open ' + str(fname[0]))
+        self.VTKInit(text)
 
     def VTKInit(self, text):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1412,25 +1357,6 @@ class XYYaw_CalibrationTab(QWidget):
         vbox.addWidget(self.vtkWidget)
         self.VTKInit(is_default=True)
 
-        hbox = QHBoxLayout()
-
-        btn = QPushButton('xy plane')
-        btn.clicked.connect(lambda: self.form_widget.XY(self.ren))
-        hbox.addWidget(btn)
-
-        btn = QPushButton('yz plane')
-        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren))
-        hbox.addWidget(btn)
-
-        btn = QPushButton('zx plane')
-        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren))
-        hbox.addWidget(btn)
-        vbox.addLayout(hbox)
-
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewLiDAR)
-        vbox.addWidget(btn)
-
         groupbox.setLayout(vbox)
         return groupbox
 
@@ -2236,9 +2162,6 @@ class EvaluationTab(QWidget):
 
     # Callback
     def ViewLiDAR(self):
-        if self.progress_status is not CONST_IDLE:
-            return False
-
         ren = vtk.vtkRenderer()
         renWin = vtk.vtkRenderWindow()
         renWin.AddRenderer(ren)
@@ -2246,8 +2169,8 @@ class EvaluationTab(QWidget):
         iren.SetRenderWindow(renWin)
 
         lidar_info_dict = {}
-        for i in range(len(self.PARM_LIDAR['CheckedSensorList'])):
-            idxSensors = list(self.PARM_LIDAR['CheckedSensorList'])
+        for i in range(len(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])):
+            idxSensors = list(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
 
             lidar_info = [self.calib_result[0][i], self.calib_result[1][i], self.calib_result[2][i],
                           self.calib_result[3][i], self.calib_result[4][i], self.calib_result[5][i]]
@@ -2403,7 +2326,6 @@ class EvaluationTab(QWidget):
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
         self.form_widget.DisplayLiDAR(self.calib_result, self.form_widget.config.PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
-
 
 
         ## Plot 'Result RMSE'
@@ -3394,24 +3316,6 @@ class FormWidget(QWidget):
 
             self.unsupervised_tab.text_edit.setFixedHeight(CONST_SCROLL_BOX_HEIGHT)
             self.unsupervised_tab.optimization_initial_value_tab.tabs.setFixedHeight(CONST_SCROLL_BOX_HEIGHT+50)
-
-    def XY(self, ren):
-        ren.GetActiveCamera().SetPosition(0, 0, 45)
-        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        ren.GetActiveCamera().SetViewUp(0, 0, 1)
-        ren.ResetCamera()
-
-    def YZ(self, ren):
-        ren.GetActiveCamera().SetPosition(45, 0, 0)
-        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        ren.GetActiveCamera().SetViewUp(0, 0, 1)
-        ren.ResetCamera()
-
-    def ZX(self, ren):
-        ren.GetActiveCamera().SetPosition(0, 45, 0)
-        ren.GetActiveCamera().SetFocalPoint(1, 0, 0)
-        ren.GetActiveCamera().SetViewUp(0, 1, 0)
-        ren.ResetCamera()
 
     # Utils
 
