@@ -95,6 +95,7 @@ class Configuration:
 
         # Evaluation
         self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
+        self.PARM_EV['DistanceInterval'] = float(config_param['Evaluation']['DistanceInterval'])
         self.PARM_EV['VehicleSpeedThreshold'] = float(config_param['Evaluation']['VehicleSpeedThreshold'])
 
         # Path
@@ -177,6 +178,7 @@ class Configuration:
         f.write('\n')
         f.write('[Evaluation]\n')
         f.write('SamplingInterval = 1\n')
+        f.write('DistanceInterval = 0\n')
         f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('\n')
         f.write('[Path]\n')

@@ -221,8 +221,6 @@ class Import:
         self.DefaultStartTime = self.df_info.index.values[1]
         self.DefaultEndTime = self.df_info.index.values[len(self.df_info.index.values) - 1]
 
-        print(self.df_info)
-
         thread.msleep(1)
         thread.mutex.unlock()
 
@@ -237,7 +235,6 @@ class Import:
         self.df_info = df_motion
 
         for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
-            print(self.config.PARM_LIDAR['CheckedSensorList'])
             self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
 
         # -----------------------------------------------------------------------------------------------------------------------------

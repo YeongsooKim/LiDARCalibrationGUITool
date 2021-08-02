@@ -317,8 +317,6 @@ class DataValidation:
             for idxSensor in not_evaluated_lidar['CheckedSensorList']:
                 thread.emit_string.emit('Never evaluating lidar {} calibration'.format(idxSensor))
 
-
-
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
         thread.mutex.unlock()
 

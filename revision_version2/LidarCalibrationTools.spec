@@ -7,7 +7,7 @@ a = Analysis(['D:\\git_ws\\calibration_guitool\\revision_version2\\LidarCalibrat
              pathex=['D:\\git_ws\\calibration_guitool\\revision_version2'],
              binaries=[],
              datas=[],
-             hiddenimports=['sklearn.neighbors._typedefs','sklearn.utils._cython_blas', 'zmq.backend.cython', 'vtkmodules','vtkmodules.all','vtkmodules.qt.QVTKRenderWindowInteractor','vtkmodules.util','vtkmodules.util.numpy_support'],
+             hiddenimports=['tkinter', 'sklearn.neighbors._typedefs','sklearn.utils._cython_blas', 'zmq.backend.cython', 'vtkmodules','vtkmodules.all','vtkmodules.qt.QVTKRenderWindowInteractor','vtkmodules.util','vtkmodules.util.numpy_support'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -26,7 +26,7 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=True , icon='exe_icon.ico')
+          console=True , icon='common\image\exe_icon.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
