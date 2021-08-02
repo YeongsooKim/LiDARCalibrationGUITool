@@ -25,6 +25,7 @@ class Configuration:
         self.PARM_PC = {}
         self.PARM_IM = {}
         self.PARM_ZRP = {}
+        self.PARM_ZRP_DICT = {}
         self.PARM_DV = {}
         self.PARM_HE = {}
         self.PARM_SO = {}

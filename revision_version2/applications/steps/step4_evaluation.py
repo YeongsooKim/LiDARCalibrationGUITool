@@ -69,9 +69,6 @@ class Evaluation:
 
             calib = CalibrationParam[idxSensor]
             print(calib)
-            T_calib = np.array([[np.cos(calib[2]), -np.sin(calib[2]), calib[3]],
-                                [np.sin(calib[2]), np.cos(calib[2]), calib[4]],
-                                [0, 0, 1]])
             e00 = np.cos(calib[2])*np.cos(calib[1]);        e01 = np.cos(calib[2])*np.sin(calib[1])*np.sin(calib[0])-np.sin(calib[2])*np.cos(calib[0]);
             e02 = np.cos(calib[2])*np.sin(calib[1])*np.cos(calib[0])+np.sin(calib[2])*np.sin(calib[0]);        e03 = calib[3];
 
@@ -87,6 +84,23 @@ class Evaluation:
                                [e10, e11, e12, e13],
                                [e20, e21, e22, e23],
                                [e30, e31, e32, e33]])
+
+            dZ_m = calib[5]
+            dRoll_rad = calib[0]
+            dPitch_rad = calib[1]
+
+            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
+                                           np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
+                                          [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
+                                          [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
+                                           np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
+                                          [0., 0., 0., 1.]])
+            tf_XYYaw = np.array([[np.cos(calib[2]), -np.sin(calib[2]), 0., calib[3]],
+                                 [np.sin(calib[2]), np.cos(calib[2]), 0., calib[4]],
+                                 [0., 0., 1., 0.],
+                                 [0., 0., 0., 1.]])
+
+
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)  # PointCloud_n 이름 생성
             LiDAR_list[idxSensor] = strColIndex
@@ -168,6 +182,7 @@ class Evaluation:
 
             Map[idxSensor] = HD_map
 
+
             ##-----------------------------------------------------------------------------------------------------------------------------
             # 6-2. Localization
             ##-----------------------------------------------------------------------------------------------------------------------------
@@ -191,12 +206,17 @@ class Evaluation:
                 pbar.set_description("Evaluation" + str(idxSensor))  # 상태바 naming
 
                 pointcloud_in_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                map_pointcloud_homogeneous = np.insert(pointcloud_in_lidar, 3, 1, axis=1)
+                pointcloud_in_lidar_homogeneous = np.insert(pointcloud_in_lidar, 3, 1, axis=1)
 
-                # pointcloud in veh frame
-                pointcloud = np.matmul(T_calib, np.transpose(map_pointcloud_homogeneous))
-                pointcloud = np.transpose(pointcloud)
-                # pointcloud[:,2]=1
+                # PointCloud Conversion: Roll, Pitch, Height
+                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                                            np.transpose(pointcloud_in_lidar_homogeneous))
+                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.delete(
+                    pointcloud1_in_lidar_frame_calibrated_rollpitch, 3, axis=0)
+                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.transpose(
+                    pointcloud1_in_lidar_frame_calibrated_rollpitch)
+
+                pointcloud = pointcloud1_in_lidar_frame_calibrated_rollpitch
 
                 if using_gnss_motion == False:
                     ref_east = df_sampled_info['east_m'].values[i]
@@ -271,7 +291,7 @@ class Evaluation:
 
                     # Get the transformation world to vehicle (원래는 ref_transformation_world_to_veh이 아닌, dr 곱해줘양함)
                     pred_transformation_world_to_veh = np.matmul(transformation_result,
-                                                                 np.linalg.inv(T_calib))
+                                                                 np.linalg.inv(tf_XYYaw))
 
 
                     pred_east = pred_transformation_world_to_veh[0][3]

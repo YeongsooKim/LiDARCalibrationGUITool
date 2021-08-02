@@ -40,14 +40,14 @@ class DataValidation:
         
 
     def NormAngle_deg(self,dAngle_deg):
-    	# Set the input angle into the 0~pi
-    	while (dAngle_deg > 180.0):
-    		dAngle_deg -= 180.0*2.
-    
-    	while (dAngle_deg < -180.0):
-    		dAngle_deg += 180.0*2.
-    
-    	return dAngle_deg
+        # Set the input angle into the 0~pi
+        while (dAngle_deg > 180.0):
+            dAngle_deg -= 180.0*2.
+
+        while (dAngle_deg < -180.0):
+            dAngle_deg += 180.0*2.
+
+        return dAngle_deg
         
     def Validation(self, thread, args):
         thread.emit_string.emit(str('Start data validation'))
@@ -58,7 +58,6 @@ class DataValidation:
         using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
-        print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
@@ -97,9 +96,6 @@ class DataValidation:
             dZ_m = zrp_calib[idxSensor][0]
             dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
             dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
-            
-            print(dZ_m)
-            
             
             tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                                   [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],

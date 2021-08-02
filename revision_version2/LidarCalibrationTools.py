@@ -61,18 +61,7 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         main_vbox.addWidget(self.next_btn)
 
-        btn = QPushButton('Debug')
-        btn.clicked.connect(self.D)
-        main_vbox.addWidget(btn)
-
         self.setLayout(main_vbox)
-
-    def D(self):
-        # print('datavalidation_tab %d' %(self.form_widget.datavalidation_tab.radio_label_layout.using_gnss_motion))
-        # print('handeye_tab %d' %(self.form_widget.handeye_tab.radio_label_layout.using_gnss_motion))
-        # print('unsupervised_tab %d' %(self.form_widget.unsupervised_tab.radio_label_layout.using_gnss_motion))
-        # print('evaluation_tab %d' %(self.form_widget.evaluation_tab.radio_label_layout.using_gnss_motion))
-        print(self.form_widget.evaluation_tab.manual_zrp_calib_result)
 
     ## Layout
     def SetConfiguration_Layout(self):
@@ -390,6 +379,32 @@ class ImportDataTab(QWidget):
         default_start_time = self.form_widget.importing.DefaultStartTime
         default_end_time = self.form_widget.importing.DefaultEndTime
 
+        # Config
+        ## initialize config
+        self.form_widget.config.PARM_ZRP_DICT.clear()
+
+        for idxSensor in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor] = {}
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceX_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceX_m']
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceX_m'] = self.form_widget.config.PARM_ZRP['MinDistanceX_m']
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceY_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceY_m']
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceY_m'] = self.form_widget.config.PARM_ZRP['MinDistanceY_m']
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']
+            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MinDistanceZ_m']
+
+            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceX_m'])
+            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceX_m'])
+            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceY_m'])
+            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceY_m'])
+            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceZ_m'])
+            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(
+                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceZ_m'])
+
         # Import tab
         ## Set Configuration
         self.form_widget.RemoveLayout(self.scroll_box.layout)
@@ -419,7 +434,6 @@ class ImportDataTab(QWidget):
             self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
 
             self.form_widget.datavalidation_tab.radio_label_layout.button_group.button(2).setChecked(True)
-            self.form_widget.datavalidation_tab.radio_label_layout.RadioButton()
 
             self.SetUsedData(self.form_widget.datavalidation_tab, 1)
             self.SetUsedData(self.form_widget.handeye_tab, 1)
@@ -512,7 +526,6 @@ class ImportDataTab(QWidget):
     ## Util functions
     def SetUsedData(self, tab, selected_btn):
         tab.radio_label_layout.button_group.button(selected_btn).setChecked(True)
-        tab.radio_label_layout.RadioButton()
 
 class ZRollPitch_CalibrationTab(QWidget):
     def __init__(self, form_widget):
@@ -522,7 +535,6 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.progress_status = CONST_IDLE
         self.result_labels = {}
         self.calib_result = {}
-        self.prev_checkID = 1
 
         self.roll_deg = 0.0
         self.pitch_deg = 0.0
@@ -724,16 +736,8 @@ class ZRollPitch_CalibrationTab(QWidget):
 
         self.progress_status = CONST_PLAY
 
-        # remove plots
-        try:
-            self.result_2d_data_pose_ax.clear()
-            self.result_2d_data_pose_canvas.draw()
-
-            self.result_3d_data_pose_ax.clear()
-            self.result_3d_data_pose_canvas.draw()
-        except:
-            pass
-
+        self.PlotClear(self.result_2d_data_pose_ax, self.result_2d_data_pose_canvas)
+        self.PlotClear(self.result_3d_data_pose_ax, self.result_3d_data_pose_canvas)
         self.form_widget.rpz_thread._status = True
         self.form_widget.rpz_thread.SetFunc(display_groundpoint,
                                [start_time, end_time, PARM_ZRP, selected_sensor])
@@ -840,7 +844,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         apply_btn.clicked.connect(lambda: self.Apply(self.form_widget.zrollpitch.DisplayGroundPoint,
                                                      self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
                                                      self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                     self.form_widget.config.PARM_ZRP,
+                                                     self.form_widget.config.PARM_ZRP_DICT[self.idxSensor],
                                                      self.idxSensor,
                                                      self.EndApply))
         vbox.addWidget(apply_btn)
@@ -896,7 +900,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         self.form_widget.rpz_thread.SetFunc(self.form_widget.zrollpitch.Calibration,
                                             [self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
                                              self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                             self.form_widget.config.PARM_ZRP,
+                                             self.form_widget.config.PARM_ZRP_DICT[self.idxSensor],
                                              self.plane_method,
                                              self.est_method,
                                              self.idxSensor])
@@ -1388,7 +1392,6 @@ class XYYaw_CalibrationTab(QWidget):
         self.calib_result = []
         self.xyyaw_result_labels = {}
         self.manual_zrp_calib_result = {}        
-        self.prev_checkID = 1
 
         self.calib_x = []
         self.calib_y = []
@@ -1829,10 +1832,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.calibration_pbar.reset()
 
         self.progress_status = CONST_IDLE
-        self.prev_checkID = 1
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
-        self.radio_label_layout.RadioButton()
 
 class UnsupervisedTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
@@ -2037,12 +2038,13 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         # Evaluation tab
 
         for idxSensor in self.PARM_LIDAR['CheckedSensorList']:
-            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(CONST_UNSUPERVISED).setChecked(True)
-            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].prev_checkID = CONST_UNSUPERVISED
-            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox1.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][3])
-            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox2.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][4])
-            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox3.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi)
-            self.form_widget.evaluation_tab.custom_calibration_param[idxSensor] = copy.deepcopy(self.form_widget.unsupervised.CalibrationParam[idxSensor])
+            if (self.is_single == False) or ((self.is_single == True) and idxSensor == self.form_widget.config.PARM_LIDAR['SingleSensor']) :
+                self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(CONST_UNSUPERVISED).setChecked(True)
+                self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].prev_checkID = CONST_UNSUPERVISED
+                self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox1.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][3])
+                self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox2.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][4])
+                self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].spinbox3.setValue(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi)
+                self.form_widget.evaluation_tab.custom_calibration_param[idxSensor] = copy.deepcopy(self.form_widget.unsupervised.CalibrationParam[idxSensor])
 
     def CopyList(self, source, target):
         keys = list(source.keys())
@@ -2104,19 +2106,15 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.text_edit.clear()
 
         self.progress_status = CONST_IDLE
-        self.prev_checkID = 1
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
-        self.radio_label_layout.RadioButton()
 
         self.select_lidar_num_layout.button_group.button(1).setChecked(True)
-        self.select_lidar_num_layout.RadioButton()
 
 class EvaluationTab(QWidget):
     def __init__(self, form_widget):
         super().__init__()
         self.form_widget = form_widget
-        self.prev_checkID = 0
         self.evaluation_status = CONST_IDLE
         self.custom_calibration_param = {}
 
@@ -2365,46 +2363,57 @@ class EvaluationTab(QWidget):
             return False
         self.evaluation_status = CONST_PLAY
 
+
+        self.VTKInit(is_default=True)
+        self.PlotClear(self.eval_graph_ax, self.eval_graph_canvas)
+        self.PlotClear(self.eval_rmse_yaw_ax, self.eval_rmse_canvas)
+        self.PlotClear(self.eval_rmse_xy_ax, self.eval_rmse_canvas)
+
         self.eval_calibration_param.clear()
         self.eval_calib_x.clear()
         self.eval_calib_y.clear()
         self.eval_calib_yaw.clear()
         for idxSensor in self.eval_lidar['CheckedSensorList']:
-            method = self.xyyaw_result_labels[idxSensor].button_group.checkedId()
+            result_param = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
+            method = self.xyyaw_result_labels[idxSensor].button_group.checkedId()
             if method == CONST_HANDEYE:
-                self.eval_calibration_param[idxSensor] = copy.deepcopy(self.form_widget.handeye.CalibrationParam[idxSensor])
+                result_param[2] = self.form_widget.handeye.CalibrationParam[idxSensor][2]
+                result_param[3] = self.form_widget.handeye.CalibrationParam[idxSensor][3]
+                result_param[4] = self.form_widget.handeye.CalibrationParam[idxSensor][4]
                 self.eval_calib_x.append(self.form_widget.handeye.CalibrationParam[idxSensor][3])
                 self.eval_calib_y.append(self.form_widget.handeye.CalibrationParam[idxSensor][4])
                 self.eval_calib_yaw.append(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180/math.pi)
             elif method == CONST_UNSUPERVISED:
-                self.eval_calibration_param[idxSensor] = copy.deepcopy(self.form_widget.unsupervised.CalibrationParam[idxSensor])
+                result_param[2] = self.form_widget.unsupervised.CalibrationParam[idxSensor][2]
+                result_param[3] = self.form_widget.unsupervised.CalibrationParam[idxSensor][3]
+                result_param[4] = self.form_widget.unsupervised.CalibrationParam[idxSensor][4]
                 self.eval_calib_x.append(self.form_widget.unsupervised.CalibrationParam[idxSensor][3])
                 self.eval_calib_y.append(self.form_widget.unsupervised.CalibrationParam[idxSensor][4])
                 self.eval_calib_yaw.append(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi)
             elif method == CONST_CUSTOM:
-                self.eval_calibration_param[idxSensor] = copy.deepcopy(self.custom_calibration_param[idxSensor])
+                result_param[2] = self.custom_calibration_param[idxSensor][2]
+                result_param[3] = self.custom_calibration_param[idxSensor][3]
+                result_param[4] = self.custom_calibration_param[idxSensor][4]
                 self.eval_calib_x.append(self.custom_calibration_param[idxSensor][3])
                 self.eval_calib_y.append(self.custom_calibration_param[idxSensor][4])
                 self.eval_calib_yaw.append(self.custom_calibration_param[idxSensor][2] * 180 / math.pi)
 
-        for idxSensor in self.eval_lidar['CheckedSensorList']:
             method = self.zrp_result_labels[idxSensor].button_group.checkedId()
-
             if method == CONST_AUTOMATIC:
                 if self.form_widget.zrollpitch_tab.calib_result.get(idxSensor) is None:
                     self.form_widget.zrollpitch_tab.calib_result[idxSensor] = [0.0, 0.0, 0.0]
                 calib_result = self.form_widget.zrollpitch_tab.calib_result[idxSensor]
 
-                self.custom_calibration_param[idxSensor][0] = calib_result[1]
-                self.custom_calibration_param[idxSensor][1] = calib_result[2]
-                self.custom_calibration_param[idxSensor][5] = calib_result[0]
-                self.eval_calibration_param[idxSensor] = copy.deepcopy(self.form_widget.handeye.CalibrationParam[idxSensor])
+                result_param[0] = calib_result[1] * math.pi / 180
+                result_param[1] = calib_result[2] * math.pi / 180
+                result_param[5] = calib_result[0]
             elif method == CONST_MANUAL:
-                self.custom_calibration_param[idxSensor][0] = self.manual_zrp_calib_result[idxSensor][1]
-                self.custom_calibration_param[idxSensor][1] = self.manual_zrp_calib_result[idxSensor][2]
-                self.custom_calibration_param[idxSensor][5] = self.manual_zrp_calib_result[idxSensor][0]
-                self.eval_calibration_param[idxSensor] = copy.deepcopy(self.custom_calibration_param[idxSensor])
+                result_param[0] = self.manual_zrp_calib_result[idxSensor][1] * math.pi / 180
+                result_param[1] = self.manual_zrp_calib_result[idxSensor][2] * math.pi / 180
+                result_param[5] = self.manual_zrp_calib_result[idxSensor][0]
+
+            self.eval_calibration_param[idxSensor] = copy.deepcopy(result_param)
 
         self.StartEvaluation(self.limit_time_layout.start_time,
                              self.limit_time_layout.end_time,
@@ -2570,11 +2579,9 @@ class EvaluationTab(QWidget):
         self.text_edit.clear()
         self.pbar.reset()
 
-        self.prev_checkID = 0
         self.evaluation_status = CONST_IDLE
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
-        self.radio_label_layout.RadioButton()
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -2946,22 +2953,22 @@ class FormWidget(QWidget):
         self.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
 
         self.tabs.addTab(self.importing_tab, '1.2. Import Data')
-        self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, True)
+        self.tabs.setTabEnabled(CONST_IMPORTDATA_TAB, False)
 
         self.tabs.addTab(self.zrollpitch_tab, '2. Z, Roll, Pitch: Calibration')
-        self.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, True)
+        self.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, False)
 
         self.tabs.addTab(self.datavalidation_tab, '3.1. X, Y, Yaw: Data Validation')
-        self.tabs.setTabEnabled(CONST_VALIDATION_TAB, True)
+        self.tabs.setTabEnabled(CONST_VALIDATION_TAB, False)
 
         self.tabs.addTab(self.handeye_tab, '3.2. X, Y, Yaw: Hand-Eye Calibration')
-        self.tabs.setTabEnabled(CONST_HANDEYE_TAB, True)
+        self.tabs.setTabEnabled(CONST_HANDEYE_TAB, False)
 
         self.tabs.addTab(self.unsupervised_tab, '3.3. X, Y, Yaw: Unsupervised Calibration')
-        self.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
+        self.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
 
         self.tabs.addTab(self.evaluation_tab, '4. Evaluation')
-        self.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
+        self.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
 
         ### Set Basic Window
         self.hbox.addWidget(self.tabs)
@@ -3004,6 +3011,17 @@ class FormWidget(QWidget):
 
         ### Setting ZRP tab
         PARM_ZRP = self.config.PARM_ZRP
+        for idxSensor in self.config.PARM_LIDAR['SensorList']:
+            if self.config.PARM_ZRP_DICT.get(idxSensor):
+                continue
+            self.config.PARM_ZRP_DICT[idxSensor] = {}
+            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceX_m'] = PARM_ZRP['MaxDistanceX_m']
+            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceX_m'] = PARM_ZRP['MinDistanceX_m']
+            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceY_m'] = PARM_ZRP['MaxDistanceY_m']
+            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceY_m'] = PARM_ZRP['MinDistanceY_m']
+            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceZ_m'] = PARM_ZRP['MaxDistanceZ_m']
+            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceZ_m'] = PARM_ZRP['MinDistanceZ_m']
+
         self.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(PARM_ZRP['MaxDistanceX_m'])
         self.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(PARM_ZRP['MinDistanceX_m'])
         self.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(PARM_ZRP['MaxDistanceY_m'])
@@ -3093,7 +3111,6 @@ class FormWidget(QWidget):
                                                self.unsupervised_tab.zrp_scroll_box.layout,
                                                self.unsupervised_tab.zrp_result_labels,
                                                zrp_calib_result)
-
 
     def ResetResultsLabel(self, label_type, PARM_LIDAR, layout, labels, calibration_param):
         self.RemoveLayout(layout)
@@ -3201,6 +3218,7 @@ class FormWidget(QWidget):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
+
         fig = plt.figure(figsize=(16, 12), dpi=70)
 
         if ax is not None:
@@ -3213,6 +3231,7 @@ class FormWidget(QWidget):
                 ax.plot(df_info['east_m'].values, df_info['north_m'].values, '.', label='trajectory', color='gray')
 
             strColIndex = 'XYZRGB_' + str(idxSensor[i])
+            # ax.scatter(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], pointcloud[idxSensor[i]][:, 2])
             ax.plot(pointcloud[idxSensor[i]][:, 0], pointcloud[idxSensor[i]][:, 1], '.',
                     color=self.color_list[(idxSensor[i]) % len(self.color_list)], label=strColIndex, ms = 2)
 
