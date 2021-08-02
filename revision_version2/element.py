@@ -16,6 +16,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 
+import vtk
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+from hmi.visualization import vtk_lidar_calib
 from instance_id import *
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
@@ -1648,3 +1652,70 @@ class RadioWithEditLabel(QHBoxLayout):
         self.spinbox1.setValue(round(value[0], 4))
         self.spinbox2.setValue(round(value[1], 4))
         self.spinbox3.setValue(round(value[2], 4))
+
+class NewWindow(QMainWindow):
+    def __init__(self, title, calib_result, form_widget, parent=None):
+        super(NewWindow, self).__init__(parent)
+
+        self.setWindowTitle(title)
+        
+        self.form_widget = form_widget
+        self.calib_result = calib_result
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.frame = QFrame()
+        self.vbox = QVBoxLayout()
+        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+        self.vbox.addWidget(self.vtkWidget)
+        self.VTKInit()
+
+        hbox = QHBoxLayout()
+        btn = QPushButton('xy plane')
+        btn.clicked.connect(lambda: self.form_widget.XY(self.ren, self.renWin))
+        hbox.addWidget(btn)
+
+        btn = QPushButton('yz plane')
+        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren, self.renWin))
+        hbox.addWidget(btn)
+
+        btn = QPushButton('zx plane')
+        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren, self.renWin))
+        hbox.addWidget(btn)
+        self.vbox.addLayout(hbox)
+
+    def VTKInit(self):
+        vtk.vtkObject.GlobalWarningDisplayOff()
+        colors = vtk.vtkNamedColors()
+
+        self.ren = vtk.vtkRenderer()
+        self.renWin = self.vtkWidget.GetRenderWindow()
+        self.renWin.AddRenderer(self.ren)
+        self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.iren.SetRenderWindow(self.renWin)
+        self.widget = vtk.vtkOrientationMarkerWidget()
+
+        vtk_lidar_calib.GetAxis(self.iren, self.widget)
+
+        lidar_info_dict = {}
+        for i in range(len(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])):
+            idxSensors = list(self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
+
+            lidar_info = [self.calib_result[0][i], self.calib_result[1][i], self.calib_result[2][i],
+                          self.calib_result[3][i], self.calib_result[4][i], self.calib_result[5][i]]
+            lidar_info_dict[idxSensors[i]] = lidar_info
+        actors = vtk_lidar_calib.GetActors(lidar_info_dict)
+
+        for actor in actors:
+            self.ren.AddActor(actor)
+
+        self.ren.SetBackground(colors.GetColor3d("white"))
+
+        self.ren.ResetCamera()
+        self.frame.setLayout(self.vbox)
+        self.setCentralWidget(self.frame)
+
+        self.show()
+        self.iren.Initialize()
+        self.iren.Start()
