@@ -72,6 +72,18 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         '''
         Check the file being and Import file data
         '''
+
+        if len(self.form_widget.config.PARM_LIDAR['CheckedSensorList']) == 0:
+            self.form_widget.ErrorPopUp('Please import more than 1 lidar')
+            return
+
+        self.form_widget.tabs.setTabEnabled(CONST_CONFIG_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_VALIDATION_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_HANDEYE_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, False)
+        self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, False)
+
         self.form_widget.importing.Clear()
         self.CheckGnssFile()
         has_pointcloud_file = self.CheckPointCloudFile()
@@ -870,7 +882,7 @@ class RadioLabelLayout(QHBoxLayout):
                 rbn.setChecked(True)
             else:
                 rbn.setChecked(False)
-            rbn.toggled.connect(self.RadioButton)
+            rbn.clicked.connect(self.RadioButton)
             self.addWidget(rbn)
             self.button_group.addButton(rbn, key+1)
 
@@ -925,6 +937,131 @@ class RadioLabelLayout(QHBoxLayout):
 
         self.prev_checkID = self.button_group.checkedId()
 
+
+class EditLabelWithImport(QHBoxLayout):
+    def __init__(self, instance_id, form_widget):
+        super().__init__()
+        self.id = instance_id
+        self.form_widget = form_widget
+        self.vehicle_info = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.double_spin_box_dict = {}
+
+        self.button_group = QButtonGroup()
+
+        label = QLabel('Length [m]')
+        self.addWidget(label)
+
+        self.double_spin_box_l = QDoubleSpinBox()
+        self.double_spin_box_l.setSingleStep(0.01)
+        self.double_spin_box_l.setMaximum(10000.0)
+        self.double_spin_box_l.setMinimum(-10000.0)
+        self.double_spin_box_l.setDecimals(2)
+        self.double_spin_box_l.valueChanged.connect(self.L)
+        self.double_spin_box_l.setObjectName('1')
+        self.addWidget(self.double_spin_box_l)
+
+        label = QLabel('Width [m]')
+        self.addWidget(label)
+
+        self.double_spin_box_w = QDoubleSpinBox()
+        self.double_spin_box_w.setSingleStep(0.01)
+        self.double_spin_box_w.setMaximum(10000.0)
+        self.double_spin_box_w.setMinimum(-10000.0)
+        self.double_spin_box_w.setDecimals(2)
+        self.double_spin_box_w.valueChanged.connect(self.W)
+        self.double_spin_box_w.setObjectName('2')
+        self.addWidget(self.double_spin_box_w)
+
+        label = QLabel('Height [m]')
+        self.addWidget(label)
+
+        self.double_spin_box_h = QDoubleSpinBox()
+        self.double_spin_box_h.setSingleStep(0.01)
+        self.double_spin_box_h.setMaximum(10000.0)
+        self.double_spin_box_h.setMinimum(-10000.0)
+        self.double_spin_box_h.setDecimals(2)
+        self.double_spin_box_h.valueChanged.connect(self.H)
+        self.double_spin_box_h.setObjectName('3')
+        self.addWidget(self.double_spin_box_h)
+
+        label = QLabel('X rot [deg]')
+        self.addWidget(label)
+
+        self.double_spin_box_x = QDoubleSpinBox()
+        self.double_spin_box_x.setSingleStep(0.01)
+        self.double_spin_box_x.setMaximum(10000.0)
+        self.double_spin_box_x.setMinimum(-10000.0)
+        self.double_spin_box_x.setDecimals(2)
+        self.double_spin_box_x.valueChanged.connect(self.X)
+        self.double_spin_box_x.setObjectName('4')
+        self.addWidget(self.double_spin_box_x)
+
+        label = QLabel('Y rot [deg]')
+        self.addWidget(label)
+
+        self.double_spin_box_y = QDoubleSpinBox()
+        self.double_spin_box_y.setSingleStep(0.01)
+        self.double_spin_box_y.setMaximum(10000.0)
+        self.double_spin_box_y.setMinimum(-10000.0)
+        self.double_spin_box_y.setDecimals(2)
+        self.double_spin_box_y.valueChanged.connect(self.Y)
+        self.double_spin_box_y.setObjectName('5')
+        self.addWidget(self.double_spin_box_y)
+
+        label = QLabel('Z rot [deg]')
+        self.addWidget(label)
+
+        self.double_spin_box_z = QDoubleSpinBox()
+        self.double_spin_box_z.setSingleStep(0.01)
+        self.double_spin_box_z.setMaximum(10000.0)
+        self.double_spin_box_z.setMinimum(-10000.0)
+        self.double_spin_box_z.setDecimals(2)
+        self.double_spin_box_z.valueChanged.connect(self.Z)
+        self.double_spin_box_z.setObjectName('6')
+        self.addWidget(self.double_spin_box_z)
+
+        btn = QPushButton('Import')
+        btn.clicked.connect(self.Button)
+        self.addWidget(btn)
+
+    def L(self):
+        self.vehicle_info[0] = self.double_spin_box_l.value()
+
+    def W(self):
+        self.vehicle_info[1] = self.double_spin_box_w.value()
+
+    def H(self):
+        self.vehicle_info[2] = self.double_spin_box_h.value()
+
+    def X(self):
+        self.vehicle_info[3] = self.double_spin_box_x.value()
+
+    def Y(self):
+        self.vehicle_info[4] = self.double_spin_box_y.value()
+
+    def Z(self):
+        self.vehicle_info[5] = self.double_spin_box_z.value()
+
+    def Button(self):
+        file_name_stl = self.form_widget.config_tab.cb.currentText()
+        words = file_name_stl.split('.')
+        file_name = words[0]
+        if self.form_widget.config_tab.added_stl_dict.get(file_name) is not None:
+            self.form_widget.config.VEHICLE_INFO[file_name] = self.vehicle_info
+            self.form_widget.config_tab.VTKInit(file_name_stl)
+
+    def Clear(self):
+        self.vehicle_info = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.double_spin_box_l.setValue(0.0)
+        self.double_spin_box_w.setValue(0.0)
+        self.double_spin_box_h.setValue(0.0)
+        self.double_spin_box_x.setValue(0.0)
+        self.double_spin_box_y.setValue(0.0)
+        self.double_spin_box_z.setValue(0.0)
 
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, string, form_widget, ):
@@ -1314,6 +1451,8 @@ class RadioWithEditLabel(QHBoxLayout):
         self.id = instance_id
         if self.id == CONST_EVALUATION_RESULT_LABEL:
             self.prev_checkID = CONST_HANDEYE
+        elif self.id == CONST_EVALUATION_ZRP_RESULT_LABEL:
+            self.prev_checkID = CONST_AUTOMATIC
 
         self.idxSensor = idxSensor
         self.buttons = buttons
@@ -1337,7 +1476,7 @@ class RadioWithEditLabel(QHBoxLayout):
         for i, key in enumerate(self.buttons):
             rbn = QRadioButton()
             rbn.setChecked(self.buttons[key])
-            rbn.toggled.connect(self.RadioButton)
+            rbn.clicked.connect(self.RadioButton)
             self.addWidget(rbn)
             self.button_group.addButton(rbn, i+1)
 
@@ -1389,6 +1528,7 @@ class RadioWithEditLabel(QHBoxLayout):
                     self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
 
     def RadioButton(self):
+        print(self.button_group.checkedId())
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.button_group.button(self.prev_checkID).setChecked(True)
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
@@ -1444,7 +1584,7 @@ class RadioWithEditLabel(QHBoxLayout):
                 self.spinbox2.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4])
                 self.spinbox3.setValue(self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] * 180.0 / math.pi)
 
-        if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
+        if self.id == CONST_EVALUATION_ZRP_RESULT_LABEL:
             status = self.button_group.checkedId()
             if status == CONST_AUTOMATIC:
                 # Reset spinbox format
@@ -1507,7 +1647,7 @@ class RadioWithEditLabel(QHBoxLayout):
             if self.button_group.checkedId() == CONST_CUSTOM:
                 self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][3] = self.spinbox1.value()
 
-        if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
+        if self.id == CONST_EVALUATION_ZRP_RESULT_LABEL:
             status = self.button_group.checkedId()
             if status == CONST_AUTOMATIC:
                 return
@@ -1528,7 +1668,7 @@ class RadioWithEditLabel(QHBoxLayout):
         if self.id == CONST_EVALUATION_RESULT_LABEL:
             if self.button_group.checkedId() == CONST_CUSTOM:
                 self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][4] = self.spinbox2.value()
-        if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
+        if self.id == CONST_EVALUATION_ZRP_RESULT_LABEL:
             status = self.button_group.checkedId()
             if status == CONST_AUTOMATIC:
                 return
@@ -1550,7 +1690,7 @@ class RadioWithEditLabel(QHBoxLayout):
         if self.id == CONST_EVALUATION_RESULT_LABEL:
             if self.button_group.checkedId() == CONST_CUSTOM:
                 self.form_widget.evaluation_tab.custom_calibration_param[self.idxSensor][2] = self.spinbox3.value() * math.pi / 180.0
-        if self.id == CONST_ZRP_CALIBRATION_RESULT_LABEL:
+        if self.id == CONST_EVALUATION_ZRP_RESULT_LABEL:
             status = self.button_group.checkedId()
             if status == CONST_AUTOMATIC:
                 return
@@ -1573,7 +1713,6 @@ class RadioWithEditLabel(QHBoxLayout):
         self.spinbox1.setValue(round(value[0], 4))
         self.spinbox2.setValue(round(value[1], 4))
         self.spinbox3.setValue(round(value[2], 4))
-
 
 class NewWindow(QMainWindow):
     def __init__(self, title, calib_result, form_widget, parent=None):

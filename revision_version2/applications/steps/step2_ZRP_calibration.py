@@ -49,7 +49,7 @@ class ZRollPitch:
         self.CalibrationParam = {}
 
     def DisplayGroundPoint(self, thread, args):
-        thread.emit_string.emit(str('Start z, roll, pitch calibration'))
+        thread.emit_string.emit(str('Start display ground point'))
         thread.mutex.lock()
         start_time = args[0]
         end_time = args[1]

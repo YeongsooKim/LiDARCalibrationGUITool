@@ -48,9 +48,13 @@ class ConfigurationTab(QWidget):
         self.is_lidar_num_changed = False
         self.form_widget = form_widget
 
-        self.initUi()
+        self.added_stl_dict = {}
 
-    def initUi(self):
+        self.InitUi()
+        self.stl_path_dict = {}
+        self.InitPath()
+
+    def InitUi(self):
         main_vbox = QVBoxLayout()
 
         config_widget = QWidget()
@@ -62,6 +66,13 @@ class ConfigurationTab(QWidget):
         main_vbox.addWidget(self.next_btn)
 
         self.setLayout(main_vbox)
+
+    def InitPath(self):
+        qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
+        files = qdir.entryList(QDir.Files)
+
+        for file in files:
+            self.stl_path_dict[file] = self.form_widget.config.PATH['VehicleMesh']
 
     ## Layout
     def SetConfiguration_Layout(self):
@@ -130,6 +141,8 @@ class ConfigurationTab(QWidget):
         groupbox = QGroupBox('Vehicle Configuration')
         vbox = QVBoxLayout()
 
+        self.label = QLabel()
+
         # combo box
         self.cb = QComboBox()
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
@@ -145,6 +158,10 @@ class ConfigurationTab(QWidget):
         # vehicle info box
         vehicle_info_box = QGroupBox()
         vehicle_info_box.setFlat(True)
+
+        self.vehicle_info_layout = element.EditLabelWithImport(CONST_CONFIG_VEHICLE_INFO, self.form_widget)
+        vehicle_info_box.setLayout(self.vehicle_info_layout)
+
         vbox.addWidget(vehicle_info_box)
 
         # vtk vehicle
@@ -180,48 +197,49 @@ class ConfigurationTab(QWidget):
         if text != 'Add new 3d model':
             self.VTKInit(text)
         else:
-
             widget = QWidget()
             fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['VehicleMesh'],
                                                 "Configuration file (*.stl)")  # exist ini file path
 
-            print(fname)
             if fname[0]:
                 qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
-
-                print(fname[0])
+                files = qdir.entryList(QDir.Files)
+                select_idx = len(files)
 
                 words = fname[0].split('/')
-                print(words)
                 adding_file_name = words[-1]
-                print(words[-1])
                 del words[-1]
+
+                if adding_file_name in files:
+                    self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
+                    return
 
                 adding_file_path = ''
                 for word in words:
                     adding_file_path += (word + '/')
-                    pass
-                print(adding_file_path)
                 self.form_widget.config.PATH['VehicleMesh'] = adding_file_path
 
                 self.cb.clear()
-                files = qdir.entryList(QDir.Files)
                 files.append(adding_file_name)
                 self.cb.addItems(files)
                 self.cb.addItem('Add new 3d model')
-                # self.cb.nu
+                self.cb.setCurrentIndex(select_idx)
 
-                self.cb.setCurrentIndex()
+                self.stl_path_dict[adding_file_name] = adding_file_path
 
-                # self.form_widget.config.configuration_file = fname[0]
-                # self.form_widget.config.InitConfiguration()
-                # self.form_widget.SetConfiguration()
-                # print('Open ' + str(fname[0]))
+                words = adding_file_name.split('.')
+                adding_file_name = words[0]
+                self.added_stl_dict[adding_file_name] = []
 
     def VTKInit(self, text):
         vtk.vtkObject.GlobalWarningDisplayOff()
 
-        stl_path = self.form_widget.config.PATH['VehicleMesh'] + text
+        try:
+            stl_path = self.stl_path_dict[text]
+        except:
+            stl_path = self.form_widget.config.PATH['VehicleMesh']
+
+        stl_path = stl_path + text
         vtk_lidar_calib.SetVehicleStlPath(stl_path)
 
         words = text.split('.')
@@ -359,10 +377,9 @@ class ImportDataTab(QWidget):
         if self.form_widget.importing.is_complete == False:
             self.form_widget.ErrorPopUp('Please import logging file path')
         else:
-            self.form_widget.tabs.setTabEnabled(CONST_HANDEYE_TAB, True)
-            self.form_widget.tabs.setTabEnabled(CONST_VALIDATION_TAB, True)
-            self.form_widget.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
             self.form_widget.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, True)
+            self.form_widget.tabs.setTabEnabled(CONST_VALIDATION_TAB, True)
+            self.form_widget.tabs.setTabEnabled(CONST_HANDEYE_TAB, True)
             self.form_widget.tabs.setCurrentIndex(CONST_ZROLLPITCH_TAB)
 
     def IterationPercentage(self, percentage_dict):
@@ -405,6 +422,8 @@ class ImportDataTab(QWidget):
             self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(
                 self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceZ_m'])
 
+        self.form_widget.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
+
         # Import tab
         ## Set Configuration
         self.form_widget.RemoveLayout(self.scroll_box.layout)
@@ -434,6 +453,7 @@ class ImportDataTab(QWidget):
             self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
 
             self.form_widget.datavalidation_tab.radio_label_layout.button_group.button(2).setChecked(True)
+            self.form_widget.datavalidation_tab.radio_label_layout.RadioButton()
 
             self.SetUsedData(self.form_widget.datavalidation_tab, 1)
             self.SetUsedData(self.form_widget.handeye_tab, 1)
@@ -526,6 +546,7 @@ class ImportDataTab(QWidget):
     ## Util functions
     def SetUsedData(self, tab, selected_btn):
         tab.radio_label_layout.button_group.button(selected_btn).setChecked(True)
+        tab.radio_label_layout.RadioButton()
 
 class ZRollPitch_CalibrationTab(QWidget):
     def __init__(self, form_widget):
@@ -562,51 +583,6 @@ class ZRollPitch_CalibrationTab(QWidget):
 
         self.configuration_vbox.addWidget(self.Configuration_LimitTime_Groupbox(), 75)
         self.configuration_vbox.addWidget(self.Configuration_SetConfiguration_Groupbox())
-
-        hbox = QHBoxLayout()
-        label = QLabel('Plane Extract Method')
-        hbox.addWidget(label)
-
-        # button for SVD
-        self.button_group1 = QButtonGroup()
-        plane_rbn1 = QRadioButton('SVD')
-        plane_rbn1.setChecked(True)
-        plane_rbn1.clicked.connect(self.PlaneExtractRadioButton)
-        hbox.addWidget(plane_rbn1)
-        self.button_group1.addButton(plane_rbn1, 1)
-
-        # button for Least Square
-        plane_rbn2 = QRadioButton('LTSQ')
-        plane_rbn2.clicked.connect(self.PlaneExtractRadioButton)
-        hbox.addWidget(plane_rbn2)
-        self.button_group1.addButton(plane_rbn2, 2)
-
-        # button for RANSAC
-        plane_rbn3 = QRadioButton('RANSAC')
-        plane_rbn3.clicked.connect(self.PlaneExtractRadioButton)
-        hbox.addWidget(plane_rbn3)
-        self.button_group1.addButton(plane_rbn3, 3)
-        self.configuration_vbox.addLayout(hbox)
-
-        hbox = QHBoxLayout()
-        label = QLabel('Optimization Method')
-        hbox.addWidget(label)
-
-        # button for Recursive Least Square
-        self.button_group2 = QButtonGroup()
-        opti_rbn1 = QRadioButton('Recursive Least Square')
-        opti_rbn1.setChecked(True)
-        opti_rbn1.clicked.connect(self.OptimizeRadioButton)
-        hbox.addWidget(opti_rbn1)
-        self.button_group2.addButton(opti_rbn1, 1)
-
-        # button for Least Square
-        opti_rbn2 = QRadioButton('Least Square')
-        opti_rbn2.clicked.connect(self.OptimizeRadioButton)
-        hbox.addWidget(opti_rbn2)
-        self.button_group2.addButton(opti_rbn2, 2)
-        self.configuration_vbox.addLayout(hbox)
-
         self.configuration_vbox.addWidget(self.Configuration_Calibration_Groupbox())
 
         return self.configuration_vbox
@@ -738,6 +714,7 @@ class ZRollPitch_CalibrationTab(QWidget):
 
         self.PlotClear(self.result_2d_data_pose_ax, self.result_2d_data_pose_canvas)
         self.PlotClear(self.result_3d_data_pose_ax, self.result_3d_data_pose_canvas)
+        self.text_edit.clear()
         self.form_widget.rpz_thread._status = True
         self.form_widget.rpz_thread.SetFunc(display_groundpoint,
                                [start_time, end_time, PARM_ZRP, selected_sensor])
@@ -856,6 +833,50 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def Configuration_Calibration_Groupbox(self):
         groupbox = QGroupBox('Z, Roll, Pitch Calibration')
         vbox = QVBoxLayout(self)
+
+        hbox = QHBoxLayout()
+        label = QLabel('Plane Extract Method')
+        hbox.addWidget(label)
+
+        # button for SVD
+        self.button_group1 = QButtonGroup()
+        plane_rbn1 = QRadioButton('SVD')
+        plane_rbn1.setChecked(True)
+        plane_rbn1.clicked.connect(self.PlaneExtractRadioButton)
+        hbox.addWidget(plane_rbn1)
+        self.button_group1.addButton(plane_rbn1, 1)
+
+        # button for Least Square
+        plane_rbn2 = QRadioButton('LTSQ')
+        plane_rbn2.clicked.connect(self.PlaneExtractRadioButton)
+        hbox.addWidget(plane_rbn2)
+        self.button_group1.addButton(plane_rbn2, 2)
+
+        # button for RANSAC
+        plane_rbn3 = QRadioButton('RANSAC')
+        plane_rbn3.clicked.connect(self.PlaneExtractRadioButton)
+        hbox.addWidget(plane_rbn3)
+        self.button_group1.addButton(plane_rbn3, 3)
+        vbox.addLayout(hbox)
+
+        hbox = QHBoxLayout()
+        label = QLabel('Optimization Method')
+        hbox.addWidget(label)
+
+        # button for Recursive Least Square
+        self.button_group2 = QButtonGroup()
+        opti_rbn1 = QRadioButton('Recursive Least Square')
+        opti_rbn1.setChecked(True)
+        opti_rbn1.clicked.connect(self.OptimizeRadioButton)
+        hbox.addWidget(opti_rbn1)
+        self.button_group2.addButton(opti_rbn1, 1)
+
+        # button for Least Square
+        opti_rbn2 = QRadioButton('Least Square')
+        opti_rbn2.clicked.connect(self.OptimizeRadioButton)
+        hbox.addWidget(opti_rbn2)
+        self.button_group2.addButton(opti_rbn2, 2)
+        vbox.addLayout(hbox)
 
         hbox = QHBoxLayout()
         btn = QPushButton('Start')
@@ -992,7 +1013,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         print("End Apply function")
 
     def EndCalibration(self):
-        print("end z, roll, pitch calibration")
+        print("End z, roll, pitch calibration")
         self.progress_status = CONST_IDLE
         self.form_widget.zrollpitch.complete_calibration = True
 
@@ -1110,7 +1131,7 @@ class DataValidationTab(QWidget):
         groupbox = QGroupBox('Configuration Info')
         vbox = QVBoxLayout()
 
-        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        height_roll_pitch_param_label = QLabel('[ Applying Height, Roll, Pitch Parameters ]', self)
         vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
@@ -1557,7 +1578,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        height_roll_pitch_param_label = QLabel('[ Applying Height, Roll, Pitch Parameters ]', self)
         vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
@@ -1834,6 +1855,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.progress_status = CONST_IDLE
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
+        self.radio_label_layout.RadioButton()
 
 class UnsupervisedTab(XYYaw_CalibrationTab):
     def __init__(self, form_widget):
@@ -1847,7 +1869,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.optimization_configuration_groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        height_roll_pitch_param_label = QLabel('[ Applying Roll, Pitch, Height Parameters ]', self)
+        height_roll_pitch_param_label = QLabel('[ Applying Height, Roll, Pitch Parameters ]', self)
         vbox.addWidget(height_roll_pitch_param_label)
 
         hbox = QHBoxLayout()
@@ -1936,7 +1958,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.ErrorCheck(self.form_widget.config.PARM_LIDAR)
         self.progress_status = CONST_PLAY
 
-        self.PlotClear()
+        self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
 
         self.form_widget.opti_thread._status = True
@@ -2003,7 +2025,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
                              self.form_widget.unsupervised.calib_yaw]
         self.PARM_LIDAR = self.form_widget.unsupervised.PARM_LIDAR
 
-        calib_result_dict = self.unsupervised.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result)
+        calib_result_dict = self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result)
         for key in self.form_widget.unsupervised.CalibrationParam:
             self.form_widget.unsupervised.CalibrationParam[key][0] = calib_result_dict[key][1]
             self.form_widget.unsupervised.CalibrationParam[key][1] = calib_result_dict[key][2]
@@ -2108,8 +2130,10 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.progress_status = CONST_IDLE
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
+        self.radio_label_layout.RadioButton()
 
         self.select_lidar_num_layout.button_group.button(1).setChecked(True)
+        self.select_lidar_num_layout.RadioButton()
 
 class EvaluationTab(QWidget):
     def __init__(self, form_widget):
@@ -2432,7 +2456,6 @@ class EvaluationTab(QWidget):
 
     def StartEvaluation(self, start_time, end_time, sensor_list, calibration_param, zrp_calib, dist_interval, targets_clear, text_edit_callback, progress_callback, end_callback):
         self.form_widget.thread._status = True
-        print("start evaluation")
 
         self.form_widget.thread.SetFunc(self.form_widget.evaluation.Evaluation,
                                         [start_time, end_time, sensor_list, calibration_param, self.radio_label_layout.using_gnss_motion, zrp_calib, dist_interval])
@@ -2502,7 +2525,7 @@ class EvaluationTab(QWidget):
         if len(self.form_widget.evaluation.fail_list) != 0:
             self.form_widget.ErrorPopUp('Failed Evaluation: ' + fail_str)
         
-        print('end evaluation')
+        print('End evaluation')
 
     def VTKInit(self, is_default):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -2582,6 +2605,7 @@ class EvaluationTab(QWidget):
         self.evaluation_status = CONST_IDLE
 
         self.radio_label_layout.button_group.button(1).setChecked(True)
+        self.radio_label_layout.RadioButton()
 
 class MyApp(QMainWindow):
     def __init__(self, parent=None):
@@ -3143,7 +3167,7 @@ class FormWidget(QWidget):
 
             elif label_type is CONST_ZRP_LABEL:
                 buttons = {0:True, 1:False}
-                result_label = element.RadioWithEditLabel(CONST_ZRP_CALIBRATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
+                result_label = element.RadioWithEditLabel(CONST_EVALUATION_ZRP_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
                 if calibration_param.get(idxSensor) is not None:
                     result_label.spinbox1.setValue(round(calibration_param[idxSensor][0], 4))
                     result_label.spinbox2.setValue(round(calibration_param[idxSensor][1], 4))
@@ -3259,17 +3283,17 @@ class FormWidget(QWidget):
         fig = plt.figure(figsize=(16, 12), dpi=70)
                 
         if ax is not None:
-            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='point cloud')
-            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='filtered point cloud',)
+            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
+            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
 
         if canvas is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='point cloud')
-            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='filtered point cloud')
+            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
+            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
             ax.axis('equal')
             ax.grid()
             ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Point')
+            ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             
@@ -3278,7 +3302,7 @@ class FormWidget(QWidget):
             ax.axis('equal')
             ax.grid()
             ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Point')
+            ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             canvas.draw()
@@ -3295,16 +3319,16 @@ class FormWidget(QWidget):
                 
         if ax is not None:
             ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
-            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Point')
+            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Points')
        
 
         if canvas is None:
             ax = fig.add_subplot(111, projection='3d')
             ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
-            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Point')
+            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Points')
             ax.grid()
             ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Point')
+            ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             ax.set_zlabel('Z [m]')
@@ -3313,7 +3337,7 @@ class FormWidget(QWidget):
         if canvas is not None:
             ax.grid()
             ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Point')
+            ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             ax.set_ylabel('Z [m]')

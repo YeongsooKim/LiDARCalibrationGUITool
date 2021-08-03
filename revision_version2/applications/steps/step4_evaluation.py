@@ -278,6 +278,7 @@ class Evaluation:
                                                                                          tolerance=0.0001,
                                                                                          max_iterations=100,
                                                                                          rm_outlier_dist=30)
+                    print(transform_point)
 
                     print('\n----------- Finish ICP -----------')
 
@@ -293,6 +294,12 @@ class Evaluation:
                     pred_transformation_world_to_veh = np.matmul(transformation_result,
                                                                  np.linalg.inv(tf_XYYaw))
 
+                    print("tf\n")
+                    print(tf_XYYaw)
+                    print("ref\n")
+                    print(ref_transformation_world_to_veh)
+                    print("pred\n")
+                    print(pred_transformation_world_to_veh)
 
                     pred_east = pred_transformation_world_to_veh[0][3]
                     pred_north = pred_transformation_world_to_veh[1][3]
