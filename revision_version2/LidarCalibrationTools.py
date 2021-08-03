@@ -48,11 +48,7 @@ class ConfigurationTab(QWidget):
         self.is_lidar_num_changed = False
         self.form_widget = form_widget
 
-        self.added_stl_dict = {}
-
         self.InitUi()
-        self.stl_path_dict = {}
-        self.InitPath()
 
     def InitUi(self):
         main_vbox = QVBoxLayout()
@@ -66,13 +62,6 @@ class ConfigurationTab(QWidget):
         main_vbox.addWidget(self.next_btn)
 
         self.setLayout(main_vbox)
-
-    def InitPath(self):
-        qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
-        files = qdir.entryList(QDir.Files)
-
-        for file in files:
-            self.stl_path_dict[file] = self.form_widget.config.PATH['VehicleMesh']
 
     ## Layout
     def SetConfiguration_Layout(self):
@@ -141,28 +130,16 @@ class ConfigurationTab(QWidget):
         groupbox = QGroupBox('Vehicle Configuration')
         vbox = QVBoxLayout()
 
-        self.label = QLabel()
-
         # combo box
         self.cb = QComboBox()
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
         self.cb.addItems(qdir.entryList(QDir.Files))
-        self.cb.addItem('Add new 3d model')
         self.cb.activated[str].connect(self.SelectStl)
 
         pal = self.cb.palette()
         pal.setColor(QPalette.Button, QColor(255,255,255))
         self.cb.setPalette(pal)
         vbox.addWidget(self.cb)
-
-        # vehicle info box
-        vehicle_info_box = QGroupBox()
-        vehicle_info_box.setFlat(True)
-
-        self.vehicle_info_layout = element.EditLabelWithImport(CONST_CONFIG_VEHICLE_INFO, self.form_widget)
-        vehicle_info_box.setLayout(self.vehicle_info_layout)
-
-        vbox.addWidget(vehicle_info_box)
 
         # vtk vehicle
         self.vtkWidget = QVTKRenderWindowInteractor()
@@ -194,51 +171,12 @@ class ConfigurationTab(QWidget):
         self.form_widget.tabs.setCurrentIndex(CONST_IMPORTDATA_TAB)
 
     def SelectStl(self, text):
-        if text != 'Add new 3d model':
-            self.VTKInit(text)
-        else:
-            widget = QWidget()
-            fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['VehicleMesh'],
-                                                "Configuration file (*.stl)")  # exist ini file path
-
-            if fname[0]:
-                qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
-                files = qdir.entryList(QDir.Files)
-                select_idx = len(files)
-
-                words = fname[0].split('/')
-                adding_file_name = words[-1]
-                del words[-1]
-
-                if adding_file_name in files:
-                    self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
-                    return
-
-                adding_file_path = ''
-                for word in words:
-                    adding_file_path += (word + '/')
-                self.form_widget.config.PATH['VehicleMesh'] = adding_file_path
-
-                self.cb.clear()
-                files.append(adding_file_name)
-                self.cb.addItems(files)
-                self.cb.addItem('Add new 3d model')
-                self.cb.setCurrentIndex(select_idx)
-
-                self.stl_path_dict[adding_file_name] = adding_file_path
-
-                words = adding_file_name.split('.')
-                adding_file_name = words[0]
-                self.added_stl_dict[adding_file_name] = []
+        self.VTKInit(text)
 
     def VTKInit(self, text):
         vtk.vtkObject.GlobalWarningDisplayOff()
 
-        try:
-            stl_path = self.stl_path_dict[text]
-        except:
-            stl_path = self.form_widget.config.PATH['VehicleMesh']
-
+        stl_path = self.form_widget.config.PATH['VehicleMesh']
         stl_path = stl_path + text
         vtk_lidar_calib.SetVehicleStlPath(stl_path)
 
