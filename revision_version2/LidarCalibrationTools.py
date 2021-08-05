@@ -68,6 +68,13 @@ class ConfigurationTab(QWidget):
 
         self.setLayout(main_vbox)
 
+    def InitPath(self):
+        qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
+        files = qdir.entryList(QDir.Files)
+
+        for file in files:
+            self.stl_path_dict[file] = self.form_widget.config.PATH['VehicleMesh']
+
     ## Layout
     def SetConfiguration_Layout(self):
         vbox = QVBoxLayout()
@@ -139,6 +146,7 @@ class ConfigurationTab(QWidget):
         self.cb = QComboBox()
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
         self.cb.addItems(qdir.entryList(QDir.Files))
+        self.cb.addItem('Add new 3d model')
         self.cb.activated[str].connect(self.SelectStl)
 
         pal = self.cb.palette()
@@ -248,7 +256,10 @@ class ConfigurationTab(QWidget):
     def VTKInit(self, text):
         vtk.vtkObject.GlobalWarningDisplayOff()
 
-        stl_path = self.form_widget.config.PATH['VehicleMesh']
+        try:
+            stl_path = self.stl_path_dict[text]
+        except:
+            stl_path = self.form_widget.config.PATH['VehicleMesh']
         stl_path = stl_path + text
         vtk_lidar_calib.SetVehicleStlPath(stl_path)
 

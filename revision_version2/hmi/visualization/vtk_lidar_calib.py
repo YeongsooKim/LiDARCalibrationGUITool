@@ -119,7 +119,6 @@ def GetVehicleRatio(boundary):
 
     scale_ratio = vehicle_info_[0]/length_mm
 
-    # print(length_mm)
     return scale_ratio
 
 
