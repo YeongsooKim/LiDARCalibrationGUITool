@@ -202,19 +202,19 @@ class ConfigurationTab(QWidget):
             words = text.split('.')
 
             if self.form_widget.config.VEHICLE_INFO.get(words[0]) is None:
-                self.vehicle_info_layout.BtnEnable()
+                self.vehicle_info_layout.BtnEnable(True)
                 self.vehicle_info_layout.Clear()
                 self.form_widget.ErrorPopUp('Please input vehicle information and push the import button')
             else:
                 self.vehicle_info_layout.Clear(self.form_widget.config.VEHICLE_INFO[words[0]])
                 if self.form_widget.config_tab.added_stl_dict.get(words[0]) is not None:
-                    self.vehicle_info_layout.BtnEnable()
+                    self.vehicle_info_layout.BtnEnable(True)
                 else:
-                    self.vehicle_info_layout.BtnDisable()
+                    self.vehicle_info_layout.BtnEnable(False)
 
                 self.VTKInit(text)
         else:
-            self.vehicle_info_layout.BtnEnable()
+            self.vehicle_info_layout.BtnEnable(True)
             self.vehicle_info_layout.Clear()
 
             widget = QWidget()
@@ -231,7 +231,7 @@ class ConfigurationTab(QWidget):
 
                 if adding_file_name in files:
                     self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
-                    self.vehicle_info_layout.BtnDisable()
+                    self.vehicle_info_layout.BtnEnable(False)
                     return
 
                 self.cb.clear()
@@ -512,6 +512,9 @@ class ImportDataTab(QWidget):
         self.limit_time_layout.start_time = default_start_time
         self.limit_time_layout.end_time = default_end_time
 
+        ## enable button
+        self.form_widget.importing_tab.next_btn.setEnabled(True)
+
         # Z, Roll, Pitch tab
         ## Clear
         self.form_widget.zrollpitch_tab.Clear()
@@ -613,6 +616,8 @@ class ZRollPitch_CalibrationTab(QWidget):
 
         vbox.addWidget(self.Result_GroundPoints_Groupbox())
         vbox.addWidget(self.Result_Evaluation_Groupbox())
+        self.GndViewBtnEnable(enable=False)
+        self.EvalViewBtnEnable(enable=False)
 
         return vbox
 
@@ -633,9 +638,9 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.result_2d_data_pose_canvas.draw()
         vbox.addWidget(self.result_2d_data_pose_canvas)
 
-        btn1 = QPushButton('View')
-        btn1.clicked.connect(self.ViewGroundPoints1)
-        vbox.addWidget(btn1)
+        self.view_gnd_points_btn1 = QPushButton('View')
+        self.view_gnd_points_btn1.clicked.connect(self.ViewGroundPoints1)
+        vbox.addWidget(self.view_gnd_points_btn1)
 
         hBox.addLayout(vbox)
 
@@ -651,9 +656,9 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.result_3d_data_pose_canvas.draw()
         vbox2.addWidget(self.result_3d_data_pose_canvas)
 
-        btn2 = QPushButton('View')
-        btn2.clicked.connect(self.ViewGroundPoints2)
-        vbox2.addWidget(btn2)
+        self.view_gnd_points_btn2 = QPushButton('View')
+        self.view_gnd_points_btn2.clicked.connect(self.ViewGroundPoints2)
+        vbox2.addWidget(self.view_gnd_points_btn2)
         hBox.addLayout(vbox2)
 
         groupbox.setLayout(hBox)
@@ -675,10 +680,10 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.result_graph1_canvas.draw()
         vbox.addWidget(self.result_graph1_canvas)
 
-        btn1 = QPushButton('View')
-        btn1.clicked.connect(self.ViewMeanDistance)
+        self.view_eval_btn1 = QPushButton('View')
+        self.view_eval_btn1.clicked.connect(self.ViewMeanDistance)
         # btn.clicked.connect(self.ViewPointCloud)
-        vbox.addWidget(btn1)
+        vbox.addWidget(self.view_eval_btn1)
 
         hBox.addLayout(vbox)
 
@@ -694,9 +699,9 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.result_graph2_canvas.draw()
         vbox2.addWidget(self.result_graph2_canvas)
 
-        btn2 = QPushButton('View')
-        btn2.clicked.connect(self.ViewGroundSlope)
-        vbox2.addWidget(btn2)
+        self.view_eval_btn2 = QPushButton('View')
+        self.view_eval_btn2.clicked.connect(self.ViewGroundSlope)
+        vbox2.addWidget(self.view_eval_btn2)
         hBox.addLayout(vbox2)
 
         groupbox.setLayout(hBox)
@@ -764,13 +769,24 @@ class ZRollPitch_CalibrationTab(QWidget):
         except:
             pass
 
+    def GndViewBtnEnable(self, enable=True):
+        self.view_gnd_points_btn1.setEnabled(enable)
+        self.view_gnd_points_btn2.setEnabled(enable)
+
+    def EvalViewBtnEnable(self, enable=True):
+        self.view_eval_btn1.setEnabled(enable)
+        self.view_eval_btn2.setEnabled(enable)
+
     def Clear(self):
+        self.GndViewBtnEnable(enable=False)
+        self.EvalViewBtnEnable(enable=False)
         self.PlotClear(self.result_graph1_ax, self.result_graph1_canvas)
         self.PlotClear(self.result_graph2_ax, self.result_graph2_canvas)
         self.PlotClear(self.result_2d_data_pose_ax, self.result_2d_data_pose_canvas)
         self.PlotClear(self.result_3d_data_pose_ax, self.result_3d_data_pose_canvas)
         self.calib_result.clear()
         self.select_lidar_to_calib_layout.Clear()
+        self.calibration_pbar.reset()
         self.text_edit.clear()
 
     def ErrorCheck(self):
@@ -1018,6 +1034,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def EndApply(self):
         self.progress_status = CONST_IDLE
         self.form_widget.zrollpitch.complete_calibration = True
+        self.GndViewBtnEnable(enable=True)
 
         ## Plot 'Result Data'
         self.result_2d_data_pose_ax.clear()
@@ -1037,6 +1054,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         print("End z, roll, pitch calibration")
         self.progress_status = CONST_IDLE
         self.form_widget.zrollpitch.complete_calibration = True
+        self.EvalViewBtnEnable(enable=True)
 
         # ZRP tab
         self.result_graph1_ax.clear()
@@ -1144,6 +1162,7 @@ class DataValidationTab(QWidget):
 
         vbox.addWidget(self.Result_ResultData_Groupbox())
         vbox.addWidget(self.Result_ResultGraph_Groupbox())
+        self.ViewBtnEnable(False)
 
         return vbox
 
@@ -1257,9 +1276,9 @@ class DataValidationTab(QWidget):
         self.result_data_pose_canvas.draw()
         vbox.addWidget(self.result_data_pose_canvas)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewTranslationError)
-        vbox.addWidget(btn)
+        self.view_data_btn = QPushButton('View')
+        self.view_data_btn.clicked.connect(self.ViewTranslationError)
+        vbox.addWidget(self.view_data_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -1275,9 +1294,9 @@ class DataValidationTab(QWidget):
         self.result_graph_canvas.draw()
         vbox.addWidget(self.result_graph_canvas)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewRotationError)
-        vbox.addWidget(btn)
+        self.view_graph_btn = QPushButton('View')
+        self.view_graph_btn.clicked.connect(self.ViewRotationError)
+        vbox.addWidget(self.view_graph_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -1360,6 +1379,7 @@ class DataValidationTab(QWidget):
     def EndValibration(self):
         self.progress_status = CONST_IDLE
         self.form_widget.datavalidation.complete_validation = True
+        self.ViewBtnEnable(True)
 
         # validation tab
         ## Set 'Result Calibration Data'
@@ -1401,6 +1421,10 @@ class DataValidationTab(QWidget):
         except:
             pass
 
+    def ViewBtnEnable(self, enable=True):
+        self.view_data_btn.setEnabled(enable)
+        self.view_graph_btn.setEnabled(enable)
+
     def Clear(self):
         # Reset data validation values
         try:
@@ -1419,6 +1443,7 @@ class DataValidationTab(QWidget):
                                   self.form_widget.datavalidation.RMSERotationErrorDict)
 
         # Clear HMI
+        self.ViewBtnEnable(False)
         self.PlotClear(self.result_data_pose_ax, self.result_data_pose_canvas)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
@@ -1474,6 +1499,7 @@ class XYYaw_CalibrationTab(QWidget):
 
         vbox.addWidget(self.Result_ResultData_Groupbox())
         vbox.addWidget(self.Result_ResultGraph_Groupbox())
+        self.ViewBtnEnable(False)
 
         return vbox
 
@@ -1502,9 +1528,9 @@ class XYYaw_CalibrationTab(QWidget):
         hbox.addWidget(btn)
         vbox.addLayout(hbox)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewLiDAR)
-        vbox.addWidget(btn)
+        self.view_data_btn = QPushButton('View')
+        self.view_data_btn.clicked.connect(self.ViewLiDAR)
+        vbox.addWidget(self.view_data_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -1520,9 +1546,9 @@ class XYYaw_CalibrationTab(QWidget):
         self.result_graph_canvas.draw()
         vbox.addWidget(self.result_graph_canvas)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewPointCloud)
-        vbox.addWidget(btn)
+        self.view_graph_btn = QPushButton('View')
+        self.view_graph_btn.clicked.connect(self.ViewPointCloud)
+        vbox.addWidget(self.view_graph_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -1539,6 +1565,10 @@ class XYYaw_CalibrationTab(QWidget):
         pass
 
     ## Util functions
+
+    def ViewBtnEnable(self, enable=True):
+        self.view_data_btn.setEnabled(enable)
+        self.view_graph_btn.setEnabled(enable)
 
     def PlotClear(self, ax, canvas):
         # remove plots
@@ -1780,6 +1810,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
             self.form_widget.handeye.CalibrationParam[key][5] = calib_result_dict[key][0]
 
         self.progress_status = CONST_IDLE
+        self.ViewBtnEnable(True)
         self.form_widget.tabs.setTabEnabled(CONST_UNSUPERVISED_TAB, True)
         self.form_widget.tabs.setTabEnabled(CONST_EVALUATION_TAB, True)
         self.form_widget.handeye.complete_calibration = True
@@ -1868,6 +1899,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
                                            self.form_widget.handeye.CalibrationParam)
 
         # Clear HMI
+        self.ViewBtnEnable(False)
         self.VTKInit(is_default=True)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
@@ -2053,6 +2085,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
             self.form_widget.unsupervised.CalibrationParam[key][5] = calib_result_dict[key][0]
 
         self.progress_status = CONST_IDLE
+        self.ViewBtnEnable(True)
         self.form_widget.unsupervised.complete_calibration = True
 
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
@@ -2144,6 +2177,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
 
         # Clear HMI
+        self.ViewBtnEnable(False)
         self.VTKInit(is_default=True)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
@@ -2215,6 +2249,7 @@ class EvaluationTab(QWidget):
         hbox.addWidget(self.EvaluationResult_ResultGraph_Groupbox())
         hbox.addWidget(self.EvaluationResult_LidarPosition_Groupbox())
         hbox.addWidget(self.EvaluationResult_RMSE_Groupbox())
+        self.ViewBtnEnable(False)
 
         return hbox
 
@@ -2322,9 +2357,9 @@ class EvaluationTab(QWidget):
         self.eval_graph_canvas.draw()
         vbox.addWidget(self.eval_graph_canvas)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewPointCloud)
-        vbox.addWidget(btn)
+        self.view_graph_btn = QPushButton('View')
+        self.view_graph_btn.clicked.connect(self.ViewPointCloud)
+        vbox.addWidget(self.view_graph_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -2337,9 +2372,9 @@ class EvaluationTab(QWidget):
         vbox.addWidget(self.vtkWidget)
         self.VTKInit(is_default=True)
 
-        btn = QPushButton('View')
-        btn.clicked.connect(self.ViewLiDAR)
-        vbox.addWidget(btn)
+        self.view_data_btn = QPushButton('View')
+        self.view_data_btn.clicked.connect(self.ViewLiDAR)
+        vbox.addWidget(self.view_data_btn)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -2507,6 +2542,7 @@ class EvaluationTab(QWidget):
 
     def EndEvaluation(self):
         self.evaluation_status = CONST_IDLE
+        self.ViewBtnEnable(True)
 
         ## Plot 'Result Graph'
         self.eval_graph_ax.clear()
@@ -2548,6 +2584,8 @@ class EvaluationTab(QWidget):
         
         print('End evaluation')
 
+    # Util functions
+
     def VTKInit(self, is_default):
         vtk.vtkObject.GlobalWarningDisplayOff()
         colors = vtk.vtkNamedColors()
@@ -2577,6 +2615,10 @@ class EvaluationTab(QWidget):
             self.renWin.Render()
 
             self.iren.Start()
+
+    def ViewBtnEnable(self, enable=True):
+        self.view_data_btn.setEnabled(enable)
+        self.view_graph_btn.setEnabled(enable)
 
     def PlotClear(self, ax, canvas):
         # remove plots
@@ -2616,6 +2658,7 @@ class EvaluationTab(QWidget):
                                self.form_widget.handeye.CalibrationParam)
 
         # Clear HMI
+        self.ViewBtnEnable(False)
         self.VTKInit(is_default=True)
         self.PlotClear(self.eval_graph_ax, self.eval_graph_canvas)
         self.PlotClear(self.eval_rmse_yaw_ax, self.eval_rmse_canvas)
@@ -3040,7 +3083,7 @@ class FormWidget(QWidget):
         text = self.config_tab.cb.currentText()
         words = text.split('.')
         self.config_tab.vehicle_info_layout.Clear(self.config.VEHICLE_INFO[words[0]])
-        self.config_tab.vehicle_info_layout.BtnDisable()
+        self.config_tab.vehicle_info_layout.BtnEnable(False)
 
         PARM_PC = self.config.PARM_PC
         self.config_tab.minimum_threshold_distance_layout.double_spin_box.setValue(PARM_PC['MinThresholdDist_m'])

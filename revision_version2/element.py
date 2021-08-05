@@ -76,6 +76,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         if len(self.form_widget.config.PARM_LIDAR['CheckedSensorList']) == 0:
             self.form_widget.ErrorPopUp('Please import more than 1 lidar')
             return
+        self.form_widget.importing_tab.next_btn.setEnabled(False)
 
         self.form_widget.tabs.setTabEnabled(CONST_CONFIG_TAB, False)
         self.form_widget.tabs.setTabEnabled(CONST_ZROLLPITCH_TAB, False)
@@ -403,19 +404,10 @@ class ComboBoxLabelLayout(QHBoxLayout):
         elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:
             if len(self.form_widget.config.PARM_LIDAR['CheckedSensorList']) < 2:
                 self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(1).setChecked(True)
-                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setCheckable(False)
-                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setStyleSheet(
-                    "QRadioButton::unchecked"
-                    "{"
-                    "color : gray"
-                    "}")
+                self.form_widget.unsupervised_tab.select_lidar_num_layout.RadioButton()
+                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setEnabled(False)
             else:
-                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setCheckable(True)
-                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setStyleSheet(
-                    "QRadioButton::unchecked"
-                    "{"
-                    "color : black"
-                    "}")
+                self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(2).setEnabled(True)
 
     def Clear(self):
         if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB:    # instance name is 'select_lidar_to_calib_layout'
@@ -855,12 +847,16 @@ class SlideLabelLayout(QGridLayout):
 class RadioLabelLayout(QHBoxLayout):
     def __init__(self, instance_id, label_str, buttons, form_widget):
         super().__init__()
-        self.using_gnss_motion = False
-
         self.id = instance_id
         self.buttons = buttons
         self.label_str = label_str
         self.form_widget = form_widget
+
+        self.using_gnss_motion = False
+        if self.id == CONST_DATAVALIDATION_USED_DATA or self.id == CONST_HANDEYE_USED_DATA or self.id == CONST_UNSUPERVISED_USED_DATA or self.id == CONST_EVAL_SELECT_LIDAR:
+            self.prev_checkID = 1
+        elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR:
+            self.prev_checkID = CONST_SINGLE_LIDAR
 
         self.InitUi()
 
@@ -907,19 +903,12 @@ class RadioLabelLayout(QHBoxLayout):
                 for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
                     if idxSensor == self.form_widget.config.PARM_LIDAR['SingleSensor']:
                         self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.setCurrentIndex(i)
-                        self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setCheckable(True)
-                        self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setStyleSheet(
-                            "QRadioButton::unchecked"
-                            "{"
-                            "color : black"
-                            "}")
+                        try:
+                            self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setEnabled(True)
+                        except:
+                            pass
                     else:
-                        self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setCheckable(False)
-                        self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setStyleSheet(
-                            "QRadioButton::unchecked"
-                            "{"
-                            "color : gray"
-                            "}")
+                        self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(3).setEnabled(False)
 
             elif status == CONST_MULTI_LIDAR:
                 self.form_widget.unsupervised_tab.select_lidar_combobox_layout.label.setText("Select Principal Lidar To Calibration")
@@ -994,23 +983,13 @@ class EditLabelWithButtonLayout(QHBoxLayout):
             self.cb_list[0].cb.setCurrentIndex(0)
             self.cb_list[1].cb.setCurrentIndex(1)
 
-    def BtnDisable(self):
+    def BtnEnable(self, enable):
         for double_spin in self.double_spin_list:
-            double_spin.double_spin_box.setEnabled(False)
+            double_spin.double_spin_box.setEnabled(enable)
         for cb in self.cb_list:
-            cb.cb.setEnabled(False)
+            cb.cb.setEnabled(enable)
 
-        self.btn.setEnabled(False)
-        self.btn.setStyleSheet("color: gray")
-
-    def BtnEnable(self):
-        for double_spin in self.double_spin_list:
-            double_spin.double_spin_box.setEnabled(True)
-        for cb in self.cb_list:
-            cb.cb.setEnabled(True)
-
-        self.btn.setEnabled(True)
-        self.btn.setStyleSheet("color: black")
+        self.btn.setEnabled(enable)
 
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, string, form_widget, ):
