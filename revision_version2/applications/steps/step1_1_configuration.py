@@ -109,13 +109,10 @@ class Configuration:
 
         # Vehicle info
         config_param.read(self.vehicle_info_file)
-        self.VEHICLE_INFO['Evoque'] = [float(config_param['Evoque']['Length']), float(config_param['Evoque']['Width']),
-                                        float(config_param['Evoque']['Height']), float(config_param['Evoque']['XRotation']),
-                                        float(config_param['Evoque']['YRotation']), float(config_param['Evoque']['ZRotation'])]
-
-        self.VEHICLE_INFO['Sonata'] = [float(config_param['Sonata']['Length']), float(config_param['Sonata']['Width']),
-                                        float(config_param['Sonata']['Height']), float(config_param['Sonata']['XRotation']),
-                                        float(config_param['Sonata']['YRotation']), float(config_param['Sonata']['ZRotation'])]
+        self.VEHICLE_INFO['Evoque'] = [float(config_param['Evoque']['Length']), float(config_param['Evoque']['Width']), float(config_param['Evoque']['Height']),
+                                       str(config_param['Evoque']['Front']), str(config_param['Evoque']['Top'])]
+        self.VEHICLE_INFO['Sonata'] = [float(config_param['Sonata']['Length']), float(config_param['Sonata']['Width']), float(config_param['Sonata']['Height']),
+                                       str(config_param['Sonata']['Front']), str(config_param['Sonata']['Top'])]
 
         print('Initialize configuration parameter')
 
@@ -202,16 +199,14 @@ class Configuration:
         f.write('Length = 4.371\n')
         f.write('Width = 1.904\n')
         f.write('Height = 1.649\n')
-        f.write('XRotation = 90\n')
-        f.write('YRotation = 90\n')
-        f.write('ZRotation = 0\n')
+        f.write('Front = Z\n')
+        f.write('Top = Y\n')
         f.write('\n')
         f.write('[Sonata]\n')
-        f.write('Length = 4.371\n')
-        f.write('Width = 1.904\n')
-        f.write('Height = 1.649\n')
-        f.write('XRotation = 0\n')
-        f.write('YRotation = 0\n')
-        f.write('ZRotation = -90\n')
+        f.write('Length = 4.9\n')
+        f.write('Width = 1.86\n')
+        f.write('Height = 1.445\n')
+        f.write('Front = Y\n')
+        f.write('Top = Z\n')
 
         f.close()

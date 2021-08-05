@@ -47,10 +47,11 @@ class ConfigurationTab(QWidget):
         super().__init__()
         self.is_lidar_num_changed = False
         self.form_widget = form_widget
-
         self.added_stl_dict = {}
+        self.added_file_list = []
 
         self.InitUi()
+
         self.stl_path_dict = {}
         self.InitPath()
 
@@ -159,9 +160,14 @@ class ConfigurationTab(QWidget):
         vehicle_info_box = QGroupBox()
         vehicle_info_box.setFlat(True)
 
-        self.vehicle_info_layout = element.EditLabelWithImport(CONST_CONFIG_VEHICLE_INFO, self.form_widget)
+        id_to_strs1 = {CONST_CONFIG_LENGTH: 'Length [m]', CONST_CONFIG_WIDTH: 'Width [m]', CONST_CONFIG_HEIGHT: 'Hieght [m]'}
+        id_to_strs2 = {CONST_CONFIG_FRONT: 'STL Front Axis ', CONST_CONFIG_TOP: 'STL Top Axis'}
+        self.vehicle_info_layout = element.EditLabelWithButtonLayout(CONST_CONFIG_VEHICLE_INFO, id_to_strs1, id_to_strs2, self.form_widget)
         vehicle_info_box.setLayout(self.vehicle_info_layout)
 
+        axis = ['X', 'Y', 'Z']
+        self.vehicle_info_layout.cb_list[0].cb.addItems(axis)
+        self.vehicle_info_layout.cb_list[1].cb.addItems(axis)
         vbox.addWidget(vehicle_info_box)
 
         # vtk vehicle
@@ -195,8 +201,24 @@ class ConfigurationTab(QWidget):
 
     def SelectStl(self, text):
         if text != 'Add new 3d model':
-            self.VTKInit(text)
+            words = text.split('.')
+
+            if self.form_widget.config.VEHICLE_INFO.get(words[0]) is None:
+                self.vehicle_info_layout.BtnEnable()
+                self.vehicle_info_layout.Clear()
+                self.form_widget.ErrorPopUp('Please input vehicle information and push the import button')
+            else:
+                self.vehicle_info_layout.Clear(self.form_widget.config.VEHICLE_INFO[words[0]])
+                if self.form_widget.config_tab.added_stl_dict.get(words[0]) is not None:
+                    self.vehicle_info_layout.BtnEnable()
+                else:
+                    self.vehicle_info_layout.BtnDisable()
+
+                self.VTKInit(text)
         else:
+            self.vehicle_info_layout.BtnEnable()
+            self.vehicle_info_layout.Clear()
+
             widget = QWidget()
             fname = QFileDialog.getOpenFileName(widget, 'Open file', self.form_widget.config.PATH['VehicleMesh'],
                                                 "Configuration file (*.stl)")  # exist ini file path
@@ -204,7 +226,6 @@ class ConfigurationTab(QWidget):
             if fname[0]:
                 qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
                 files = qdir.entryList(QDir.Files)
-                select_idx = len(files)
 
                 words = fname[0].split('/')
                 adding_file_name = words[-1]
@@ -212,24 +233,27 @@ class ConfigurationTab(QWidget):
 
                 if adding_file_name in files:
                     self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
+                    self.vehicle_info_layout.BtnDisable()
                     return
 
-                adding_file_path = ''
-                for word in words:
-                    adding_file_path += (word + '/')
-                self.form_widget.config.PATH['VehicleMesh'] = adding_file_path
-
                 self.cb.clear()
+                for added_file in self.added_file_list:
+                    files.append(added_file)
+                select_idx = len(files)
                 files.append(adding_file_name)
                 self.cb.addItems(files)
                 self.cb.addItem('Add new 3d model')
                 self.cb.setCurrentIndex(select_idx)
 
+                adding_file_path = ''
+                for word in words:
+                    adding_file_path += (word + '/')
                 self.stl_path_dict[adding_file_name] = adding_file_path
+                self.added_file_list.append(adding_file_name)
 
                 words = adding_file_name.split('.')
-                adding_file_name = words[0]
-                self.added_stl_dict[adding_file_name] = []
+                adding_stl = words[0]
+                self.added_stl_dict[adding_stl] = []
 
     def VTKInit(self, text):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1158,7 +1182,7 @@ class DataValidationTab(QWidget):
         self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
-        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_TOLERANCE, 'Tolerance', self.form_widget)
+        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_TOLERANCE, 'Tolerance', self.form_widget, 12)
         vbox.addLayout(self.tolerance_layout)
 
         self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
@@ -1605,7 +1629,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
-        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_TOLERANCE, 'Tolerance', self.form_widget)
+        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_TOLERANCE, 'Tolerance', self.form_widget, 12)
         vbox.addLayout(self.tolerance_layout)
 
         self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
@@ -3015,6 +3039,11 @@ class FormWidget(QWidget):
         ### Setting configuration tab
         self.config_tab.lidar_num_label_layout.spin_box.setValue(len(self.config.PARM_LIDAR['SensorList']))
         self.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.config.PARM_LIDAR['SensorList'], self.config.PARM_LIDAR['CheckedSensorList'])
+
+        text = self.config_tab.cb.currentText()
+        words = text.split('.')
+        self.config_tab.vehicle_info_layout.Clear(self.config.VEHICLE_INFO[words[0]])
+        self.config_tab.vehicle_info_layout.BtnDisable()
 
         PARM_PC = self.config.PARM_PC
         self.config_tab.minimum_threshold_distance_layout.double_spin_box.setValue(PARM_PC['MinThresholdDist_m'])

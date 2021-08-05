@@ -499,7 +499,7 @@ class ComboBoxLabelLayout(QHBoxLayout):
             self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MaxDistanceZ_m'])
             self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MinDistanceZ_m'])
 
-        if self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:  # instance name is 'select_lidar_combobox_layout'
+        elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:  # instance name is 'select_lidar_combobox_layout'
             if text == '':
                 return
 
@@ -618,34 +618,28 @@ class SpinBoxLabelLayout(QVBoxLayout):
         elif self.id == CONST_EVAL_SAMPLING_INTERVAL:
             self.form_widget.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
-class DoubleSpinBoxLabelLayout(QVBoxLayout):
-    def __init__(self, intance_id, label_str, form_widget):
+class DoubleSpinBoxLabelLayout(QHBoxLayout):
+    def __init__(self, intance_id, label_str, form_widget, decimals=None):
         super().__init__()
         self.id = intance_id
         self.label_str = label_str
         self.form_widget = form_widget
-        self.text = ''
+        self.decimals = decimals
 
         self.InitUi()
 
     def InitUi(self):
-        self.h_box = QHBoxLayout()
-
         self.label = QLabel(self.label_str)
-        self.h_box.addWidget(self.label)
-
-        # self.h_box.addStretch(0.3)
+        self.addWidget(self.label)
 
         self.double_spin_box = QDoubleSpinBox()
         self.double_spin_box.setSingleStep(0.01)
         self.double_spin_box.setMaximum(1000.0)
-        if self.label_str == 'Tolerance':
-            self.double_spin_box. setDecimals(12)
+        if self.decimals is not None:
+            self.double_spin_box.setDecimals(self.decimals)
         self.double_spin_box.setMinimum(-1000.0)
         self.double_spin_box.valueChanged.connect(self.DoubleSpinBoxChanged)
-        self.h_box.addWidget(self.double_spin_box)
-
-        self.addLayout(self.h_box)
+        self.addWidget(self.double_spin_box)
 
     def DoubleSpinBoxChanged(self):
         self.form_widget.value_changed = True
@@ -937,131 +931,86 @@ class RadioLabelLayout(QHBoxLayout):
 
         self.prev_checkID = self.button_group.checkedId()
 
-
-class EditLabelWithImport(QHBoxLayout):
-    def __init__(self, instance_id, form_widget):
+class EditLabelWithButtonLayout(QHBoxLayout):
+    def __init__(self, instance_id, id_to_strs1, id_to_strs2, form_widget):
         super().__init__()
         self.id = instance_id
+        self.id_to_strs1 = id_to_strs1
+        self.id_to_strs2 = id_to_strs2
         self.form_widget = form_widget
-        self.vehicle_info = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.vehicle_info = [0.0, 0.0, 0.0, '', '']
 
         self.InitUi()
 
     def InitUi(self):
-        self.double_spin_box_dict = {}
+        self.double_spin_list = []
+        for i, key in enumerate(self.id_to_strs1):
+            self.double_spin_list.append(DoubleSpinBoxLabelLayout(key, self.id_to_strs1[key], self.form_widget))
+            self.addLayout(self.double_spin_list[-1])
+            self.addStretch(round(0.5))
 
-        self.button_group = QButtonGroup()
+        self.cb_list = []
+        for i, key in enumerate(self.id_to_strs2):
+            self.cb_list.append(ComboBoxLabelLayout(key, self.id_to_strs2[key], self.form_widget))
+            self.addLayout(self.cb_list[-1])
+            self.addStretch(round(0.5))
 
-        label = QLabel('Length [m]')
-        self.addWidget(label)
+        self.btn = QPushButton('Import')
+        self.btn.clicked.connect(self.Import)
+        self.addWidget(self.btn)
 
-        self.double_spin_box_l = QDoubleSpinBox()
-        self.double_spin_box_l.setSingleStep(0.01)
-        self.double_spin_box_l.setMaximum(10000.0)
-        self.double_spin_box_l.setMinimum(-10000.0)
-        self.double_spin_box_l.setDecimals(2)
-        self.double_spin_box_l.valueChanged.connect(self.L)
-        self.double_spin_box_l.setObjectName('1')
-        self.addWidget(self.double_spin_box_l)
+    def Import(self):
+        if self.id == CONST_CONFIG_VEHICLE_INFO:
+            if self.cb_list[0].cb.currentIndex() == self.cb_list[1].cb.currentIndex():
+                self.form_widget.ErrorPopUp('Please select an appropriate axis')
+                return
 
-        label = QLabel('Width [m]')
-        self.addWidget(label)
+            file_name_stl = self.form_widget.config_tab.cb.currentText()
+            words = file_name_stl.split('.')
+            file_name = words[0]
+            if self.form_widget.config_tab.added_stl_dict.get(file_name) is not None:
+                self.vehicle_info[0] = self.double_spin_list[0].double_spin_box.value()
+                self.vehicle_info[1] = self.double_spin_list[1].double_spin_box.value()
+                self.vehicle_info[2] = self.double_spin_list[2].double_spin_box.value()
+                self.vehicle_info[3] = self.cb_list[0].cb.currentText()
+                self.vehicle_info[4] = self.cb_list[1].cb.currentText()
+                self.form_widget.config.VEHICLE_INFO[file_name] = copy.deepcopy(self.vehicle_info)
+                self.form_widget.config_tab.VTKInit(file_name_stl)
 
-        self.double_spin_box_w = QDoubleSpinBox()
-        self.double_spin_box_w.setSingleStep(0.01)
-        self.double_spin_box_w.setMaximum(10000.0)
-        self.double_spin_box_w.setMinimum(-10000.0)
-        self.double_spin_box_w.setDecimals(2)
-        self.double_spin_box_w.valueChanged.connect(self.W)
-        self.double_spin_box_w.setObjectName('2')
-        self.addWidget(self.double_spin_box_w)
+    def Clear(self, target=None):
+        if target is not None:
+            last_idx = 0
+            for i, double_spin in enumerate(self.double_spin_list):
+                double_spin.double_spin_box.setValue(target[i])
+                last_idx = i
+            last_idx += 1
 
-        label = QLabel('Height [m]')
-        self.addWidget(label)
+            for i, cb in enumerate(self.cb_list):
+                idx = cb.cb.findText(target[last_idx+i], Qt.MatchFixedString)
+                cb.cb.setCurrentIndex(idx)
+        else:
+            for double_spin in self.double_spin_list:
+                double_spin.double_spin_box.setValue(0.0)
+            self.cb_list[0].cb.setCurrentIndex(0)
+            self.cb_list[1].cb.setCurrentIndex(1)
 
-        self.double_spin_box_h = QDoubleSpinBox()
-        self.double_spin_box_h.setSingleStep(0.01)
-        self.double_spin_box_h.setMaximum(10000.0)
-        self.double_spin_box_h.setMinimum(-10000.0)
-        self.double_spin_box_h.setDecimals(2)
-        self.double_spin_box_h.valueChanged.connect(self.H)
-        self.double_spin_box_h.setObjectName('3')
-        self.addWidget(self.double_spin_box_h)
+    def BtnDisable(self):
+        for double_spin in self.double_spin_list:
+            double_spin.double_spin_box.setEnabled(False)
+        for cb in self.cb_list:
+            cb.cb.setEnabled(False)
 
-        label = QLabel('X rot [deg]')
-        self.addWidget(label)
+        self.btn.setEnabled(False)
+        self.btn.setStyleSheet("color: gray")
 
-        self.double_spin_box_x = QDoubleSpinBox()
-        self.double_spin_box_x.setSingleStep(0.01)
-        self.double_spin_box_x.setMaximum(10000.0)
-        self.double_spin_box_x.setMinimum(-10000.0)
-        self.double_spin_box_x.setDecimals(2)
-        self.double_spin_box_x.valueChanged.connect(self.X)
-        self.double_spin_box_x.setObjectName('4')
-        self.addWidget(self.double_spin_box_x)
+    def BtnEnable(self):
+        for double_spin in self.double_spin_list:
+            double_spin.double_spin_box.setEnabled(True)
+        for cb in self.cb_list:
+            cb.cb.setEnabled(True)
 
-        label = QLabel('Y rot [deg]')
-        self.addWidget(label)
-
-        self.double_spin_box_y = QDoubleSpinBox()
-        self.double_spin_box_y.setSingleStep(0.01)
-        self.double_spin_box_y.setMaximum(10000.0)
-        self.double_spin_box_y.setMinimum(-10000.0)
-        self.double_spin_box_y.setDecimals(2)
-        self.double_spin_box_y.valueChanged.connect(self.Y)
-        self.double_spin_box_y.setObjectName('5')
-        self.addWidget(self.double_spin_box_y)
-
-        label = QLabel('Z rot [deg]')
-        self.addWidget(label)
-
-        self.double_spin_box_z = QDoubleSpinBox()
-        self.double_spin_box_z.setSingleStep(0.01)
-        self.double_spin_box_z.setMaximum(10000.0)
-        self.double_spin_box_z.setMinimum(-10000.0)
-        self.double_spin_box_z.setDecimals(2)
-        self.double_spin_box_z.valueChanged.connect(self.Z)
-        self.double_spin_box_z.setObjectName('6')
-        self.addWidget(self.double_spin_box_z)
-
-        btn = QPushButton('Import')
-        btn.clicked.connect(self.Button)
-        self.addWidget(btn)
-
-    def L(self):
-        self.vehicle_info[0] = self.double_spin_box_l.value()
-
-    def W(self):
-        self.vehicle_info[1] = self.double_spin_box_w.value()
-
-    def H(self):
-        self.vehicle_info[2] = self.double_spin_box_h.value()
-
-    def X(self):
-        self.vehicle_info[3] = self.double_spin_box_x.value()
-
-    def Y(self):
-        self.vehicle_info[4] = self.double_spin_box_y.value()
-
-    def Z(self):
-        self.vehicle_info[5] = self.double_spin_box_z.value()
-
-    def Button(self):
-        file_name_stl = self.form_widget.config_tab.cb.currentText()
-        words = file_name_stl.split('.')
-        file_name = words[0]
-        if self.form_widget.config_tab.added_stl_dict.get(file_name) is not None:
-            self.form_widget.config.VEHICLE_INFO[file_name] = self.vehicle_info
-            self.form_widget.config_tab.VTKInit(file_name_stl)
-
-    def Clear(self):
-        self.vehicle_info = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.double_spin_box_l.setValue(0.0)
-        self.double_spin_box_w.setValue(0.0)
-        self.double_spin_box_h.setValue(0.0)
-        self.double_spin_box_x.setValue(0.0)
-        self.double_spin_box_y.setValue(0.0)
-        self.double_spin_box_z.setValue(0.0)
+        self.btn.setEnabled(True)
+        self.btn.setStyleSheet("color: black")
 
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, string, form_widget, ):
@@ -1268,53 +1217,6 @@ class ValidationResultLabel(QVBoxLayout):
 
 
         self.addLayout(self.hbox)
-
-class ValidationConfigLabel(QVBoxLayout):
-    def __init__(self, heading_threshold, distance_threshold):
-        super().__init__()
-        self.heading_threshold = heading_threshold
-        self.distance_threshold = distance_threshold
-
-        self.InitUi()
-
-    def InitUi(self):
-    #    try:
-
-        self.hbox = QHBoxLayout()
-
-        '''
-        self.label_heading_threshold = QLabel('Heading Threshold [deg]: ')
-        self.hbox.addWidget(self.label_heading_threshold)
-        self.label_edit_heading_threshold = QLineEdit()
-        self.label_edit_heading_threshold.setReadOnly(True)
-        self.label_edit_heading_threshold.setText(self.heading_threshold)
-        self.label_edit_heading_threshold.setStyleSheet("background-color: #F0F0F0;")
-        self.hbox.addWidget(self.label_edit_heading_threshold)
-
-        self.label_distance_threshold = QLabel('Distance Threshold [m]: ')
-        self.hbox.addWidget(self.label_distance_threshold)
-        self.label_edit_distance_threshold = QLineEdit()
-        self.label_edit_distance_threshold.setReadOnly(True)
-        self.label_edit_distance_threshold.setText(self.distance_threshold)
-        self.label_edit_distance_threshold.setStyleSheet("background-color: #F0F0F0;")
-        self.hbox.addWidget(self.label_edit_distance_threshold)
-
-
-        self.addLayout(self.hbox)
-
-        '''
-        '''
-        
-        print(self.heading_threshold)
-        self.label_heading_threshold = QLabel('Heading Threshold [deg]: {}'.format(self.heading_threshold))
-        self.addWidget(self.label_heading_threshold)
-        self.hbox = QHBoxLayout()
-        self.label_distance_threshold = QLabel('Distance Threshold [m]: {}'.format(self.distance_threshold))
-        self.hbox.addWidget(self.label_distance_threshold)
-        
-
-        self.addLayout(self.hbox)
-        '''
 
 class CalibrationResultEditLabel2(QVBoxLayout):
     def __init__(self, idxSensor, calibration_param, form_widget):

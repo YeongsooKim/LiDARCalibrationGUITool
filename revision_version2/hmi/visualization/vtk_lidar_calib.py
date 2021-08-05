@@ -17,8 +17,8 @@ import vtk
 
 '''
 
-# Length, Width, Height, x rotation, y rotation, z rotation
-vehicle_info_ = [0., 0., 0., 0., 0., 0.]
+# Length, Width, Height, STL front axis, STL Top axis
+vehicle_info_ = [0.0, 0.0, 0.0, '', '']
 vehicle_stl_path_ = ''
 lidar_stl_path_ = ''
 ground_stl_path_ = ''
@@ -27,84 +27,53 @@ X_PIX2METER = 1.0 / 0.0006887739372658
 Y_PIX2METER = 1.0 / 0.0006887739372658
 Z_PIX2METER = 100.0 / 0.07200000000000001
 
-# Parameters for tranlsation in meter.
-X_TRANSLATE_PIX2METER = 1.0 / 1.008755986325648
-Y_TRANSLATE_PIX2METER = 1.0 / 0.89637191416309
-Z_TRANSLATE_PIX2METER = 1.0 / 1.007424376155878
 
 ### Set global variable
 def SetVehicleStlPath(path):
     global vehicle_stl_path_
     vehicle_stl_path_ = path
 
+
 def SetLidarStlPath(path):
     global lidar_stl_path_
     lidar_stl_path_ = path
 
+
 def SetGridStlPath(path):
     global ground_stl_path_
     ground_stl_path_ = path
+
 
 def SetVehicleInfo(vehicle_info):
     global vehicle_info_
     vehicle_info_ = vehicle_info
 
 ### Transformation
-# move vehicle to center
-def VehicleCentralize(boundary):
-    lens = {}
-    for i in range(3):
-        lens[i] = abs(boundary[i*2] - boundary[i*2 + 1])
-
-    max_len = -1
-    max_key = -1
-    for len in lens:
-        if lens[len] > max_len:
-            max_len = lens[len]
-            max_key = len
-
-    trans = (-(boundary[max_key*2] + boundary[max_key*2+1]) / 2, 0.0, 0.0)
-
-    return trans
-
-def GetCenterTrans():
-    # Vehicle Source
-    vtk_reader = vtk.vtkSTLReader()
-    global vehicle_stl_path_
-    vtk_reader.SetFileName(vehicle_stl_path_)
-
-    # Mapper
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(vtk_reader.GetOutputPort())
-
-    # Actor
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-
-    # Set Vehicle size and pose
-    trans = VehicleCentralize(actor.GetBounds())
-
-    # transformation = vtk.vtkTransform()
-    #
-    # transformation.Translate(VehicleCentralize(actor.GetBounds()))
-    # rotation = GetRotation(transformation)
-    # actor.SetUserTransform(rotation)
-    return trans
-
 # Rotate vehicle according to the value of vehicle_info_[3,4,5]
 def GetRotation(vehicleTransfromObject):
     global vehicle_info_
-    vehicleTransfromObject.RotateX(vehicle_info_[3])
-    vehicleTransfromObject.RotateY(vehicle_info_[4])
-    vehicleTransfromObject.RotateZ(vehicle_info_[5])
+    front_axis = vehicle_info_[3]
+    top_axis = vehicle_info_[4]
+
+    if front_axis == 'X' and top_axis == 'Y':
+        rot_x_deg = 90; rot_y_deg = 0; rot_z_deg = 0
+    elif front_axis == 'X' and top_axis == 'Z':
+        rot_x_deg = 0; rot_y_deg = 0; rot_z_deg = 0
+    elif front_axis == 'Y' and top_axis == 'X':
+        rot_x_deg = -90; rot_y_deg = 0; rot_z_deg = -90
+    elif front_axis == 'Y' and top_axis == 'Z':
+        rot_x_deg = 0; rot_y_deg = 0; rot_z_deg = -90
+    elif front_axis == 'Z' and top_axis == 'X':
+        rot_x_deg = -90; rot_y_deg = 90; rot_z_deg = -90
+    elif front_axis == 'Z' and top_axis == 'Y':
+        rot_x_deg = 90; rot_y_deg = 90; rot_z_deg = 0
+
+    vehicleTransfromObject.RotateX(rot_x_deg)
+    vehicleTransfromObject.RotateY(rot_y_deg)
+    vehicleTransfromObject.RotateZ(rot_z_deg)
 
     return vehicleTransfromObject
 
-# Move vehicle in Meter.
-def TranslateVehicle(x, y, z):  # Pixel to Meter
-    aligned_poision = [x * X_TRANSLATE_PIX2METER, y * Y_TRANSLATE_PIX2METER, z * Z_TRANSLATE_PIX2METER]
-
-    return aligned_poision
 
 def GetBoundarySize(boundary):
     if boundary[0] * boundary[1] > 0.0:
@@ -143,31 +112,16 @@ def GetBoundarySize(boundary):
 
     return boundary_size
 
-def GetOrientation(boundary):
+
+def GetVehicleRatio(boundary):
     boundary_size = GetBoundarySize(boundary)
+    length_mm = max(boundary_size)
 
-    pass
+    scale_ratio = vehicle_info_[0]/length_mm
 
-def VehicleSizeScaling(boundary):
-    boundary_size = GetBoundarySize(boundary)
+    # print(length_mm)
+    return scale_ratio
 
-    # pass the number from User
-    global vehicle_info_
-    length = vehicle_info_[0]
-    width = vehicle_info_[1]
-    height = vehicle_info_[2]
-
-    sorted_boundary_size = sorted(boundary_size)
-
-    length_m = sorted_boundary_size[2]
-    width_m = sorted_boundary_size[1]
-    height_m = sorted_boundary_size[0]
-
-    # the unit is in meter
-    # make the car size to real size in meter
-    vehicle_size = [length / length_m, width / width_m, height / height_m]
-
-    return vehicle_size
 
 def LidarSizeScaling():
     # the unit is in meter
@@ -183,6 +137,7 @@ def LidarSizeScaling():
 
     return lidar_size
 
+
 def LidarTranslatePixel2Meter(x, y, z):
     translate_x = x * X_PIX2METER
     translate_y = y * Y_PIX2METER
@@ -192,10 +147,6 @@ def LidarTranslatePixel2Meter(x, y, z):
 
     return pos
 
-def TranslateCoordinateVehicle2origin(x, y, z):
-    alignedPoision = [y, x, z]
-
-    return alignedPoision
 
 def RPY2Rotation(r, p, y):
     r_rotation = [r, 1, 0, 0]
@@ -203,6 +154,7 @@ def RPY2Rotation(r, p, y):
     y_rotation = [y, 0, 0, 1]
 
     return r_rotation, p_rotation, y_rotation
+
 
 ### Get actors
 def GetActors(lidar_info_dict):
@@ -219,6 +171,7 @@ def GetActors(lidar_info_dict):
         actors.append(actor)
 
     return actors
+
 
 def GetLiDARActors(lidar_info_dict):
     # -------------------------------------------create vehicle instances
@@ -277,6 +230,7 @@ def GetLiDARActors(lidar_info_dict):
 
     return actors
 
+
 def GetVehicleActor():
     colors = vtk.vtkNamedColors()
 
@@ -284,12 +238,10 @@ def GetVehicleActor():
     vtk_reader = vtk.vtkSTLReader()
     global vehicle_stl_path_
     vtk_reader.SetFileName(vehicle_stl_path_)
-    # objreader = vtk.vtkOBJReader('Evoque.obj')
 
     # Mapper
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputConnection(vtk_reader.GetOutputPort())
-    # mapper.SetInputConnection(objreader.GetOutputPort())
 
     # Actor
     actor = vtk.vtkActor()
@@ -300,16 +252,18 @@ def GetVehicleActor():
     actor.GetProperty().SetDiffuseColor(colors.GetColor3d('silver'))
     actor.GetProperty().SetSpecular(0.0)
     actor.GetProperty().SetSpecularPower(60.0)
-    actor.GetProperty().SetOpacity(1.0)
+    actor.GetProperty().SetOpacity(0.3)
 
     # Set Vehicle size and pose
-    transformation = vtk.vtkTransform()
+    scale_ratio = GetVehicleRatio(actor.GetBounds())
+    actor.SetScale(scale_ratio, scale_ratio, scale_ratio)
 
-    # transformation.Translate(GetCenterTrans())
+    transformation = vtk.vtkTransform()
     rotation = GetRotation(transformation)
     actor.SetUserTransform(rotation)
 
     return actor
+
 
 def GetAxis(iren, widget):
     # Get axis
@@ -324,6 +278,7 @@ def GetAxis(iren, widget):
     widget.SetViewport(0, 0, 0.2, 0.2)
     widget.SetEnabled(1)
     widget.InteractiveOn()
+
 
 def GetGridActor():
     colors = vtk.vtkNamedColors()
@@ -349,7 +304,7 @@ def GetGridActor():
     actor.GetProperty().SetOpacity(0.05)
 
     # Set Vehicle size and pose
-    actor.SetScale(1/1000, 1/1000, 1/1000)
+    actor.SetScale(1 / 1000, 1 / 1000, 1 / 1000)
 
     return actor
 
