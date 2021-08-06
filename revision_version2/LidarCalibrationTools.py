@@ -202,19 +202,19 @@ class ConfigurationTab(QWidget):
             words = text.split('.')
 
             if self.form_widget.config.VEHICLE_INFO.get(words[0]) is None:
-                self.vehicle_info_layout.BtnEnable(True)
+                # self.vehicle_info_layout.BtnEnable(True)
                 self.vehicle_info_layout.Clear()
                 self.form_widget.ErrorPopUp('Please input vehicle information and push the import button')
             else:
                 self.vehicle_info_layout.Clear(self.form_widget.config.VEHICLE_INFO[words[0]])
-                if self.form_widget.config_tab.added_stl_dict.get(words[0]) is not None:
-                    self.vehicle_info_layout.BtnEnable(True)
-                else:
-                    self.vehicle_info_layout.BtnEnable(False)
+                # if self.form_widget.config_tab.added_stl_dict.get(words[0]) is not None:
+                #     self.vehicle_info_layout.BtnEnable(True)
+                # else:
+                #     self.vehicle_info_layout.BtnEnable(False)
 
                 self.VTKInit(text)
         else:
-            self.vehicle_info_layout.BtnEnable(True)
+            # self.vehicle_info_layout.BtnEnable(True)
             self.vehicle_info_layout.Clear()
 
             widget = QWidget()
@@ -231,7 +231,7 @@ class ConfigurationTab(QWidget):
 
                 if adding_file_name in files:
                     self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
-                    self.vehicle_info_layout.BtnEnable(False)
+                    # self.vehicle_info_layout.BtnEnable(False)
                     return
 
                 self.cb.clear()
@@ -3083,7 +3083,7 @@ class FormWidget(QWidget):
         text = self.config_tab.cb.currentText()
         words = text.split('.')
         self.config_tab.vehicle_info_layout.Clear(self.config.VEHICLE_INFO[words[0]])
-        self.config_tab.vehicle_info_layout.BtnEnable(False)
+        # self.config_tab.vehicle_info_layout.BtnEnable(False)
 
         PARM_PC = self.config.PARM_PC
         self.config_tab.minimum_threshold_distance_layout.double_spin_box.setValue(PARM_PC['MinThresholdDist_m'])

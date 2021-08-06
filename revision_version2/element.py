@@ -957,14 +957,14 @@ class EditLabelWithButtonLayout(QHBoxLayout):
             file_name_stl = self.form_widget.config_tab.cb.currentText()
             words = file_name_stl.split('.')
             file_name = words[0]
-            if self.form_widget.config_tab.added_stl_dict.get(file_name) is not None:
-                self.vehicle_info[0] = self.double_spin_list[0].double_spin_box.value()
-                self.vehicle_info[1] = self.double_spin_list[1].double_spin_box.value()
-                self.vehicle_info[2] = self.double_spin_list[2].double_spin_box.value()
-                self.vehicle_info[3] = self.cb_list[0].cb.currentText()
-                self.vehicle_info[4] = self.cb_list[1].cb.currentText()
-                self.form_widget.config.VEHICLE_INFO[file_name] = copy.deepcopy(self.vehicle_info)
-                self.form_widget.config_tab.VTKInit(file_name_stl)
+            # if self.form_widget.config_tab.added_stl_dict.get(file_name) is not None:
+            self.vehicle_info[0] = self.double_spin_list[0].double_spin_box.value()
+            self.vehicle_info[1] = self.double_spin_list[1].double_spin_box.value()
+            self.vehicle_info[2] = self.double_spin_list[2].double_spin_box.value()
+            self.vehicle_info[3] = self.cb_list[0].cb.currentText()
+            self.vehicle_info[4] = self.cb_list[1].cb.currentText()
+            self.form_widget.config.VEHICLE_INFO[file_name] = copy.deepcopy(self.vehicle_info)
+            self.form_widget.config_tab.VTKInit(file_name_stl)
 
     def Clear(self, target=None):
         if target is not None:

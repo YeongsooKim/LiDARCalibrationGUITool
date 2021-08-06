@@ -251,7 +251,7 @@ def GetVehicleActor():
     actor.GetProperty().SetDiffuseColor(colors.GetColor3d('silver'))
     actor.GetProperty().SetSpecular(0.0)
     actor.GetProperty().SetSpecularPower(60.0)
-    actor.GetProperty().SetOpacity(0.3)
+    actor.GetProperty().SetOpacity(1.0)
 
     # Set Vehicle size and pose
     scale_ratio = GetVehicleRatio(actor.GetBounds())
