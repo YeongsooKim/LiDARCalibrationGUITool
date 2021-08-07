@@ -37,8 +37,8 @@ class ZRollPitch:
         
         # roll, pitch, z
         self.calib_result = [0.0, 0.0, 0.0]
-        self.mean_distance = [0.0]
-        self.ground_slope = 0
+        self.mean_distance = []
+        self.ground_slope = None
         self.timestamp = 0
         
         # Path and file
@@ -88,6 +88,7 @@ class ZRollPitch:
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
 
             self.timestamp = df_info[strColIndex].index
+            print(df_info[strColIndex])
             self.pointcloud = pointcloud_in_lidar_frame
             self.filtered_pointcloud = filtered_pointcloud_in_lidar_frame
 

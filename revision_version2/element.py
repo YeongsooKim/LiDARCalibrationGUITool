@@ -992,8 +992,9 @@ class EditLabelWithButtonLayout(QHBoxLayout):
         self.btn.setEnabled(enable)
 
 class GnssInitEditLabel(QVBoxLayout):
-    def __init__(self, string, form_widget, ):
+    def __init__(self, instance_id, string, form_widget, ):
         super().__init__()
+        self.id = instance_id
         self.string = string
         self.form_widget = form_widget
 

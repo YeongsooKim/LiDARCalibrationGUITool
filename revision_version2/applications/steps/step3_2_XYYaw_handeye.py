@@ -49,6 +49,9 @@ class HandEye:
 
         if using_motion_data:
             df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
+            print('AA')
+
+        print('df_info {}'.format(df_info))
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1. Match the point cloud based on ICP

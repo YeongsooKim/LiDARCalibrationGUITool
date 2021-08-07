@@ -450,13 +450,13 @@ class ImportDataTab(QWidget):
         self.form_widget.RemoveLayout(self.scroll_box.layout)
 
         if self.form_widget.importing.has_gnss_file and self.form_widget.importing.has_motion_file:
-            self.init_gnss_value_layout = element.GnssInitEditLabel('Gnss Initial Pose in ENU Coordinate', self.form_widget)
+            self.init_gnss_value_layout = element.GnssInitEditLabel(CONST_IMPORT_GNSS_INITIAL_POSE, 'Gnss Initial Pose in ENU Coordinate', self.form_widget)
             self.init_gnss_value_layout.Clear(self.form_widget.importing.df_gnss['east_m'].values[0],
                                               self.form_widget.importing.df_gnss['north_m'].values[0],
                                               self.form_widget.importing.df_gnss['heading'].values[0])
             self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
 
-            self.init_motion_value_layout = element.GnssInitEditLabel('Motion Initial Pose in ENU coordinate    ', self.form_widget)
+            self.init_motion_value_layout = element.GnssInitEditLabel(CONST_IMPORT_MOTION_INITIAL_POSE, 'Motion Initial Pose in ENU coordinate    ', self.form_widget)
             self.init_motion_value_layout.Clear(self.form_widget.importing.init[0],
                                                 self.form_widget.importing.init[1],
                                                 self.form_widget.importing.init[2])
@@ -1053,6 +1053,9 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def EndCalibration(self):
         print("End z, roll, pitch calibration")
         self.progress_status = CONST_IDLE
+        if self.form_widget.IsEmpty(self.form_widget.zrollpitch.mean_distance):
+            return
+
         self.form_widget.zrollpitch.complete_calibration = True
         self.EvalViewBtnEnable(enable=True)
 
@@ -3421,7 +3424,7 @@ class FormWidget(QWidget):
             
     def ViewDistanceGraph(self, timestamp, measured_distance,  ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
-                
+
         if ax is not None:
             ax.stem(timestamp, measured_distance, label='Mean distance between point and plane [m]')
             
@@ -3455,7 +3458,7 @@ class FormWidget(QWidget):
         
     def ViewGroundSlopeGraph(self, timestamp, ground_slope,  ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
-                
+
         if ax is not None:
             ax.stem(timestamp, ground_slope, label='Transformed Ground Slope [deg]')
             val = np.max(ground_slope) * 1.4
@@ -3647,6 +3650,11 @@ class FormWidget(QWidget):
         widget.move(qr.topLeft())
 
         QMessageBox.information(widget, 'Information', error_message)
+
+    def IsEmpty(self, val):
+        if len(val) == 0:
+            self.ErrorPopUp("There are empty points in ROI")
+            return True
 
     def resizeEvent(self, e):
         self.resize_count += 1
