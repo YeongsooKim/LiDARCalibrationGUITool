@@ -34,6 +34,7 @@ class Import:
         self.df_gnss = None
         self.init = [0., 0., 0.]
         self.df_motion = None
+        self.df_motion_input = None
         self.df_pointcloud_idx = {}
 
         # Progress display
@@ -59,35 +60,38 @@ class Import:
         self.df_gnss = self.df_gnss[~self.df_gnss.index.duplicated()]
         self.df_gnss = self.df_gnss.dropna(how='any')
         self.df_info = self.df_gnss
+        self.default_df_info = copy.deepcopy(self.df_info)
         # self.dr_info : ['timestamp', 'east_m', 'north_m', 'heading']
-
         print('Parse Gnss logging data')
 
     def ParseMotion(self):
         motion_usecols = ['timestamp', 'speed_x', 'yaw_rate']  # select 'timestamp','speed_x','yaw_rate'as using
         motion_file = self.gnss_logging_file + '/Motion.csv'
-        # motion file, motion usecols 입력으로 넣어 motion file parsing
-        self.df_motion = utils_file.parse_motion_csv_df(motion_file, motion_usecols)
+        # motion file motion usecols 입력으로 넣어 motion file parsing
+        self.df_motion_input = utils_file.parse_motion_csv_df(motion_file, motion_usecols)
         # self.df_motion : [index, 'timestamp', 'speed_x', 'yaw_rate']
 
-        self.df_motion = self.df_motion.set_index('timestamp')
-        self.df_motion = self.df_motion[~self.df_motion.index.duplicated()]
-        self.df_motion['yaw_rate'] = self.df_motion['yaw_rate'] * 180 / np.pi  # rad 2 deg
+        self.df_motion_input = self.df_motion_input.set_index('timestamp')
+        self.df_motion_input = self.df_motion_input[~self.df_motion_input.index.duplicated()]
+        self.df_motion_input['yaw_rate'] = self.df_motion_input['yaw_rate'] * 180 / np.pi  # rad 2 deg
 
         try:
             self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
                          self.df_gnss['heading'].values[0]]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
-            df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
+            print('self.init: {}'.format(self.init))
+            df_motion = copy.deepcopy(self.df_motion_input.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
             self.df_info = pd.concat([self.df_gnss, df_motion], axis=1)
+            self.default_df_info = copy.deepcopy(self.df_info)
         except:
-            df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
+            df_motion = copy.deepcopy(self.df_motion_input.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
             self.df_info = df_motion
+            self.default_df_info = copy.deepcopy(self.df_info)
 
         print('Parse Motion logging data')
 
@@ -177,6 +181,7 @@ class Import:
             self.df_pointcloud_idx[idxSensor] = self.df_pointcloud_idx[idxSensor][
                 ~self.df_pointcloud_idx[idxSensor].index.duplicated()]
             self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
+            self.default_df_info = copy.deepcopy(self.df_info)
 
             p_index = p_index + 1.0
 
@@ -200,6 +205,7 @@ class Import:
                 self.df_info[i].fillna(0, inplace=True)
         self.df_info = self.df_info.interpolate(method='linear')  # Linear interpolation in NaN
         self.df_info = self.df_info.dropna(how='any')  # not interpolated rows dropped
+        self.default_df_info = copy.deepcopy(self.df_info)
 
         # Remove rows without num_points
         valid_info = []
@@ -211,6 +217,8 @@ class Import:
                     valid_info = valid_info | (self.df_info[i].values != 0)
         non_valid_info = ~valid_info
         self.df_info = self.df_info.drop(self.df_info[non_valid_info].index)
+        self.default_df_info = copy.deepcopy(self.df_info)
+
         del valid_info, non_valid_info
 
         # -----------------------------------------------------------------------------------------------------------------------------
@@ -224,18 +232,54 @@ class Import:
         thread.msleep(1)
         thread.mutex.unlock()
 
-        print('Parse pointcloud logging data')
+        print('import {}\n'.format(self.df_info['east_m']))
 
-    def ChangeInitValue(self, init_value):
-        self.init = init_value
-        df_motion = copy.deepcopy(self.df_motion.dropna(how='any'))
-        df_motion = utils_pose_dr.get_motion_enu(df_motion, init_value)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
+    def ChangeInitGnss(self, init):
+        self.init = init
+        print('GNSS Init{}'.format(self.init))
+        df_gnss = self.default_df_info.dropna(how='any')
+
+        print('GNSS df_gnss east{}'.format(df_gnss['east_m']))
+
+        init_heading = df_gnss['heading'].values[0] + init[2]
+
+        tf = np.array([[np.cos(init_heading*np.pi/180.0), -np.sin(init_heading*np.pi/180.0), init[0]],
+                       [np.sin(init_heading*np.pi/180.0), np.cos(init_heading*np.pi/180.0), init[1]],
+                       [0., 0., 1.]])
+
+
+        for i in list(range(len(df_gnss['east_m']))):
+            tf_state = np.matmul(tf,np.transpose([df_gnss['east_m'].values[i], df_gnss['north_m'].values[i], 1]))
+            # print('GNSS transformed state{}'.format(tf_state))
+
+            self.df_info['east_m'].values[i] = tf_state[0]
+            self.df_info['north_m'].values[i] = tf_state[1]
+            self.df_info['heading'].values[i] = df_gnss['heading'].values[i] - init_heading
+
+        print('INIT GNSS Heading{}'.format(self.df_info['heading']))
+
+        print('Change Init Gnss')
+
+    def ChangeInitMotion(self, init):
+        self.init = init
+        init_value = copy.deepcopy(self.init)
+        init_value[2] = init_value[2] - 90
+        print('MOTION INIT{}'.format(self.init))
+        df_motion = copy.deepcopy(self.df_motion_input.dropna(how='any'))
+        df_motion = utils_pose_dr.get_motion_enu(df_motion, init_value)
         # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
 
-        self.df_info = df_motion
+        self.df_info['dr_east_m'] = df_motion['dr_east_m']
+        self.df_info['dr_north_m'] = df_motion['dr_north_m']
+        self.df_info['dr_heading'] = df_motion['dr_heading']
 
-        for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
-            self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
+        print('INIT MOTION Heading{}'.format(self.df_info['heading']))
+
+        print('Change Init Motion')
+
+    def InitValue(self):
+        # for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:
+        #     self.df_info = pd.concat([self.df_info, self.df_pointcloud_idx[idxSensor]], axis=1)
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 2-2. Resample time

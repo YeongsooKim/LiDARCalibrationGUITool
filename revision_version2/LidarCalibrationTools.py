@@ -10,11 +10,22 @@ import fileinput
 import math
 import sys
 import copy
-#import pdb
-from instance_id import *
-
 import matplotlib.pyplot as plt
-import element
+import numpy as np
+import tkinter as Tk
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+import vtk
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from PyQt5.QtGui import *
+
+from gui_partition.layouts.layout_id import *
+from gui_partition.layouts import layouts
+from gui_partition.widgets.widget_id import *
+from gui_partition.widgets.QButton import *
+from gui_partition.widgets import QThread
+from gui_partition.widgets.QScrollarea import *
+
 from applications.utils import get_result
 from applications.steps import step1_1_configuration
 from applications.steps import step1_2_import_data
@@ -23,20 +34,8 @@ from applications.steps import step3_1_XYYaw_data_validation
 from applications.steps import step3_2_XYYaw_handeye
 from applications.steps import step3_3_XYYaw_unsupervised
 from applications.steps import step4_evaluation
+
 from hmi.visualization import vtk_lidar_calib
-from widget.QButton import *
-from widget import QThread
-from widget.QScrollarea import *
-from PyQt5.QtGui import *
-
-import numpy as np
-from PIL import Image
-import tkinter as Tk
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-
-import vtk
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 ## button size
 CONST_NEXT_BTN_HEIGHT = 80
@@ -49,6 +48,7 @@ class ConfigurationTab(QWidget):
         self.form_widget = form_widget
         self.added_stl_dict = {}
         self.added_file_list = []
+        self.test_label = []
 
         self.InitUi()
 
@@ -85,7 +85,7 @@ class ConfigurationTab(QWidget):
         vbox.addLayout(hbox1, 40)
 
         hbox2 = QHBoxLayout()
-        self.image_display_widget = element.ImageDisplay(self.form_widget.config.PATH['Image'])
+        self.image_display_widget = layouts.ImageDisplay(self.form_widget.config.PATH['Image'])
         hbox2.addWidget(self.image_display_widget, 50)
         hbox2.addWidget(self.SetConfiguration_VehicleConfiguration_Groupbox(), 50)
         vbox.addLayout(hbox2, 60)
@@ -98,10 +98,10 @@ class ConfigurationTab(QWidget):
         self.lidar_config_groupbox = QGroupBox('LiDAR Configuration')
         vbox = QVBoxLayout()
 
-        self.lidar_num_label_layout = element.SpinBoxLabelLayout('LiDAR Num', self.form_widget)
+        self.lidar_num_label_layout = layouts.SpinBoxLabelLayout('LiDAR Num', self.form_widget)
         vbox.addLayout(self.lidar_num_label_layout)
 
-        self.select_using_sensor_list_layout = element.CheckBoxListLayout(CONST_SELECT_USING_SENSOR_LIST, self.form_widget, 'Select Using Sensor List')
+        self.select_using_sensor_list_layout = layouts.CheckBoxListLayout(CONST_SELECT_USING_SENSOR_LIST, self.form_widget, 'Select Using Sensor List')
         vbox.addLayout(self.select_using_sensor_list_layout)
 
         self.lidar_config_groupbox.setLayout(vbox)
@@ -111,28 +111,28 @@ class ConfigurationTab(QWidget):
         groupbox = QGroupBox('PointCloud Configuration')
         vbox = QVBoxLayout()
 
-        self.minimum_threshold_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE, "Minimum Threshold Distance [m]", self.form_widget)
+        self.minimum_threshold_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE, "Minimum Threshold Distance [m]", self.form_widget)
         vbox.addLayout(self.minimum_threshold_distance_layout)
 
-        self.maximum_threshold_istance_layout = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE, "Maximum Threshold Distance [m]", self.form_widget)
+        self.maximum_threshold_istance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE, "Maximum Threshold Distance [m]", self.form_widget)
         vbox.addLayout(self.maximum_threshold_istance_layout)
 
-        self.minimum_threshold_layout_x = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_X, "Minimum Threshold X [m]", self.form_widget)
+        self.minimum_threshold_layout_x = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_X, "Minimum Threshold X [m]", self.form_widget)
         vbox.addLayout(self.minimum_threshold_layout_x)
 
-        self.maximum_threshold_layout_x = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_X, "Maximum Threshold X [m]", self.form_widget)
+        self.maximum_threshold_layout_x = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_X, "Maximum Threshold X [m]", self.form_widget)
         vbox.addLayout(self.maximum_threshold_layout_x)
 
-        self.minimum_threshold_layout_y = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_Y, "Minimum Threshold Y [m]", self.form_widget)
+        self.minimum_threshold_layout_y = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_Y, "Minimum Threshold Y [m]", self.form_widget)
         vbox.addLayout(self.minimum_threshold_layout_y)
 
-        self.maximum_threshold_layout_y = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_Y, "Maximum Threshold Y [m]", self.form_widget)
+        self.maximum_threshold_layout_y = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_Y, "Maximum Threshold Y [m]", self.form_widget)
         vbox.addLayout(self.maximum_threshold_layout_y)
 
-        self.minimum_threshold_layout_z = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_Z, "Minimum Threshold Z [m]", self.form_widget)
+        self.minimum_threshold_layout_z = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MINIMUM_THRESHOLD_Z, "Minimum Threshold Z [m]", self.form_widget)
         vbox.addLayout(self.minimum_threshold_layout_z)
 
-        self.maximum_threshold_layout_z = element.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_Z, "Maximum Threshold Z [m]", self.form_widget)
+        self.maximum_threshold_layout_z = layouts.DoubleSpinBoxLabelLayout(CONST_CONFIG_MAXIMUM_THRESHOLD_Z, "Maximum Threshold Z [m]", self.form_widget)
         vbox.addLayout(self.maximum_threshold_layout_z)
 
         groupbox.setLayout(vbox)
@@ -160,7 +160,7 @@ class ConfigurationTab(QWidget):
 
         id_to_strs1 = {CONST_CONFIG_LENGTH: 'Length [m]', CONST_CONFIG_WIDTH: 'Width [m]', CONST_CONFIG_HEIGHT: 'Hieght [m]'}
         id_to_strs2 = {CONST_CONFIG_FRONT: 'STL Front Axis ', CONST_CONFIG_TOP: 'STL Top Axis'}
-        self.vehicle_info_layout = element.EditLabelWithButtonLayout(CONST_CONFIG_VEHICLE_INFO, id_to_strs1, id_to_strs2, self.form_widget)
+        self.vehicle_info_layout = layouts.EditLabelWithButtonLayout(CONST_CONFIG_VEHICLE_INFO, id_to_strs1, id_to_strs2, self.form_widget)
         vehicle_info_box.setLayout(self.vehicle_info_layout)
 
         axis = ['X', 'Y', 'Z']
@@ -325,7 +325,7 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Import Logging Data')
         self.logging_vbox = QVBoxLayout()
 
-        self.logging_file_path_layout = element.FileInputWithCheckBtnLayout('Select Logging File Path', self.form_widget)
+        self.logging_file_path_layout = layouts.FileInputWithCheckBtnLayout('Select Logging File Path', self.form_widget)
         self.logging_vbox.addLayout(self.logging_file_path_layout)
 
         label = QLabel('[ csv File List ]')
@@ -349,17 +349,24 @@ class ImportDataTab(QWidget):
 
         hbox = QHBoxLayout()
         label = QLabel()
-        hbox.addWidget(label, 50)
+        hbox.addWidget(label, 5)
         label = QLabel('East [m]')
-        hbox.addWidget(label, 16)
+        hbox.addWidget(label, 1)
         label = QLabel('North [m]')
-        hbox.addWidget(label, 17)
+        hbox.addWidget(label, 1)
         label = QLabel('Heading [deg]')
-        hbox.addWidget(label, 17)
+        hbox.addWidget(label, 1)
         vbox.addLayout(hbox)
 
-        self.scroll_box = ScrollAreaV()
-        vbox.addWidget(self.scroll_box)
+        spinbox_ids = [CONST_IMPORT_GNSS_EAST, CONST_IMPORT_GNSS_NORTH, CONST_IMPORT_GNSS_HEADING]
+        self.gnss_initial_pose_layout = layouts.LabelWithDoubleSpinBoxsLayout(spinbox_ids, 'Gnss Initial Pose in ENU Coordinate', self.form_widget)
+        self.gnss_initial_pose_layout.SetEnable(False)
+        vbox.addLayout(self.gnss_initial_pose_layout)
+
+        spinbox_ids = [CONST_IMPORT_MOITION_EAST, CONST_IMPORT_MOITION_NORTH, CONST_IMPORT_MOITION_HEADING]
+        self.motion_initial_pose_layout = layouts.LabelWithDoubleSpinBoxsLayout(spinbox_ids, 'Motion Initial Pose in ENU Coordinate', self.form_widget)
+        self.motion_initial_pose_layout.SetEnable(False)
+        vbox.addLayout(self.motion_initial_pose_layout)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -373,10 +380,10 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        self.sampling_interval_layout = element.SpinBoxLabelLayout('Sampling Interval [Count]', self.form_widget)
+        self.sampling_interval_layout = layouts.SpinBoxLabelLayout('Sampling Interval [Count]', self.form_widget)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_IMPORT_VEHICLE_MINIMUM_SPEED, 'Vehicle Minimum Speed [km/h]', self.form_widget)
+        self.time_speed_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_IMPORT_VEHICLE_MINIMUM_SPEED, 'Vehicle Minimum Speed [km/h]', self.form_widget)
         vbox.addLayout(self.time_speed_threshold_layout)
 
         groupbox.setLayout(vbox)
@@ -386,7 +393,7 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
         vbox.addLayout(self.limit_time_layout)
 
         groupbox.setLayout(vbox)
@@ -447,31 +454,26 @@ class ImportDataTab(QWidget):
 
         # Import tab
         ## Set Configuration
-        self.form_widget.RemoveLayout(self.scroll_box.layout)
-
         if self.form_widget.importing.has_gnss_file and self.form_widget.importing.has_motion_file:
-            self.init_gnss_value_layout = element.GnssInitEditLabel(CONST_IMPORT_GNSS_INITIAL_POSE, 'Gnss Initial Pose in ENU Coordinate', self.form_widget)
-            self.init_gnss_value_layout.Clear(self.form_widget.importing.df_gnss['east_m'].values[0],
-                                              self.form_widget.importing.df_gnss['north_m'].values[0],
-                                              self.form_widget.importing.df_gnss['heading'].values[0])
-            self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_EAST].setValue(self.form_widget.importing.df_gnss['east_m'].values[0])
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_NORTH].setValue(self.form_widget.importing.df_gnss['north_m'].values[0])
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_HEADING].setValue(self.form_widget.importing.df_gnss['heading'].values[0])
+            self.form_widget.importing.ChangeInitGnss([self.form_widget.importing.init[0], self.form_widget.importing.init[1], self.form_widget.importing.init[2]])
 
-            self.init_motion_value_layout = element.GnssInitEditLabel(CONST_IMPORT_MOTION_INITIAL_POSE, 'Motion Initial Pose in ENU coordinate    ', self.form_widget)
-            self.init_motion_value_layout.Clear(self.form_widget.importing.init[0],
-                                                self.form_widget.importing.init[1],
-                                                self.form_widget.importing.init[2])
-            self.scroll_box.layout.addLayout(self.init_motion_value_layout)
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_EAST].setValue(self.form_widget.importing.init[0])
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_NORTH].setValue(self.form_widget.importing.init[1])
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_HEADING].setValue(self.form_widget.importing.init[2])
+            self.form_widget.importing.ChangeInitMotion([self.form_widget.importing.init[0], self.form_widget.importing.init[1], self.form_widget.importing.init[2]])
 
             self.SetUsedData(self.form_widget.datavalidation_tab, 1)
             self.SetUsedData(self.form_widget.handeye_tab, 1)
             self.SetUsedData(self.form_widget.unsupervised_tab, 1)
 
         elif self.form_widget.importing.has_gnss_file:
-            self.init_gnss_value_layout = element.GnssInitEditLabel('Gnss Initial Pose in ENU Coordinate', self.form_widget)
-            self.init_gnss_value_layout.Clear(self.form_widget.importing.df_gnss['east_m'].values[0],
-                                              self.form_widget.importing.df_gnss['north_m'].values[0],
-                                              self.form_widget.importing.df_gnss['heading'].values[0])
-            self.scroll_box.layout.addLayout(self.init_gnss_value_layout)
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_EAST].setValue(self.form_widget.importing.df_gnss['east_m'].values[0])
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_NORTH].setValue(self.form_widget.importing.df_gnss['north_m'].values[0])
+            self.gnss_initial_pose_layout.spinbox_dict[CONST_IMPORT_GNSS_HEADING].setValue(self.form_widget.importing.df_gnss['heading'].values[0])
+            self.form_widget.importing.ChangeInitGnss([self.form_widget.importing.init[0], self.form_widget.importing.init[1], self.form_widget.importing.init[2]])
 
             self.form_widget.datavalidation_tab.radio_label_layout.button_group.button(2).setChecked(True)
             self.form_widget.datavalidation_tab.radio_label_layout.RadioButton()
@@ -486,11 +488,10 @@ class ImportDataTab(QWidget):
             self.time_speed_threshold_layout.double_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
         elif self.form_widget.importing.has_motion_file:
-            self.init_motion_value_layout = element.GnssInitEditLabel('Motion Initial Pose in ENU coordinate    ', self.form_widget)
-            self.init_motion_value_layout.Clear(self.form_widget.importing.init[0],
-                                                self.form_widget.importing.init[1],
-                                                self.form_widget.importing.init[2])
-            self.scroll_box.layout.addLayout(self.init_motion_value_layout)
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_EAST].setValue(self.form_widget.importing.init[0])
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_NORTH].setValue(self.form_widget.importing.init[1])
+            self.motion_initial_pose_layout.spinbox_dict[CONST_IMPORT_MOITION_HEADING].setValue(self.form_widget.importing.init[2])
+            self.form_widget.importing.ChangeInitMotion([self.form_widget.importing.init[0], self.form_widget.importing.init[1], self.form_widget.importing.init[2]])
 
             self.SetUsedData(self.form_widget.datavalidation_tab, 2)
             self.SetUsedData(self.form_widget.handeye_tab, 2)
@@ -723,18 +724,7 @@ class ZRollPitch_CalibrationTab(QWidget):
         pass
 
     def Apply(self, display_groundpoint, start_time, end_time, PARM_ZRP, selected_sensor, end_callback):
-        if self.form_widget.config_tab.is_lidar_num_changed == True:
-            self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
-        if self.form_widget.importing.PointCloudSensorList.get(selected_sensor) is None:
-            imported_pc = ''
-            for pc in self.form_widget.importing.PointCloudSensorList:
-                imported_pc += (str(pc) + ' ')
-
-            self.form_widget.ErrorPopUp('Import pointcloud {}\nImported pointcloud: {}'.format(selected_sensor, imported_pc))
-            return False
+        self.ErrorCheck(selected_sensor)
 
         self.progress_status = CONST_PLAY
 
@@ -789,20 +779,20 @@ class ZRollPitch_CalibrationTab(QWidget):
         self.calibration_pbar.reset()
         self.text_edit.clear()
 
-    def ErrorCheck(self):
+    def ErrorCheck(self, idxSensor):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
             return False
         if self.progress_status is not CONST_IDLE:
             return False
 
-        if self.form_widget.importing.PointCloudSensorList.get(self.idxSensor) is None:
+        if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
             imported_pc = ''
             for pc in self.form_widget.importing.PointCloudSensorList:
                 imported_pc += (str(pc) + ' ')
 
             self.form_widget.ErrorPopUp(
-                'Import pointcloud {}\nImported pointcloud: {}'.format(self.idxSensor, imported_pc))
+                'Import pointcloud {}\nImported pointcloud: {}'.format(idxSensor, imported_pc))
             return False
 
 class ZRollPitchTab(ZRollPitch_CalibrationTab):
@@ -817,7 +807,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
         vbox.addLayout(self.limit_time_layout)
 
         groupbox.setLayout(vbox)
@@ -830,28 +820,28 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         liDAR_configuration_label = QLabel('[ Select LiDAR ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.select_lidar_to_calib_layout = element.ComboBoxLabelLayout(CONST_ZRP_SELECT_LIDAR_TO_CALIB, 'Select Lidar To Calibration', self.form_widget)
+        self.select_lidar_to_calib_layout = layouts.ComboBoxLabelLayout(CONST_ZRP_SELECT_LIDAR_TO_CALIB, 'Select Lidar To Calibration', self.form_widget)
         vbox.addLayout(self.select_lidar_to_calib_layout)
 
         roi_configuration_label = QLabel('[ ROI Configuration ]', self)
         vbox.addWidget(roi_configuration_label)
 
-        self.maximum_x_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_X_DISTANCE, 'Maximum X Distance [m]', self.form_widget)
+        self.maximum_x_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_X_DISTANCE, 'Maximum X Distance [m]', self.form_widget)
         vbox.addLayout(self.maximum_x_layout)
 
-        self.minimum_x_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_X_DISTANCE, 'Minimum X Distance [m]', self.form_widget)
+        self.minimum_x_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_X_DISTANCE, 'Minimum X Distance [m]', self.form_widget)
         vbox.addLayout(self.minimum_x_layout)
 
-        self.maximum_y_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_Y_DISTANCE, 'Maximum Y Distance [m]', self.form_widget)
+        self.maximum_y_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_Y_DISTANCE, 'Maximum Y Distance [m]', self.form_widget)
         vbox.addLayout(self.maximum_y_layout)
 
-        self.minimum_y_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_Y_DISTANCE, 'Minimum Y Distance [m]', self.form_widget)
+        self.minimum_y_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_Y_DISTANCE, 'Minimum Y Distance [m]', self.form_widget)
         vbox.addLayout(self.minimum_y_layout)
 
-        self.maximum_z_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_Z_DISTANCE, 'Maximum Z Distance [m]', self.form_widget)
+        self.maximum_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MAXIMUM_Z_DISTANCE, 'Maximum Z Distance [m]', self.form_widget)
         vbox.addLayout(self.maximum_z_layout)
 
-        self.minimum_z_layout = element.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_Z_DISTANCE, 'Minimum Z Distance [m]', self.form_widget)
+        self.minimum_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_ZRP_MINIMUM_Z_DISTANCE, 'Minimum Z Distance [m]', self.form_widget)
         vbox.addLayout(self.minimum_z_layout)
 
         apply_btn = QPushButton('Apply')
@@ -947,7 +937,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
     ## Callback func
 
     def Start(self):
-        self.ErrorCheck()
+        self.ErrorCheck(self.idxSensor)
         self.progress_status = CONST_PLAY
 
         self.PlotClear(self.result_graph1_ax, self.result_graph1_canvas)
@@ -1198,21 +1188,21 @@ class DataValidationTab(QWidget):
         ICP_configuration_label = QLabel('[ ICP Configuration ]', self)
         vbox.addWidget(ICP_configuration_label)
 
-        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
+        self.maximum_interation_layout = layouts.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
-        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_TOLERANCE, 'Tolerance', self.form_widget, 12)
+        self.tolerance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_TOLERANCE, 'Tolerance', self.form_widget, 12)
         vbox.addLayout(self.tolerance_layout)
 
-        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
+        self.outlier_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
         vbox.addLayout(self.outlier_distance_layout)
 
         Threshold_configuration_label = QLabel('[ Threshold ]', self)
         vbox.addWidget(Threshold_configuration_label)
-        self.heading_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_HEADING_THRESHOLD, 'Heading Threshold (filter)', self.form_widget)
+        self.heading_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_HEADING_THRESHOLD, 'Heading Threshold (filter)', self.form_widget)
         vbox.addLayout(self.heading_threshold_layout)
 
-        self.distance_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_DISTANCE_THRESHOLD, 'Distance Threshold (filter)',
+        self.distance_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_DISTANCE_THRESHOLD, 'Distance Threshold (filter)',
                                                                           self.form_widget)
         vbox.addLayout(self.distance_threshold_layout)
 
@@ -1225,7 +1215,7 @@ class DataValidationTab(QWidget):
         vbox = QVBoxLayout(self)
 
         buttons = {0:'GNSS Data', 1:'Motion Data'}
-        self.radio_label_layout = element.RadioLabelLayout(CONST_DATAVALIDATION_USED_DATA, 'Used Data', buttons, self.form_widget)
+        self.radio_label_layout = layouts.RadioLabelLayout(CONST_DATAVALIDATION_USED_DATA, 'Used Data', buttons, self.form_widget)
         vbox.addLayout(self.radio_label_layout)
 
         hbox = QHBoxLayout()
@@ -1308,17 +1298,7 @@ class DataValidationTab(QWidget):
 
     def StartValidation(self, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
                         zrp_calib, targets_clear, progress_callbacks, end_callback):
-        if self.form_widget.config_tab.is_lidar_num_changed == True:
-            self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
-        self.progress_status = CONST_PLAY
-
-        for idxSensor in sensor_list['CheckedSensorList']:
-            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
-                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
+        self.ErrorCheck(sensor_list)
 
         for target_clear in targets_clear:
             target_clear()
@@ -1428,6 +1408,8 @@ class DataValidationTab(QWidget):
         self.view_data_btn.setEnabled(enable)
         self.view_graph_btn.setEnabled(enable)
 
+    ## Util func
+
     def Clear(self):
         # Reset data validation values
         try:
@@ -1451,6 +1433,19 @@ class DataValidationTab(QWidget):
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
         self.calibration_pbar.reset()
+
+    def ErrorCheck(self, sensor_list):
+        if self.form_widget.config_tab.is_lidar_num_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        if self.progress_status is not CONST_IDLE:
+            return False
+        self.progress_status = CONST_PLAY
+
+        for idxSensor in sensor_list['CheckedSensorList']:
+            if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
+                self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
+                return False
 
 class XYYaw_CalibrationTab(QWidget):
     def __init__(self, form_widget):
@@ -1562,7 +1557,7 @@ class XYYaw_CalibrationTab(QWidget):
         if self.progress_status is not CONST_IDLE:
             return False
 
-        self.dialog = element.NewWindow('ViewLiDAR', self.calib_result, self.form_widget)
+        self.dialog = layouts.NewWindow('ViewLiDAR', self.calib_result, self.form_widget)
 
     def ViewPointCloud(self):
         pass
@@ -1656,19 +1651,19 @@ class HandEyeTab(XYYaw_CalibrationTab):
         liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.maximum_interation_layout = element.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
+        self.maximum_interation_layout = layouts.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
-        self.tolerance_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_TOLERANCE, 'Tolerance', self.form_widget, 12)
+        self.tolerance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_TOLERANCE, 'Tolerance', self.form_widget, 12)
         vbox.addLayout(self.tolerance_layout)
 
-        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
+        self.outlier_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
         vbox.addLayout(self.outlier_distance_layout)
 
-        self.heading_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_HEADING_THRESHOLD, 'Heading Threshold (filter)', self.form_widget)
+        self.heading_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_HEADING_THRESHOLD, 'Heading Threshold (filter)', self.form_widget)
         vbox.addLayout(self.heading_threshold_layout)
 
-        self.distance_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_HANDEYE_DISTANCE_THRESHOLD, 'Distance Threshold (filter)', self.form_widget)
+        self.distance_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_DISTANCE_THRESHOLD, 'Distance Threshold (filter)', self.form_widget)
         vbox.addLayout(self.distance_threshold_layout)
 
         groupbox.setLayout(vbox)
@@ -1679,7 +1674,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         vbox = QVBoxLayout(self)
 
         buttons = {0:'GNSS Data', 1:'Motion Data'}
-        self.radio_label_layout = element.RadioLabelLayout(CONST_HANDEYE_USED_DATA, 'Used Data', buttons, self.form_widget)
+        self.radio_label_layout = layouts.RadioLabelLayout(CONST_HANDEYE_USED_DATA, 'Used Data', buttons, self.form_widget)
         vbox.addLayout(self.radio_label_layout)
 
         hbox = QHBoxLayout()
@@ -1950,28 +1945,28 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         vbox.addWidget(liDAR_configuration_label)
 
         buttons = {0:'Single LiDAR', 1:'Multi LiDAR'}
-        self.select_lidar_num_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Select Lidar Type', buttons, self.form_widget)
+        self.select_lidar_num_layout = layouts.RadioLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR, 'Select Lidar Type', buttons, self.form_widget)
         vbox.addLayout(self.select_lidar_num_layout)
 
-        self.select_lidar_combobox_layout = element.ComboBoxLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB, 'Select Single Lidar To Calibration', self.form_widget)
+        self.select_lidar_combobox_layout = layouts.ComboBoxLabelLayout(CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB, 'Select Single Lidar To Calibration', self.form_widget)
         vbox.addLayout(self.select_lidar_combobox_layout)
 
         liDAR_configuration_label = QLabel('[ Unsupervised Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.point_sampling_ratio_layout = element.DoubleSpinBoxLabelLayout(CONST_OPTI_POINT_SAMPLING_RATIO, 'Point Sampling Ratio', self.form_widget)
+        self.point_sampling_ratio_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_POINT_SAMPLING_RATIO, 'Point Sampling Ratio', self.form_widget)
         vbox.addLayout(self.point_sampling_ratio_layout)
 
-        self.num_points_plane_modeling_layout = element.SpinBoxLabelLayout('Num Points Plane Modeling', self.form_widget)
+        self.num_points_plane_modeling_layout = layouts.SpinBoxLabelLayout('Num Points Plane Modeling', self.form_widget)
         vbox.addLayout(self.num_points_plane_modeling_layout)
 
-        self.outlier_distance_layout = element.DoubleSpinBoxLabelLayout(CONST_OPTI_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
+        self.outlier_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
         vbox.addLayout(self.outlier_distance_layout)
 
         optimization_initial_value_label = QLabel('[ Unsupervised Initial Value ]', self)
         vbox.addWidget(optimization_initial_value_label)
 
-        self.optimization_initial_value_tab = element.ResultTab('Handeye', 'User Define', self.form_widget)
+        self.optimization_initial_value_tab = layouts.ResultTab('Handeye', 'User Define', self.form_widget)
         vbox.addLayout(self.optimization_initial_value_tab)
 
         self.optimization_configuration_groupbox.setLayout(vbox)
@@ -1982,7 +1977,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         vbox = QVBoxLayout(self)
 
         buttons = {0:'GNSS Data', 1:'Motion Data'}
-        self.radio_label_layout = element.RadioLabelLayout(CONST_UNSUPERVISED_USED_DATA, 'Used Data', buttons, self.form_widget)
+        self.radio_label_layout = layouts.RadioLabelLayout(CONST_UNSUPERVISED_USED_DATA, 'Used Data', buttons, self.form_widget)
         vbox.addLayout(self.radio_label_layout)
 
         hbox = QHBoxLayout(self)
@@ -2314,16 +2309,16 @@ class EvaluationTab(QWidget):
         vbox = QVBoxLayout()
 
         buttons = {0:'GNSS Data', 1:'Motion Data'}
-        self.radio_label_layout = element.RadioLabelLayout(CONST_EVAL_SELECT_LIDAR, 'Used Data', buttons, self.form_widget)
+        self.radio_label_layout = layouts.RadioLabelLayout(CONST_EVAL_SELECT_LIDAR, 'Used Data', buttons, self.form_widget)
         vbox.addLayout(self.radio_label_layout)
 
-        self.sampling_interval_layout = element.SpinBoxLabelLayout('Eval Sampling Interval [Count]', self.form_widget)
+        self.sampling_interval_layout = layouts.SpinBoxLabelLayout('Eval Sampling Interval [Count]', self.form_widget)
         vbox.addLayout(self.sampling_interval_layout)
 
-        self.distance_interval_layout = element.DoubleSpinBoxLabelLayout(CONST_EVAL_DISTANCE_INTERVAL, 'Eval Distance Interval [m]', self.form_widget)
+        self.distance_interval_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_DISTANCE_INTERVAL, 'Eval Distance Interval [m]', self.form_widget)
         vbox.addLayout(self.distance_interval_layout)
 
-        self.time_speed_threshold_layout = element.DoubleSpinBoxLabelLayout(CONST_EVAL_VEHICLE_MINIMUM_SPEED, 'Eval Vehicle Minimum Speed [km/h]', self.form_widget)
+        self.time_speed_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_VEHICLE_MINIMUM_SPEED, 'Eval Vehicle Minimum Speed [km/h]', self.form_widget)
         vbox.addLayout(self.time_speed_threshold_layout)
 
         groupbox.setLayout(vbox)
@@ -2333,7 +2328,7 @@ class EvaluationTab(QWidget):
         groupbox = QGroupBox('Limit Time')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = element.SlideLabelLayouts(self.form_widget)
+        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget)
         vbox.addLayout(self.limit_time_layout)
 
         hbox = QHBoxLayout()
@@ -2408,7 +2403,7 @@ class EvaluationTab(QWidget):
 
     # Callback
     def ViewLiDAR(self):
-        self.dialog = element.NewWindow('ViewLiDAR', self.calib_result, self.form_widget)
+        self.dialog = layouts.NewWindow('ViewLiDAR', self.calib_result, self.form_widget)
 
     def ViewPointCloud(self):
         eval_df_info = copy.deepcopy(self.form_widget.evaluation.df_info)
@@ -3213,21 +3208,21 @@ class FormWidget(QWidget):
         labels.clear()
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             if label_type is CONST_UNEDITABLE_LABEL:
-                result_label = element.CalibrationResultLabel(idxSensor, 'x [m]', 'y [m]', 'yaw [deg]')
+                result_label = layouts.CalibrationResultLabel(idxSensor, 'x [m]', 'y [m]', 'yaw [deg]')
                 if calibration_param.get(idxSensor) is not None:
                     result_label.label_edit1.setText(str(round(calibration_param[idxSensor][3], 4)))
                     result_label.label_edit2.setText(str(round(calibration_param[idxSensor][4], 4)))
                     result_label.label_edit3.setText(str(round(calibration_param[idxSensor][2] * 180.0 / math.pi, 4)))
 
             elif label_type is CONST_UNEDITABLE_LABEL2:
-                result_label = element.CalibrationResultLabel(idxSensor, 'z [m]', 'roll [deg]', 'pitch [deg]')
+                result_label = layouts.CalibrationResultLabel(idxSensor, 'z [m]', 'roll [deg]', 'pitch [deg]')
                 if calibration_param.get(idxSensor) is not None:
                     result_label.label_edit1.setText(str(round(calibration_param[idxSensor][0], 4)))
                     result_label.label_edit2.setText(str(round(calibration_param[idxSensor][1], 4)))
                     result_label.label_edit3.setText(str(round(calibration_param[idxSensor][2], 4)))
                     
             elif label_type is CONST_EDITABLE_LABEL2:
-                result_label = element.CalibrationResultEditLabel2(idxSensor, calibration_param, self)
+                result_label = layouts.CalibrationResultEditLabel2(idxSensor, calibration_param, self)
                 if calibration_param.get(idxSensor) is not None:
                     result_label.double_spin_box_x.setValue(calibration_param[idxSensor][3])
                     result_label.double_spin_box_y.setValue(calibration_param[idxSensor][4])
@@ -3235,11 +3230,11 @@ class FormWidget(QWidget):
 
             elif label_type is CONST_EVAULATION_LABEL:
                 buttons = {0:True, 1:False, 2:False}
-                result_label = element.RadioWithEditLabel(CONST_EVALUATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=True)
+                result_label = layouts.RadioWithEditLabel(CONST_EVALUATION_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=True)
 
             elif label_type is CONST_ZRP_LABEL:
                 buttons = {0:True, 1:False}
-                result_label = element.RadioWithEditLabel(CONST_EVALUATION_ZRP_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
+                result_label = layouts.RadioWithEditLabel(CONST_EVALUATION_ZRP_RESULT_LABEL, idxSensor, buttons, self, editable=True, using_checkbox=False)
                 if calibration_param.get(idxSensor) is not None:
                     result_label.spinbox1.setValue(round(calibration_param[idxSensor][0], 4))
                     result_label.spinbox2.setValue(round(calibration_param[idxSensor][1], 4))
@@ -3255,7 +3250,7 @@ class FormWidget(QWidget):
 
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             if label_type is CONST_UNEDITABLE_LABEL:
-                result_label = element.ValidationResultLabel(idxSensor)
+                result_label = layouts.ValidationResultLabel(idxSensor)
                 if RMSETranslationError.get(idxSensor) is not None:
                     result_label.label_edit_translation_error.setText(str(round(RMSETranslationError[idxSensor], 4)))
                 if RMSERotationError.get(idxSensor) is not None:

@@ -43,15 +43,14 @@ class HandEye:
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 
+
+
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
 
         if using_motion_data:
             df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
-            print('AA')
-
-        print('df_info {}'.format(df_info))
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1. Match the point cloud based on ICP
@@ -125,6 +124,7 @@ class HandEye:
                 pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
                 '''
+
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
                 

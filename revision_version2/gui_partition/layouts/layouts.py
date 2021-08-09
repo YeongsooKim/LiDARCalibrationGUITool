@@ -9,9 +9,12 @@ import os
 import math
 import copy
 
-from widget.DoubleSlider import DoubleSlider
-from widget.QScrollarea import *
-from widget.QButton import *
+from gui_partition.widgets.DoubleSlider import DoubleSlider
+from gui_partition.widgets.QScrollarea import *
+from gui_partition.widgets.QButton import *
+from gui_partition.widgets.QUniqDoubleSpinBox import *
+from gui_partition.layouts.layout_id import *
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
@@ -20,7 +23,6 @@ import vtk
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 from hmi.visualization import vtk_lidar_calib
-from instance_id import *
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
     instance_number = 1
@@ -91,9 +93,17 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
         # Check file
         if not self.form_widget.importing.has_gnss_file:
+            self.form_widget.importing_tab.gnss_initial_pose_layout.SetEnable(False)
             self.form_widget.ErrorPopUp('Gnss.csv is missing\n Please set initial value')
+        else:
+            self.form_widget.importing_tab.gnss_initial_pose_layout.SetEnable(True)
+
         if not self.form_widget.importing.has_motion_file:
+            self.form_widget.importing_tab.motion_initial_pose_layout.SetEnable(False)
             self.form_widget.ErrorPopUp('Motion.csv is missing\n [Warning] Vehicle Minimum Speed is disabled')
+        else:
+            self.form_widget.importing_tab.motion_initial_pose_layout.SetEnable(True)
+
         if not has_pointcloud_file:
             self.form_widget.ErrorPopUp('XYZRGB.bin is missing')
 
@@ -291,7 +301,6 @@ class CheckBoxListLayout(QVBoxLayout):
                                             callback=self.ItemChanged)
                 self.lidar_buttons[sensor_index] = check_btn
                 self.config_scroll_box.layout.addLayout(check_btn)
-
 
     def ItemChanged(self):
         items = []
@@ -991,6 +1000,35 @@ class EditLabelWithButtonLayout(QHBoxLayout):
 
         self.btn.setEnabled(enable)
 
+class LabelWithDoubleSpinBoxsLayout(QHBoxLayout):
+    def __init__(self, spinbox_ids, label_str, form_widget):
+        super().__init__()
+        self.spinbox_ids = spinbox_ids
+        self.label_str = label_str
+        self.form_widget = form_widget
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.lb = QLabel(self.label_str)
+        self.addWidget(self.lb)
+
+        self.addStretch()
+
+        self.spinbox_dict = {}
+        for spin_box_id in self.spinbox_ids:
+            uniq_double_spin_box = QUniqDoubleSpinBox(spin_box_id, self.form_widget)
+            uniq_double_spin_box.setSingleStep(0.01)
+            uniq_double_spin_box.setMaximum(1000.0)
+            uniq_double_spin_box.setMinimum(-1000.0)
+            self.addWidget(uniq_double_spin_box)
+            self.spinbox_dict[spin_box_id] = uniq_double_spin_box
+
+    def SetEnable(self, enable):
+        self.lb.setEnabled(enable)
+        for key in self.spinbox_dict:
+            self.spinbox_dict[key].setEnabled(enable)
+
 class GnssInitEditLabel(QVBoxLayout):
     def __init__(self, instance_id, string, form_widget, ):
         super().__init__()
@@ -1050,17 +1088,29 @@ class GnssInitEditLabel(QVBoxLayout):
     def DoubleSpinBoxEastChanged(self):
         self.east_m = self.double_spin_box_east.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.form_widget.importing.ChangeInitValue(init)
+
+        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitGnss(init)
+        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitMotion(init)
 
     def DoubleSpinBoxNorthChanged(self):
         self.north_m = self.double_spin_box_north.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.form_widget.importing.ChangeInitValue(init)
+
+        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitGnss(init)
+        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitMotion(init)
 
     def DoubleSpinBoxHeadingChanged(self):
         self.heading_deg = self.double_spin_box_heading.value()
         init = [self.east_m, self.north_m, self.heading_deg]
-        self.form_widget.importing.ChangeInitValue(init)
+
+        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitGnss(init)
+        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
+            self.form_widget.importing.ChangeInitMotion(init)
 
     def Clear(self, val1, val2, val3):
         self.double_spin_box_east.setValue(val1)
