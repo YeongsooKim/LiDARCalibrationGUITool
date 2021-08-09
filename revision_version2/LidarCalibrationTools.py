@@ -48,7 +48,6 @@ class ConfigurationTab(QWidget):
         self.form_widget = form_widget
         self.added_stl_dict = {}
         self.added_file_list = []
-        self.test_label = []
 
         self.InitUi()
 
@@ -2676,6 +2675,7 @@ class MyApp(QMainWindow):
         self.setWindowIcon(QIcon(self.form_widget.config.PATH['Image'] + 'exe_icon.ico'))
 
         self.InitUi()
+        self.save_file = None
 
     def InitUi(self):
         ### Define menuBar File tap and that's contents
@@ -3022,6 +3022,8 @@ class FormWidget(QWidget):
 
         self.color_list = ['r', 'b', 'c', 'm', 'g', 'y']
 
+    ## initialize func
+
     def InitUi(self):
         self.hbox = QHBoxLayout(self)
         self.tabs = QTabWidget(self)
@@ -3150,6 +3152,8 @@ class FormWidget(QWidget):
         self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['VehicleSpeedThreshold'])
 
         print('Set all tab\'s configuration')
+
+    ## Util func
 
     def ResetResultsLabels(self, PARM_LIDAR, zrp_calib_result=None):
         # reset data validation result
@@ -3685,8 +3689,6 @@ class FormWidget(QWidget):
         ren.GetActiveCamera().SetViewUp(0, 1, 0)
         ren.ResetCamera()
         renWin.Render()
-
-    # Utils
 
     def GetZRPCalibDict(self, zrp_result_labels, manual_zrp_calib_result):
         calib = {}

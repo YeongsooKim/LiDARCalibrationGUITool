@@ -15,3 +15,5 @@ revision_version1/__pycache__/
 revision_version1/widget/__pycache__/
 
 .vscode/
+
+vtk_import.txt
