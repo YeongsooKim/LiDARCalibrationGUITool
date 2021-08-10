@@ -155,6 +155,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.form_widget.thread.start()
 
         self.form_widget.config_tab.is_lidar_num_changed = False
+        self.form_widget.config_tab.is_config_parm_changed = False
 
     def IsSetPath(self):
         if self.path_file_str == '':
@@ -681,20 +682,28 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
     def DoubleSpinBoxChanged(self):
         if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
             self.form_widget.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE:  # Configuration tab Maximum Threshold Distance [m]
             self.form_widget.config.PARM_PC['MaxThresholdDist_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_X:  # Configuration tab Minimum Threshold X [m]
             self.form_widget.config.PARM_PC['MinThresholdX_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_X:  # Configuration tab Maximum Threshold X [m]
             self.form_widget.config.PARM_PC['MaxThresholdX_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Y:  # Configuration tab Minimum Threshold Y [m]
             self.form_widget.config.PARM_PC['MinThresholdY_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Y:  # Configuration tab Maximum Threshold Y [m]
             self.form_widget.config.PARM_PC['MaxThresholdY_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MINIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Z [m]
             self.form_widget.config.PARM_PC['MinThresholdZ_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_Z:  # Configuration tab Minimum Threshold Distance [m]
             self.form_widget.config.PARM_PC['MaxThresholdZ_m'] = self.double_spin_box.value()
+            self.form_widget.config_tab.is_config_parm_changed = True
 
         elif self.id == CONST_IMPORT_VEHICLE_MINIMUM_SPEED :  # Import tab Vehicle Minimum Speed [km/h]
             self.form_widget.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
@@ -1459,6 +1468,10 @@ class RadioWithEditLabel(QHBoxLayout):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.button_group.button(self.prev_checkID).setChecked(True)
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        elif self.form_widget.config_tab.is_config_parm_changed == True:
+            self.button_group.button(self.prev_checkID).setChecked(True)
+            self.form_widget.ErrorPopUp('Please import after changing PointCloud Configuration')
             return False
 
         if self.id == CONST_EVALUATION_RESULT_LABEL:

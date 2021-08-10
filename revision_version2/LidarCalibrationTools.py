@@ -45,6 +45,7 @@ class ConfigurationTab(QWidget):
     def __init__(self, form_widget):
         super().__init__()
         self.is_lidar_num_changed = False
+        self.is_config_parm_changed = False
         self.form_widget = form_widget
         self.added_stl_dict = {}
         self.added_file_list = []
@@ -736,7 +737,8 @@ class ZRollPitch_CalibrationTab(QWidget):
         pass
 
     def Apply(self, display_groundpoint, start_time, end_time, PARM_ZRP, selected_sensor, end_callback):
-        self.ErrorCheck(selected_sensor)
+        if self.ErrorCheck(selected_sensor) == True:
+            return
 
         self.progress_status = CONST_PLAY
 
@@ -794,9 +796,12 @@ class ZRollPitch_CalibrationTab(QWidget):
     def ErrorCheck(self, idxSensor):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
+            return True
+        elif self.form_widget.config_tab.is_config_parm_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing PointCloud Configuration')
+            return True
+        elif self.progress_status is not CONST_IDLE:
+            return True
 
         if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
             imported_pc = ''
@@ -805,7 +810,9 @@ class ZRollPitch_CalibrationTab(QWidget):
 
             self.form_widget.ErrorPopUp(
                 'Import pointcloud {}\nImported pointcloud: {}'.format(idxSensor, imported_pc))
-            return False
+            return True
+
+        return False
 
 class ZRollPitchTab(ZRollPitch_CalibrationTab):
     def __init__(self, form_widget):
@@ -949,7 +956,9 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
     ## Callback func
 
     def Start(self):
-        self.ErrorCheck(self.idxSensor)
+        if self.ErrorCheck(self.idxSensor):
+            return
+
         self.progress_status = CONST_PLAY
 
         self.PlotClear(self.result_graph1_ax, self.result_graph1_canvas)
@@ -1310,7 +1319,8 @@ class DataValidationTab(QWidget):
 
     def StartValidation(self, validation, vehicle_speed_threshold, start_time, end_time, sensor_list,
                         zrp_calib, targets_clear, progress_callbacks, end_callback):
-        self.ErrorCheck(sensor_list)
+        if self.ErrorCheck(sensor_list) == True:
+            return
 
         for target_clear in targets_clear:
             target_clear()
@@ -1451,15 +1461,21 @@ class DataValidationTab(QWidget):
     def ErrorCheck(self, sensor_list):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
+            return True
+        elif self.form_widget.config_tab.is_config_parm_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing PointCloud Configuration')
+            return True
+        elif self.progress_status is not CONST_IDLE:
+            return True
+
         self.progress_status = CONST_PLAY
 
         for idxSensor in sensor_list['CheckedSensorList']:
             if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
+                return True
+
+        return False
 
 class XYYaw_CalibrationTab(QWidget):
     def __init__(self, form_widget):
@@ -1598,14 +1614,19 @@ class XYYaw_CalibrationTab(QWidget):
     def ErrorCheck(self, sensor_list):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
-            return False
-        if self.progress_status is not CONST_IDLE:
-            return False
+            return True
+        elif self.form_widget.config_tab.is_config_parm_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing PointCloud Configuration')
+            return True
+        elif self.progress_status is not CONST_IDLE:
+            return True
 
         for idxSensor in sensor_list['CheckedSensorList']:
             if self.form_widget.importing.PointCloudSensorList.get(idxSensor) is None:
                 self.form_widget.ErrorPopUp('Import pointcloud {}'.format(idxSensor))
-                return False
+                return True
+
+        return False
 
     def VTKInit(self, is_default):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1730,7 +1751,9 @@ class HandEyeTab(XYYaw_CalibrationTab):
     ## Callback func
 
     def Start(self):
-        self.ErrorCheck(self.form_widget.config.PARM_LIDAR)
+        if self.ErrorCheck(self.form_widget.config.PARM_LIDAR) == True:
+            return
+
         self.progress_status = CONST_PLAY
 
         self.VTKInit(is_default=True)
@@ -2028,7 +2051,9 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
     ## Callback func
     def Start(self):
-        self.ErrorCheck(self.form_widget.config.PARM_LIDAR)
+        if self.ErrorCheck(self.form_widget.config.PARM_LIDAR) == True:
+            return
+
         self.progress_status = CONST_PLAY
 
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
@@ -2458,6 +2483,9 @@ class EvaluationTab(QWidget):
     def StartBtn(self):
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
+            return False
+        elif self.form_widget.config_tab.is_config_parm_changed == True:
+            self.form_widget.ErrorPopUp('Please import after changing PointCloud Configuration')
             return False
 
         is_handeye_selected = False
