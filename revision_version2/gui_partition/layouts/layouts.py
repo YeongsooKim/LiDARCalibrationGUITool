@@ -39,6 +39,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
         hbox = QHBoxLayout()
 
         self.label_edit = QLineEdit()
+        self.label_edit.editingFinished.connect(self.LabelTextChange)
         hbox.addWidget(self.label_edit)
 
         self.btn = QPushButton('...')
@@ -52,6 +53,9 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
 
         self.pbar = QProgressBar()
         self.addWidget(self.pbar)
+
+    def LabelTextChange(self):
+        self.path_file_str = self.label_edit.text()
 
     def GetFileBtn(self):
         '''
@@ -106,8 +110,6 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.form_widget.ErrorPopUp('XYZRGB.bin is missing')
 
         # Import file
-        self.label_edit.setText(self.path_file_str)
-
         self.GenerateCSVBtn()
         if self.form_widget.importing.has_gnss_file:
             self.gnss_button.setText('Gnss.csv 100%')
