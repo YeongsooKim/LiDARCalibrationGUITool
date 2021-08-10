@@ -25,17 +25,14 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from hmi.visualization import vtk_lidar_calib
 
 class FileInputWithCheckBtnLayout(QVBoxLayout):
-    instance_number = 1
-
-    def __init__(self, label_str, form_widget):
+    def __init__(self, instance_id, label_str, form_widget):
         super().__init__()
-        self.id = FileInputWithCheckBtnLayout.instance_number
+        self.id = instance_id
         self.label_str = label_str
         self.path_file_str = ''
         self.form_widget = form_widget
         self.parsed_bin = ''
 
-        FileInputWithCheckBtnLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -105,6 +102,7 @@ class FileInputWithCheckBtnLayout(QVBoxLayout):
             self.form_widget.importing_tab.motion_initial_pose_layout.SetEnable(True)
 
         if not has_pointcloud_file:
+            self.form_widget.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
             self.form_widget.ErrorPopUp('XYZRGB.bin is missing')
 
         # Import file
@@ -305,7 +303,6 @@ class CheckBoxListLayout(QVBoxLayout):
     def ItemChanged(self):
         items = []
         if self.id == CONST_SELECT_USING_SENSOR_LIST:     # Instance name is 'select_using_sensor_list_layout'
-            print('button status')
             for key in self.lidar_buttons.keys():
                 status = self.lidar_buttons[key].btn.status
                 if status == 'green':
@@ -404,12 +401,12 @@ class ComboBoxLabelLayout(QHBoxLayout):
         if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB:
             if len(checked_sensor_list) == 0:
                 return
-            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MaxDistanceX_m'])
-            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MinDistanceX_m'])
-            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MaxDistanceY_m'])
-            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MinDistanceY_m'])
-            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MaxDistanceZ_m'])
-            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[checked_sensor_list[0]]['MinDistanceZ_m'])
+            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceX_m'])
+            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceX_m'])
+            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceY_m'])
+            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceY_m'])
+            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceZ_m'])
+            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceZ_m'])
         elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:
             if len(self.form_widget.config.PARM_LIDAR['CheckedSensorList']) < 2:
                 self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(1).setChecked(True)
@@ -493,12 +490,12 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                calib_result)
 
             # reset roi configuration
-            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MaxDistanceX_m'])
-            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MinDistanceX_m'])
-            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MaxDistanceY_m'])
-            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MinDistanceY_m'])
-            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MaxDistanceZ_m'])
-            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP_DICT[int(words[-1])]['MinDistanceZ_m'])
+            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceX_m'])
+            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceX_m'])
+            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceY_m'])
+            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceY_m'])
+            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceZ_m'])
+            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceZ_m'])
 
         elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:  # instance name is 'select_lidar_combobox_layout'
             if text == '':
@@ -511,14 +508,12 @@ class ComboBoxLabelLayout(QHBoxLayout):
                 self.form_widget.config.PARM_LIDAR['PrincipalSensor'] = int(words[-1])
 
 class SpinBoxLabelLayout(QVBoxLayout):
-    instance_number = 1
-    def __init__(self, label_str, form_widget):
+    def __init__(self, instance_id, label_str, form_widget):
         super().__init__()
-        self.id = SpinBoxLabelLayout.instance_number
+        self.id = instance_id
         self.label_str = label_str
         self.form_widget = form_widget
 
-        SpinBoxLabelLayout.instance_number += 1
         self.InitUi()
 
     def InitUi(self):
@@ -537,7 +532,6 @@ class SpinBoxLabelLayout(QVBoxLayout):
         self.addLayout(hbox)
 
     def SpinBoxChanged(self):
-        self.form_widget.value_changed = True
         if self.id == CONST_CONFIG_LIDAR_NUM:
             ## Check PARM_LIDAR is empty
             if self.form_widget.config.PARM_LIDAR.get('SensorList') == None:
@@ -589,15 +583,15 @@ class SpinBoxLabelLayout(QVBoxLayout):
                 self.form_widget.config.CalibrationParam[idxSensor] = calib
 
             for idxSensor in self.form_widget.config.PARM_LIDAR['SensorList']:
-                if self.form_widget.config.PARM_ZRP_DICT.get(idxSensor):
+                if self.form_widget.config.PARM_ROI_DICT.get(idxSensor):
                     continue
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor] = {}
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceX_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceX_m']
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceX_m'] = self.form_widget.config.PARM_ZRP['MinDistanceX_m']
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceY_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceY_m']
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceY_m'] = self.form_widget.config.PARM_ZRP['MinDistanceY_m']
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']
-                self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MinDistanceZ_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor] = {}
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceX_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceX_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceX_m'] = self.form_widget.config.PARM_ZRP['MinDistanceX_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceY_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceY_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceY_m'] = self.form_widget.config.PARM_ZRP['MinDistanceY_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']
+                self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MinDistanceZ_m']
 
             ## Add widget item of lidar list in configuration tab and unsupervised tab
             self.form_widget.config_tab.select_using_sensor_list_layout.AddWidgetItem(self.form_widget.config.PARM_LIDAR['SensorList'], self.form_widget.config.PARM_LIDAR['CheckedSensorList'])
@@ -618,6 +612,8 @@ class SpinBoxLabelLayout(QVBoxLayout):
             self.form_widget.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
         elif self.id == CONST_EVAL_SAMPLING_INTERVAL:
             self.form_widget.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
+
+        self.form_widget.config.IsParmChanged()
 
 class DoubleSpinBoxLabelLayout(QHBoxLayout):
     def __init__(self, intance_id, label_str, form_widget, decimals=None):
@@ -643,7 +639,6 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
         self.addWidget(self.double_spin_box)
 
     def DoubleSpinBoxChanged(self):
-        self.form_widget.value_changed = True
         if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
             self.form_widget.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
         elif self.id == CONST_CONFIG_MAXIMUM_THRESHOLD_DISTANCE:  # Configuration tab Maximum Threshold Distance [m]
@@ -665,17 +660,17 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_IM['VehicleSpeedThreshold'] = self.double_spin_box.value()
 
         elif self.id == CONST_ZRP_MAXIMUM_X_DISTANCE:  # Z, Roll, Pitch: Calibration tab Maximum X Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceX_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceX_m'] = self.double_spin_box.value()
         elif self.id == CONST_ZRP_MINIMUM_X_DISTANCE:  # Z, Roll, Pitch: Calibration tab Minimum X Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceX_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceX_m'] = self.double_spin_box.value()
         elif self.id == CONST_ZRP_MAXIMUM_Y_DISTANCE:  # Z, Roll, Pitch: Calibration tab Maximum Y Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceY_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceY_m'] = self.double_spin_box.value()
         elif self.id == CONST_ZRP_MINIMUM_Y_DISTANCE:  # Z, Roll, Pitch: Calibration tab Minimum Y Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceY_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceY_m'] = self.double_spin_box.value()
         elif self.id == CONST_ZRP_MAXIMUM_Z_DISTANCE:  # Z, Roll, Pitch: Calibration tab Maximum Z Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceZ_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MaxDistanceZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_ZRP_MINIMUM_Z_DISTANCE:  # Z, Roll, Pitch: Calibration tab Minimum Z Distance [m]
-            self.form_widget.config.PARM_ZRP_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceZ_m'] = self.double_spin_box.value()
+            self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_DATAVALIDATION_TOLERANCE:  # Handeye tab Tolerance
             self.form_widget.config.PARM_DV['Tolerance'] = self.double_spin_box.value()
@@ -705,12 +700,12 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
         elif self.id == CONST_EVAL_DISTANCE_INTERVAL:  # Evaluation tab Eval Distance Interval [m]
             self.form_widget.config.PARM_EV['DistanceInterval'] = self.double_spin_box.value()
 
+        self.form_widget.config.IsParmChanged()
+
 class SlideLabelLayouts(QVBoxLayout):
-    instance_num = 1
-    def __init__(self, form_widget, label_str=None):
+    def __init__(self, instance_id, form_widget, label_str=None):
         super().__init__()
-        self.id = SlideLabelLayouts.instance_num
-        SlideLabelLayouts.instance_num += 1
+        self.id = instance_id
 
         self.form_widget = form_widget
         self.label_str = label_str
@@ -1029,98 +1024,59 @@ class LabelWithDoubleSpinBoxsLayout(QHBoxLayout):
         for key in self.spinbox_dict:
             self.spinbox_dict[key].setEnabled(enable)
 
-class GnssInitEditLabel(QVBoxLayout):
-    def __init__(self, instance_id, string, form_widget, ):
+class LabelWithSliderLayout(QVBoxLayout):
+    def __init__(self, instance_id, label_str, form_widget):
         super().__init__()
         self.id = instance_id
-        self.string = string
+        self.label_str = label_str
         self.form_widget = form_widget
-
-        self.east_m = 0.
-        self.north_m = 0.
-        self.heading_deg = 0.
 
         self.InitUi()
 
     def InitUi(self):
-        vbox = QVBoxLayout()
-
         hbox = QHBoxLayout()
-        self.label = QLabel(self.string)
-        hbox.addWidget(self.label, 25)
+        self.slider = QSlider(Qt.Vertical)
+        self.slider.valueChanged.connect(self.SliderValueChanged)
+        self.slider.setMinimum(5)
+        hbox.addWidget(self.slider, 50)
+        self.addLayout(hbox)
 
-        self.double_spin_box_east = QDoubleSpinBox()
-        self.double_spin_box_east.setSingleStep(0.01)
-        self.double_spin_box_east.setMaximum(10000.0)
-        self.double_spin_box_east.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
-            self.double_spin_box_east.setReadOnly(True)
-            self.double_spin_box_east.setStyleSheet("background-color: #F0F0F0;")
-            self.double_spin_box_east.setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.double_spin_box_east.editingFinished.connect(self.DoubleSpinBoxEastChanged)
-        hbox.addWidget(self.double_spin_box_east, 25)
+        label = QLabel(self.label_str)
+        self.addWidget(label)
 
-        self.double_spin_box_north = QDoubleSpinBox()
-        self.double_spin_box_north.setSingleStep(0.01)
-        self.double_spin_box_north.setMaximum(10000.0)
-        self.double_spin_box_north.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
-            self.double_spin_box_north.setReadOnly(True)
-            self.double_spin_box_north.setStyleSheet("background-color: #F0F0F0;")
-            self.double_spin_box_north.setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.double_spin_box_north.editingFinished.connect(self.DoubleSpinBoxNorthChanged)
-        hbox.addWidget(self.double_spin_box_north, 25)
+    def SliderValueChanged(self):
+        if self.id == CONST_CONFIG_TRANSPARENT or self.id == CONST_XYYAW_TRANSPARENT or self.id == CONST_EVAL_TRANSPARENT:
+            current_tab = self.form_widget.GetCurrentTab()
+            if current_tab == -1:
+                return
 
-        self.double_spin_box_heading = QDoubleSpinBox()
-        self.double_spin_box_heading.setSingleStep(0.01)
-        self.double_spin_box_heading.setMaximum(10000.0)
-        self.double_spin_box_heading.setMinimum(-10000.0)
-        if self.string == 'Gnss Initial Pose in ENU Coordinate      ':
-            self.double_spin_box_heading.setReadOnly(True)
-            self.double_spin_box_heading.setStyleSheet("background-color: #F0F0F0;")
-            self.double_spin_box_heading.setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.double_spin_box_heading.editingFinished.connect(self.DoubleSpinBoxHeadingChanged)
-        hbox.addWidget(self.double_spin_box_heading, 25)
+            val = self.slider.value() + 1
+            current_tab.vehicle_actor.GetProperty().SetOpacity(val / 100.0)
+            current_tab.renWin.Render()
+        elif self.id == CONST_VIEW_TRANSPARENT:
+            current_tab = self.form_widget.GetCurrentTab()
+            if current_tab == -1:
+                return
 
-        vbox.addLayout(hbox)
-        self.addLayout(vbox)
+            try:
+                val = self.slider.value() + 1
+                current_tab.dialog.vehicle_actor.GetProperty().SetOpacity(val / 100.0)
+                current_tab.dialog.renWin.Render()
+            except:
+                pass
 
-    def DoubleSpinBoxEastChanged(self):
-        self.east_m = self.double_spin_box_east.value()
-        init = [self.east_m, self.north_m, self.heading_deg]
+    def Clear(self):
+        if self.id == CONST_CONFIG_TRANSPARENT or self.id == CONST_XYYAW_TRANSPARENT or self.id == CONST_EVAL_TRANSPARENT:
+            current_tab = self.form_widget.GetCurrentTab()
 
-        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitGnss(init)
-        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitMotion(init)
+            vehicle_actor_opacity = current_tab.vehicle_actor.GetProperty().GetOpacity()
+            current_tab.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
 
-    def DoubleSpinBoxNorthChanged(self):
-        self.north_m = self.double_spin_box_north.value()
-        init = [self.east_m, self.north_m, self.heading_deg]
-
-        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitGnss(init)
-        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitMotion(init)
-
-    def DoubleSpinBoxHeadingChanged(self):
-        self.heading_deg = self.double_spin_box_heading.value()
-        init = [self.east_m, self.north_m, self.heading_deg]
-
-        if self.id == CONST_IMPORT_GNSS_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitGnss(init)
-        elif self.id == CONST_IMPORT_MOTION_INITIAL_POSE:
-            self.form_widget.importing.ChangeInitMotion(init)
-
-    def Clear(self, val1, val2, val3):
-        self.double_spin_box_east.setValue(val1)
-        self.double_spin_box_north.setValue(val2)
-        self.double_spin_box_heading.setValue(val3)
 
 class CalibrationResultEditLabel(QVBoxLayout):
-    def __init__(self, id, idxSensor, calibration_param, form_widget):
+    def __init__(self, intance_id, idxSensor, calibration_param, form_widget):
         super().__init__()
-        self.id = id
+        self.id = intance_id
         self.idxSensor = idxSensor
         self.calibration_param = calibration_param
         self.form_widget = form_widget
@@ -1460,7 +1416,6 @@ class RadioWithEditLabel(QHBoxLayout):
                     self.form_widget.evaluation_tab.eval_lidar['CheckedSensorList'].sort()
 
     def RadioButton(self):
-        print(self.button_group.checkedId())
         if self.form_widget.config_tab.is_lidar_num_changed == True:
             self.button_group.button(self.prev_checkID).setChecked(True)
             self.form_widget.ErrorPopUp('Please import after changing lidar number')
@@ -1552,21 +1507,12 @@ class RadioWithEditLabel(QHBoxLayout):
                 self.spinbox3.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
 
                 # Set value to spinbox
-                current_tab = self.form_widget.tabs.currentIndex()
+                current_tab = self.form_widget.GetCurrentTab()
 
-                if current_tab == CONST_VALIDATION_TAB:
-                    tab = self.form_widget.datavalidation_tab
-                elif current_tab == CONST_HANDEYE_TAB:
-                    tab = self.form_widget.handeye_tab
-                elif current_tab == CONST_UNSUPERVISED_TAB:
-                    tab = self.form_widget.unsupervised_tab
-                elif current_tab == CONST_EVALUATION_TAB:
-                    tab = self.form_widget.evaluation_tab
+                if current_tab.manual_zrp_calib_result.get(self.idxSensor) is None:
+                    current_tab.manual_zrp_calib_result[self.idxSensor] = [0.0, 0.0, 0.0]
 
-                if tab.manual_zrp_calib_result.get(self.idxSensor) is None:
-                    tab.manual_zrp_calib_result[self.idxSensor] = [0.0, 0.0, 0.0]
-
-                calib_result = tab.manual_zrp_calib_result[self.idxSensor]
+                calib_result = current_tab.manual_zrp_calib_result[self.idxSensor]
 
                 self.spinbox1.setValue(calib_result[0])
                 self.spinbox2.setValue(calib_result[1])
@@ -1584,17 +1530,8 @@ class RadioWithEditLabel(QHBoxLayout):
             if status == CONST_AUTOMATIC:
                 return
 
-            current_tab = self.form_widget.tabs.currentIndex()
-            if current_tab == CONST_VALIDATION_TAB:
-                tab = self.form_widget.datavalidation_tab
-            elif current_tab == CONST_HANDEYE_TAB:
-                tab = self.form_widget.handeye_tab
-            elif current_tab == CONST_UNSUPERVISED_TAB:
-                tab = self.form_widget.unsupervised_tab
-            elif current_tab == CONST_EVALUATION_TAB:
-                tab = self.form_widget.evaluation_tab
-
-            tab.manual_zrp_calib_result[self.idxSensor][0] = self.spinbox1.value()
+            current_tab = self.form_widget.GetCurrentTab()
+            current_tab.manual_zrp_calib_result[self.idxSensor][0] = self.spinbox1.value()
 
     def DoubleSpinBoxChanged2(self):
         if self.id == CONST_EVALUATION_RESULT_LABEL:
@@ -1605,18 +1542,8 @@ class RadioWithEditLabel(QHBoxLayout):
             if status == CONST_AUTOMATIC:
                 return
 
-            current_tab = self.form_widget.tabs.currentIndex()
-
-            if current_tab == CONST_VALIDATION_TAB:
-                tab = self.form_widget.datavalidation_tab
-            elif current_tab == CONST_HANDEYE_TAB:
-                tab = self.form_widget.handeye_tab
-            elif current_tab == CONST_UNSUPERVISED_TAB:
-                tab = self.form_widget.unsupervised_tab
-            elif current_tab == CONST_EVALUATION_TAB:
-                tab = self.form_widget.evaluation_tab
-
-            tab.manual_zrp_calib_result[self.idxSensor][1] = self.spinbox2.value()
+            current_tab = self.form_widget.GetCurrentTab()
+            current_tab.manual_zrp_calib_result[self.idxSensor][1] = self.spinbox2.value()
 
     def DoubleSpinBoxChanged3(self):
         if self.id == CONST_EVALUATION_RESULT_LABEL:
@@ -1627,18 +1554,8 @@ class RadioWithEditLabel(QHBoxLayout):
             if status == CONST_AUTOMATIC:
                 return
 
-            current_tab = self.form_widget.tabs.currentIndex()
-
-            if current_tab == CONST_VALIDATION_TAB:
-                tab = self.form_widget.datavalidation_tab
-            elif current_tab == CONST_HANDEYE_TAB:
-                tab = self.form_widget.handeye_tab
-            elif current_tab == CONST_UNSUPERVISED_TAB:
-                tab = self.form_widget.unsupervised_tab
-            elif current_tab == CONST_EVALUATION_TAB:
-                tab = self.form_widget.evaluation_tab
-
-            tab.manual_zrp_calib_result[self.idxSensor][2] = self.spinbox3.value()
+            current_tab = self.form_widget.GetCurrentTab()
+            current_tab.manual_zrp_calib_result[self.idxSensor][2] = self.spinbox3.value()
 
     ## Util functions
     def SetValue(self, value):
@@ -1660,23 +1577,32 @@ class NewWindow(QMainWindow):
     def InitUi(self):
         self.frame = QFrame()
         self.vbox = QVBoxLayout()
+
+        # vtk vehicle
+        hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
-        self.vbox.addWidget(self.vtkWidget)
+        hbox_vtk.addWidget(self.vtkWidget)
         self.VTKInit()
 
-        hbox = QHBoxLayout()
+        self.transparent_layout = LabelWithSliderLayout(CONST_VIEW_TRANSPARENT, 'Transparent', self.form_widget)
+        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
+        self.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
+        hbox_vtk.addLayout(self.transparent_layout)
+        self.vbox.addLayout(hbox_vtk)
+
+        hbox_2d_plane = QHBoxLayout()
         btn = QPushButton('xy plane')
         btn.clicked.connect(lambda: self.form_widget.XY(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('yz plane')
         btn.clicked.connect(lambda: self.form_widget.YZ(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('zx plane')
         btn.clicked.connect(lambda: self.form_widget.ZX(self.ren, self.renWin))
-        hbox.addWidget(btn)
-        self.vbox.addLayout(hbox)
+        hbox_2d_plane.addWidget(btn)
+        self.vbox.addLayout(hbox_2d_plane)
 
     def VTKInit(self):
         vtk.vtkObject.GlobalWarningDisplayOff()
@@ -1699,6 +1625,8 @@ class NewWindow(QMainWindow):
                           self.calib_result[3][i], self.calib_result[4][i], self.calib_result[5][i]]
             lidar_info_dict[idxSensors[i]] = lidar_info
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
+        self.vehicle_actor = vtk_lidar_calib.GetVehicleActor()
+        actors.append(self.vehicle_actor)
 
         for actor in actors:
             self.ren.AddActor(actor)
@@ -1709,6 +1637,8 @@ class NewWindow(QMainWindow):
         self.frame.setLayout(self.vbox)
         self.setCentralWidget(self.frame)
 
-        self.show()
         self.iren.Initialize()
         self.iren.Start()
+
+        self.resize(720, 720)
+        self.show()

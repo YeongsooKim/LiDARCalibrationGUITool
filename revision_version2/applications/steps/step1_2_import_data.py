@@ -134,6 +134,7 @@ class Import:
                 # Get point cloud
                 arrPoint = utils_file.get_point_cloud(pointcloud_file, df_pointcloud['num_points'].values[i],
                                                       df_pointcloud['file_pointer'].values[i])
+
                 tmpXYZ = np.sqrt(
                     np.power(arrPoint[:, 0:1], 2) + np.power(arrPoint[:, 1:2], 2) + np.power(arrPoint[:, 2:3], 2))
 
@@ -152,6 +153,12 @@ class Import:
                                               arrPoint[:, 2:3] < float(self.config.PARM_PC['MinThresholdZ_m']))
                 remove_filter = np.logical_or(remove_filter,
                                               arrPoint[:, 2:3] > float(self.config.PARM_PC['MaxThresholdZ_m']))
+                remove_filter = np.logical_or(remove_filter,
+                                              np.isnan(arrPoint[:, 0:1]))
+                remove_filter = np.logical_or(remove_filter,
+                                              np.isnan(arrPoint[:, 1:2]))
+                remove_filter = np.logical_or(remove_filter,
+                                              np.isnan(arrPoint[:, 2:3]))
 
                 # filtering
                 FilteredPointCloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)), arrPoint[:, 0:3], axis=0)
@@ -241,10 +248,10 @@ class Import:
 
         print('GNSS df_gnss east{}'.format(df_gnss['east_m']))
 
-        init_heading = df_gnss['heading'].values[0] + init[2]
+        init_heading = df_gnss['heading'].values[0] + 90 - init[2]
 
-        tf = np.array([[np.cos(init_heading*np.pi/180.0), -np.sin(init_heading*np.pi/180.0), init[0]],
-                       [np.sin(init_heading*np.pi/180.0), np.cos(init_heading*np.pi/180.0), init[1]],
+        tf = np.array([[np.cos(-init_heading*np.pi/180.0), -np.sin(-init_heading*np.pi/180.0), init[0]],
+                       [np.sin(-init_heading*np.pi/180.0), np.cos(-init_heading*np.pi/180.0), init[1]],
                        [0., 0., 1.]])
 
 
@@ -255,6 +262,7 @@ class Import:
             self.df_info['east_m'].values[i] = tf_state[0]
             self.df_info['north_m'].values[i] = tf_state[1]
             self.df_info['heading'].values[i] = df_gnss['heading'].values[i] - init_heading
+            print('df_info heading{}'.format(self.df_info['heading']))
 
         print('INIT GNSS Heading{}'.format(self.df_info['heading']))
 

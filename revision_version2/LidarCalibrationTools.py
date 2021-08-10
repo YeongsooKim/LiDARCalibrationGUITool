@@ -97,7 +97,7 @@ class ConfigurationTab(QWidget):
         self.lidar_config_groupbox = QGroupBox('LiDAR Configuration')
         vbox = QVBoxLayout()
 
-        self.lidar_num_label_layout = layouts.SpinBoxLabelLayout('LiDAR Num', self.form_widget)
+        self.lidar_num_label_layout = layouts.SpinBoxLabelLayout(CONST_CONFIG_LIDAR_NUM, 'LiDAR Num', self.form_widget)
         vbox.addLayout(self.lidar_num_label_layout)
 
         self.select_using_sensor_list_layout = layouts.CheckBoxListLayout(CONST_SELECT_USING_SENSOR_LIST, self.form_widget, 'Select Using Sensor List')
@@ -168,24 +168,28 @@ class ConfigurationTab(QWidget):
         vbox.addWidget(vehicle_info_box)
 
         # vtk vehicle
+        hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
-        vbox.addWidget(self.vtkWidget)
+        hbox_vtk.addWidget(self.vtkWidget)
         self.VTKInit(self.cb.currentText())
 
-        hbox = QHBoxLayout()
+        self.transparent_layout = layouts.LabelWithSliderLayout(CONST_CONFIG_TRANSPARENT, 'Transparent', self.form_widget)
+        hbox_vtk.addLayout(self.transparent_layout)
+        vbox.addLayout(hbox_vtk)
 
+        hbox_2d_plane = QHBoxLayout()
         btn = QPushButton('xy plane')
         btn.clicked.connect(lambda: self.form_widget.XY(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('yz plane')
         btn.clicked.connect(lambda: self.form_widget.YZ(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('zx plane')
         btn.clicked.connect(lambda: self.form_widget.ZX(self.ren, self.renWin))
-        hbox.addWidget(btn)
-        vbox.addLayout(hbox)
+        hbox_2d_plane.addWidget(btn)
+        vbox.addLayout(hbox_2d_plane)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -276,7 +280,8 @@ class ConfigurationTab(QWidget):
         self.iren.SetRenderWindow(self.renWin)
 
         # Assign actor to the renderer
-        self.ren.AddActor(vtk_lidar_calib.GetVehicleActor())
+        self.vehicle_actor = vtk_lidar_calib.GetVehicleActor()
+        self.ren.AddActor(self.vehicle_actor)
         self.ren.AddActor(vtk_lidar_calib.GetGridActor())
         self.widget = vtk.vtkOrientationMarkerWidget()
         vtk_lidar_calib.GetAxis(self.iren, self.widget)
@@ -324,7 +329,7 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Import Logging Data')
         self.logging_vbox = QVBoxLayout()
 
-        self.logging_file_path_layout = layouts.FileInputWithCheckBtnLayout('Select Logging File Path', self.form_widget)
+        self.logging_file_path_layout = layouts.FileInputWithCheckBtnLayout(CONST_IMPORT_SELECT_LOGGING_FILE, 'Select Logging File Path', self.form_widget)
         self.logging_vbox.addLayout(self.logging_file_path_layout)
 
         label = QLabel('[ csv File List ]')
@@ -379,7 +384,7 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Set Configuration')
         vbox = QVBoxLayout()
 
-        self.sampling_interval_layout = layouts.SpinBoxLabelLayout('Sampling Interval [Count]', self.form_widget)
+        self.sampling_interval_layout = layouts.SpinBoxLabelLayout(CONST_IMPORT_DATA_SAMPLING_INTERVER, 'Sampling Interval [Count]', self.form_widget)
         vbox.addLayout(self.sampling_interval_layout)
 
         self.time_speed_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_IMPORT_VEHICLE_MINIMUM_SPEED, 'Vehicle Minimum Speed [km/h]', self.form_widget)
@@ -392,7 +397,7 @@ class ImportDataTab(QWidget):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        self.limit_time_layout = layouts.SlideLabelLayouts(CONST_IMPORT_LIMIT_TIME, self.form_widget, '[ Limit Time ]')
         vbox.addLayout(self.limit_time_layout)
 
         groupbox.setLayout(vbox)
@@ -425,29 +430,29 @@ class ImportDataTab(QWidget):
 
         # Config
         ## initialize config
-        self.form_widget.config.PARM_ZRP_DICT.clear()
+        self.form_widget.config.PARM_ROI_DICT.clear()
 
         for idxSensor in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor] = {}
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceX_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceX_m']
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceX_m'] = self.form_widget.config.PARM_ZRP['MinDistanceX_m']
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceY_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceY_m']
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceY_m'] = self.form_widget.config.PARM_ZRP['MinDistanceY_m']
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']
-            self.form_widget.config.PARM_ZRP_DICT[idxSensor]['MinDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MinDistanceZ_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor] = {}
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceX_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceX_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceX_m'] = self.form_widget.config.PARM_ZRP['MinDistanceX_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceY_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceY_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceY_m'] = self.form_widget.config.PARM_ZRP['MinDistanceY_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MaxDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']
+            self.form_widget.config.PARM_ROI_DICT[idxSensor]['MinDistanceZ_m'] = self.form_widget.config.PARM_ZRP['MinDistanceZ_m']
 
             self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceX_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceX_m'])
             self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceX_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceX_m'])
             self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceY_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceY_m'])
             self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceY_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceY_m'])
             self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceZ_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MaxDistanceZ_m'])
             self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(
-                self.form_widget.config.PARM_ZRP_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceZ_m'])
+                self.form_widget.config.PARM_ROI_DICT[self.form_widget.config.PARM_LIDAR['CheckedSensorList'][0]]['MinDistanceZ_m'])
 
         self.form_widget.tabs.setTabEnabled(CONST_CONFIG_TAB, True)
 
@@ -806,7 +811,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         groupbox = QGroupBox('Limit Time Data')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget, '[ Limit Time ]')
+        self.limit_time_layout = layouts.SlideLabelLayouts(CONST_ZRP_LIMIT_TIME, self.form_widget, '[ Limit Time ]')
         vbox.addLayout(self.limit_time_layout)
 
         groupbox.setLayout(vbox)
@@ -847,7 +852,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         apply_btn.clicked.connect(lambda: self.Apply(self.form_widget.zrollpitch.DisplayGroundPoint,
                                                      self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
                                                      self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                                     self.form_widget.config.PARM_ZRP_DICT[self.idxSensor],
+                                                     self.form_widget.config.PARM_ROI_DICT[self.idxSensor],
                                                      self.idxSensor,
                                                      self.EndApply))
         vbox.addWidget(apply_btn)
@@ -947,7 +952,7 @@ class ZRollPitchTab(ZRollPitch_CalibrationTab):
         self.form_widget.rpz_thread.SetFunc(self.form_widget.zrollpitch.Calibration,
                                             [self.form_widget.zrollpitch_tab.limit_time_layout.start_time,
                                              self.form_widget.zrollpitch_tab.limit_time_layout.end_time,
-                                             self.form_widget.config.PARM_ZRP_DICT[self.idxSensor],
+                                             self.form_widget.config.PARM_ROI_DICT[self.idxSensor],
                                              self.plane_method,
                                              self.est_method,
                                              self.idxSensor])
@@ -1187,7 +1192,7 @@ class DataValidationTab(QWidget):
         ICP_configuration_label = QLabel('[ ICP Configuration ]', self)
         vbox.addWidget(ICP_configuration_label)
 
-        self.maximum_interation_layout = layouts.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
+        self.maximum_interation_layout = layouts.SpinBoxLabelLayout(CONST_VALIDATION_MAXIMUM_ITERATION, 'Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
         self.tolerance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_TOLERANCE, 'Tolerance', self.form_widget, 12)
@@ -1372,25 +1377,27 @@ class DataValidationTab(QWidget):
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
-        self.ViewTranslationError()
+        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
+                                              self.form_widget.datavalidation.PARM_LIDAR, self.result_data_pose_ax,
+                                              self.result_data_pose_canvas)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
-        self.ViewRotationError()
+        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
+                                           self.form_widget.datavalidation.PARM_LIDAR, self.result_graph_ax,
+                                           self.result_graph_canvas)
 
     def ViewTranslationError(self):
         if self.progress_status is not CONST_IDLE:
             return False
         self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
-                                              self.form_widget.datavalidation.PARM_LIDAR, self.result_data_pose_ax,
-                                              self.result_data_pose_canvas)
+                                              self.form_widget.datavalidation.PARM_LIDAR)
 
     def ViewRotationError(self):
         if self.progress_status is not CONST_IDLE:
             return False
         self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
-                                           self.form_widget.datavalidation.PARM_LIDAR, self.result_graph_ax,
-                                           self.result_graph_canvas)
+                                           self.form_widget.datavalidation.PARM_LIDAR)
 
     def Skip(self):
         self.form_widget.tabs.setCurrentIndex(CONST_HANDEYE_TAB)
@@ -1506,24 +1513,29 @@ class XYYaw_CalibrationTab(QWidget):
         groupbox = QGroupBox('Result Data')
         vbox = QVBoxLayout()
 
+        # vtk vehicle
+        hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
-        vbox.addWidget(self.vtkWidget)
+        hbox_vtk.addWidget(self.vtkWidget)
         self.VTKInit(is_default=True)
 
-        hbox = QHBoxLayout()
+        self.transparent_layout = layouts.LabelWithSliderLayout(CONST_XYYAW_TRANSPARENT, 'Transparent', self.form_widget)
+        hbox_vtk.addLayout(self.transparent_layout)
+        vbox.addLayout(hbox_vtk)
 
+        hbox_2d_plane = QHBoxLayout()
         btn = QPushButton('xy plane')
         btn.clicked.connect(lambda: self.form_widget.XY(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('yz plane')
         btn.clicked.connect(lambda: self.form_widget.YZ(self.ren, self.renWin))
-        hbox.addWidget(btn)
+        hbox_2d_plane.addWidget(btn)
 
         btn = QPushButton('zx plane')
         btn.clicked.connect(lambda: self.form_widget.ZX(self.ren, self.renWin))
-        hbox.addWidget(btn)
-        vbox.addLayout(hbox)
+        hbox_2d_plane.addWidget(btn)
+        vbox.addLayout(hbox_2d_plane)
 
         self.view_data_btn = QPushButton('View')
         self.view_data_btn.clicked.connect(self.ViewLiDAR)
@@ -1606,8 +1618,9 @@ class XYYaw_CalibrationTab(QWidget):
 
         if is_default:
             vtk_lidar_calib.GetAxis(self.iren, self.widget)
+            self.vehicle_actor = vtk_lidar_calib.GetVehicleActor()
+            self.ren.AddActor(self.vehicle_actor)
             self.ren.AddActor(vtk_lidar_calib.GetGridActor())
-            self.ren.AddActor(vtk_lidar_calib.GetVehicleActor())
 
             colors = vtk.vtkNamedColors()
             self.ren.SetBackground(colors.GetColor3d('white'))
@@ -1650,7 +1663,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
         liDAR_configuration_label = QLabel('[ HandEye Configuration ]', self)
         vbox.addWidget(liDAR_configuration_label)
 
-        self.maximum_interation_layout = layouts.SpinBoxLabelLayout('Maximum Iteration [Count]', self.form_widget)
+        self.maximum_interation_layout = layouts.SpinBoxLabelLayout(CONST_HANDEYE_MAXIMUM_ITERATION, 'Maximum Iteration [Count]', self.form_widget)
         vbox.addLayout(self.maximum_interation_layout)
 
         self.tolerance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_TOLERANCE, 'Tolerance', self.form_widget, 12)
@@ -1830,7 +1843,9 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
+        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
@@ -1956,7 +1971,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.point_sampling_ratio_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_POINT_SAMPLING_RATIO, 'Point Sampling Ratio', self.form_widget)
         vbox.addLayout(self.point_sampling_ratio_layout)
 
-        self.num_points_plane_modeling_layout = layouts.SpinBoxLabelLayout('Num Points Plane Modeling', self.form_widget)
+        self.num_points_plane_modeling_layout = layouts.SpinBoxLabelLayout(CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING, 'Num Points Plane Modeling', self.form_widget)
         vbox.addLayout(self.num_points_plane_modeling_layout)
 
         self.outlier_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
@@ -2102,7 +2117,9 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
+        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
+        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2311,7 +2328,7 @@ class EvaluationTab(QWidget):
         self.radio_label_layout = layouts.RadioLabelLayout(CONST_EVAL_SELECT_LIDAR, 'Used Data', buttons, self.form_widget)
         vbox.addLayout(self.radio_label_layout)
 
-        self.sampling_interval_layout = layouts.SpinBoxLabelLayout('Eval Sampling Interval [Count]', self.form_widget)
+        self.sampling_interval_layout = layouts.SpinBoxLabelLayout(CONST_EVAL_SAMPLING_INTERVAL, 'Eval Sampling Interval [Count]', self.form_widget)
         vbox.addLayout(self.sampling_interval_layout)
 
         self.distance_interval_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_DISTANCE_INTERVAL, 'Eval Distance Interval [m]', self.form_widget)
@@ -2327,7 +2344,7 @@ class EvaluationTab(QWidget):
         groupbox = QGroupBox('Limit Time')
         vbox = QVBoxLayout()
 
-        self.limit_time_layout = layouts.SlideLabelLayouts(self.form_widget)
+        self.limit_time_layout = layouts.SlideLabelLayouts(CONST_EVAL_LIMIT_TIME, self.form_widget)
         vbox.addLayout(self.limit_time_layout)
 
         hbox = QHBoxLayout()
@@ -2365,9 +2382,29 @@ class EvaluationTab(QWidget):
         groupbox = QGroupBox('Lidar Position Result of Calibration')
         vbox = QVBoxLayout()
 
+        # vtk vehicle
+        hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
-        vbox.addWidget(self.vtkWidget)
+        hbox_vtk.addWidget(self.vtkWidget)
         self.VTKInit(is_default=True)
+
+        self.transparent_layout = layouts.LabelWithSliderLayout(CONST_XYYAW_TRANSPARENT, 'Transparent', self.form_widget)
+        hbox_vtk.addLayout(self.transparent_layout)
+        vbox.addLayout(hbox_vtk)
+
+        hbox_2d_plane = QHBoxLayout()
+        btn = QPushButton('xy plane')
+        btn.clicked.connect(lambda: self.form_widget.XY(self.ren, self.renWin))
+        hbox_2d_plane.addWidget(btn)
+
+        btn = QPushButton('yz plane')
+        btn.clicked.connect(lambda: self.form_widget.YZ(self.ren, self.renWin))
+        hbox_2d_plane.addWidget(btn)
+
+        btn = QPushButton('zx plane')
+        btn.clicked.connect(lambda: self.form_widget.ZX(self.ren, self.renWin))
+        hbox_2d_plane.addWidget(btn)
+        vbox.addLayout(hbox_2d_plane)
 
         self.view_data_btn = QPushButton('View')
         self.view_data_btn.clicked.connect(self.ViewLiDAR)
@@ -2557,7 +2594,9 @@ class EvaluationTab(QWidget):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.form_widget.DisplayLiDAR(self.calib_result, self.form_widget.config.PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, self.form_widget.config.PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
+        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
+        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
 
 
         ## Plot 'Result RMSE'
@@ -2602,8 +2641,9 @@ class EvaluationTab(QWidget):
 
         if is_default:
             vtk_lidar_calib.GetAxis(self.iren, self.widget)
+            self.vehicle_actor = vtk_lidar_calib.GetVehicleActor()
+            self.ren.AddActor(self.vehicle_actor)
             self.ren.AddActor(vtk_lidar_calib.GetGridActor())
-            self.ren.AddActor(vtk_lidar_calib.GetVehicleActor())
 
             colors = vtk.vtkNamedColors()
             self.ren.SetBackground(colors.GetColor3d('white'))
@@ -2675,7 +2715,6 @@ class MyApp(QMainWindow):
         self.setWindowIcon(QIcon(self.form_widget.config.PATH['Image'] + 'exe_icon.ico'))
 
         self.InitUi()
-        self.save_file = None
 
     def InitUi(self):
         ### Define menuBar File tap and that's contents
@@ -2722,19 +2761,12 @@ class MyApp(QMainWindow):
         self.move(qr.topLeft())
 
     def OpenExistFile(self): # Ctrl+O
-        if self.form_widget.value_changed:
+        if self.form_widget.config.value_changed:
             reply = QMessageBox.question(self, 'Open Exist File', 'Do you want to save?',
                                          QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
             if reply == QMessageBox.Save:
-                fname = self.SaveDialog()
-                if fname[0]:
-                    self.form_widget.config.configuration_file = fname[0]
-                    self.form_widget.config.WriteDefaultFileBase(fname[0])
-                    self.SaveIniFile()
-                    print('Save '+ str(fname[0]))
-                else:
-                    print('Cancel Open ini File')
-                    return False
+                self.SaveIniFile()
+
             elif reply == QMessageBox.Cancel:
                 print('Cancel Open ini File')
                 return False
@@ -2750,20 +2782,12 @@ class MyApp(QMainWindow):
 
     def OpenNewFile(self): # Ctrl+N
         ### Open new file when some parameter change
-        if self.form_widget.value_changed:
+        if self.form_widget.config.value_changed:
             # Generate message box to save current setting. The option is save, no and cancel. Default is save
             reply = QMessageBox.question(self, 'Open New File', 'Do you want to save?',
                                          QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
             if reply == QMessageBox.Save:
-                fname = self.SaveDialog() # path of saving directory
-                if fname[0]:
-                    self.form_widget.config.configuration_file = fname[0]
-                    self.form_widget.config.WriteDefaultFileBase(fname[0])
-                    self.SaveIniFile() # save parameters
-                    print('Save Current ini File')
-                else:
-                    print('Cancel Save ini File')
-                    return False
+                self.SaveIniFile()
             elif reply == QMessageBox.Cancel:
                 print('Cancel Save ini File')
                 return False
@@ -2776,143 +2800,18 @@ class MyApp(QMainWindow):
         print('Open New ini File')
 
     def SaveIniFile(self):
-        checked_sensor_list = ''
-        for sensor_index in self.form_widget.config.PARM_LIDAR['CheckedSensorList']:
-            if checked_sensor_list == '':
-                checked_sensor_list = str(sensor_index)
+        if self.form_widget.config.HasSaveFile():
+            self.WriteFile(self.form_widget.config.configuration_file)
+        else:
+            fname = self.SaveDialog()
+            if fname[0]:
+                self.form_widget.config.configuration_file = fname[0]
+                self.WriteFile(fname[0])
             else:
-                checked_sensor_list = checked_sensor_list + ' ' + str(sensor_index)
+                self.form_widget.ErrorPopUp("Failed to save\n{} is return from SaveDialog".format(fname))
+                return
 
-        sensor_list = ''
-        for sensor_index in self.form_widget.config.PARM_LIDAR['SensorList']:
-            if sensor_list == '':
-                sensor_list = str(sensor_index)
-            else:
-                sensor_list = sensor_list + ' ' + str(sensor_index)
-
-        is_pointcloud = False
-        is_zrollpitch = False
-        is_validation = False
-        is_handeye = False
-        is_single_optimization = False
-        is_multi_optimization = False
-        is_import = False
-        is_evaluation = False
-        is_path = False
-
-        for line in fileinput.input(self.form_widget.config.configuration_file, inplace=True):
-            if 'SingleSensor' in line:
-                line = line.replace(line, 'SingleSensor = ' + str(self.form_widget.config.PARM_LIDAR['SingleSensor']) + '\n')
-            if 'PrincipalSensor' in line:
-                line = line.replace(line, 'PrincipalSensor = ' + str(self.form_widget.config.PARM_LIDAR['PrincipalSensor']) + '\n')
-            elif 'CheckedSensorList' in line:
-                line = line.replace(line, 'CheckedSensorList = ' + str(checked_sensor_list) + '\n')
-            elif 'SensorList' in line:
-                line = line.replace(line, 'SensorList = ' + str(sensor_list) + '\n')
-            elif '[PointCloud]' in line:
-                is_pointcloud = True
-            elif 'MinThresholdDist_m' in line:
-                line = line.replace(line, 'MinThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdDist_m']) + '\n')
-            elif 'MaxThresholdDist_m' in line:
-                line = line.replace(line, 'MaxThresholdDist_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdDist_m']) + '\n')
-            elif ('MinThresholdX_m') in line and is_pointcloud:
-                line = line.replace(line, 'MinThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdX_m']) + '\n')
-            elif ('MaxThresholdX_m') in line and is_pointcloud:
-                line = line.replace(line, 'MaxThresholdX_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdX_m']) + '\n')
-            elif ('MinThresholdY_m') in line and is_pointcloud:
-                line = line.replace(line, 'MinThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdY_m']) + '\n')
-            elif ('MaxThresholdY_m') in line and is_pointcloud:
-                line = line.replace(line, 'MaxThresholdY_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdY_m']) + '\n')
-            elif 'MinThresholdZ_m' in line:
-                line = line.replace(line, 'MinThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MinThresholdZ_m']) + '\n')
-            elif 'MaxThresholdZ_m' in line:
-                line = line.replace(line, 'MaxThresholdZ_m = ' + str(self.form_widget.config.PARM_PC['MaxThresholdZ_m']) + '\n')
-            elif ('SamplingInterval' in line) and (is_multi_optimization == False):
-                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
-            elif ('VehicleSpeedThreshold' in line) and (is_multi_optimization == False):
-                line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
-            elif '[Import]' in line:
-                is_import = True
-            elif ('SamplingInterval' in line) and is_import:
-                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_IM['SamplingInterval']) + '\n')
-            elif ('VehicleSpeedThreshold' in line) and is_import:
-                line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']) + '\n')
-            elif '[ZRPCalibration]' in line:
-                is_zrollpitch = True
-            elif ('MaxDistanceX_m') in line and is_zrollpitch:
-                line = line.replace(line, 'MaxDistanceX_m = ' + str(self.form_widget.config.PARM_ZRP['MaxDistanceX_m']) + '\n')
-            elif ('MinDistanceX_m') in line and is_zrollpitch:
-                line = line.replace(line, 'MinDistanceX_m = ' + str(self.form_widget.config.PARM_ZRP['MinDistanceX_m']) + '\n')
-            elif ('MaxDistanceY_m') in line and is_zrollpitch:
-                line = line.replace(line, 'MaxDistanceY_m = ' + str(self.form_widget.config.PARM_ZRP['MaxDistanceY_m']) + '\n')
-            elif 'MinDistanceY_m' in line and is_zrollpitch:
-                line = line.replace(line, 'MinDistanceY_m = ' + str(self.form_widget.config.PARM_ZRP['MinDistanceY_m']) + '\n')
-            elif 'MaxThresholdZ_m' in line and is_zrollpitch:
-                line = line.replace(line, 'MaxThresholdZ_m = ' + str(self.form_widget.config.PARM_ZRP['MaxThresholdZ_m']) + '\n')
-            elif 'MinDistanceZ_m' in line and is_zrollpitch:
-                line = line.replace(line, 'MinDistanceZ_m = ' + str(self.form_widget.config.PARM_ZRP['MinDistanceZ_m']) + '\n')
-            elif '[Validation]' in line:
-                is_validation = True
-            elif ('MaximumIteration' in line) and is_validation:
-                line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_DV['MaximumIteration']) + '\n')
-            elif ('Tolerance' in line) and is_validation:
-                line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_DV['Tolerance']) + '\n')
-            elif ('OutlierDistance_m' in line) and is_validation:
-                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_DV['OutlierDistance_m']) + '\n')
-            elif ('FilterHeadingThreshold' in line) and is_validation:
-                line = line.replace(line, 'FilterHeadingThreshold = ' + str(self.form_widget.config.PARM_DV['FilterHeadingThreshold']) + '\n')
-            elif ('FilterDistanceThreshold' in line) and is_validation:
-                line = line.replace(line, 'FilterDistanceThreshold = ' + str(self.form_widget.config.PARM_DV['FilterDistanceThreshold']) + '\n')
-            elif '[Handeye]' in line:
-                is_handeye = True
-            elif ('MaximumIteration' in line) and is_handeye:
-                line = line.replace(line, 'MaximumIteration = ' + str(self.form_widget.config.PARM_HE['MaximumIteration']) + '\n')
-            elif ('Tolerance' in line) and is_handeye:
-                line = line.replace(line, 'Tolerance = ' + str(self.form_widget.config.PARM_HE['Tolerance']) + '\n')
-            elif ('OutlierDistance_m' in line) and is_handeye:
-                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_HE['OutlierDistance_m']) + '\n')
-            elif ('FilterHeadingThreshold' in line) and is_handeye:
-                line = line.replace(line, 'FilterHeadingThreshold = ' + str(self.form_widget.config.PARM_HE['FilterHeadingThreshold']) + '\n')
-            elif ('FilterDistanceThreshold' in line) and is_handeye:
-                line = line.replace(line, 'FilterDistanceThreshold = ' + str(self.form_widget.config.PARM_HE['FilterDistanceThreshold']) + '\n')
-            elif '[SingleOptimization]' in line:
-                is_single_optimization = True
-                is_multi_optimization = False
-            elif ('PointSamplingRatio' in line) and is_single_optimization:
-                line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_SO['PointSamplingRatio']) + '\n')
-            elif ('NumPointsPlaneModeling') in line and is_single_optimization:
-                line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_SO['NumPointsPlaneModeling']) + '\n')
-            elif ('OutlierDistance_m' in line) and is_single_optimization:
-                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_SO['OutlierDistance_m']) + '\n')
-            elif '[MultiOptimization]' in line:
-                is_multi_optimization = True
-                is_single_optimization = False
-            elif ('PointSamplingRatio' in line) and is_multi_optimization:
-                line = line.replace(line, 'PointSamplingRatio = ' + str(self.form_widget.config.PARM_MO['PointSamplingRatio']) + '\n')
-            elif ('NumPointsPlaneModeling') in line and is_multi_optimization:
-                line = line.replace(line, 'NumPointsPlaneModeling = ' + str(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']) + '\n')
-            elif ('OutlierDistance_m' in line) and is_multi_optimization:
-                line = line.replace(line, 'OutlierDistance_m = ' + str(self.form_widget.config.PARM_MO['OutlierDistance_m']) + '\n')
-            elif '[Evaluation]' in line:
-                is_evaluation = True
-            elif ('SamplingInterval' in line) and is_evaluation:
-                line = line.replace(line, 'SamplingInterval = ' + str(self.form_widget.config.PARM_EV['SamplingInterval']) + '\n')
-            elif ('DistanceInterval' in line) and is_evaluation:
-                line = line.replace(line, 'DistanceInterval = ' + str(self.form_widget.config.PARM_EV['DistanceInterval']) + '\n')
-            elif ('VehicleSpeedThreshold' in line) and is_evaluation:
-                line = line.replace(line, 'VehicleSpeedThreshold = ' + str(self.form_widget.config.PARM_EV['VehicleSpeedThreshold']) + '\n')
-            elif '[Path]' in line:
-                is_path = True
-            elif ('Configuration' in line) and is_path:
-                line = line.replace(line, 'Configuration = ' + str(self.form_widget.config.PATH['Configuration'] + '\n'))
-            elif ('LoggingFile' in line) and is_path:
-                line = line.replace(line, 'LoggingFile = ' + str(self.form_widget.importing_tab.logging_file_path_layout.path_file_str + '\n'))
-            elif ('Image' in line) and is_path:
-                line = line.replace(line, 'Image = ' + str(self.form_widget.config.PATH['Image'] + '\n'))
-            elif ('VehicleMesh' in line) and is_path:
-                line = line.replace(line, 'VehicleMesh = ' + str(self.form_widget.config.PATH['VehicleMesh'] + '\n'))
-            sys.stdout.write(line)
-        self.form_widget.value_changed = False
+        self.form_widget.config.value_changed = False
 
         print('Save ' + str(self.form_widget.config.configuration_file))
 
@@ -2920,13 +2819,11 @@ class MyApp(QMainWindow):
         fname = self.SaveDialog()
         if fname[0]:
             self.form_widget.config.configuration_file = fname[0]
-            self.form_widget.config.WriteDefaultFileBase(fname[0])
-            self.SaveIniFile()
-
-        self.form_widget.value_changed = False
+            self.WriteFile(fname[0])
+        self.form_widget.config.value_changed = False
 
     def closeEvent(self, e):
-        if self.form_widget.value_changed:
+        if self.form_widget.config.value_changed:
             reply = QMessageBox.question(self, 'Window Close', 'Do you want to save your changes',
                                          QMessageBox.Save | QMessageBox.No | QMessageBox.Cancel, QMessageBox.Save)
             if reply == QMessageBox.No:
@@ -2974,13 +2871,84 @@ class MyApp(QMainWindow):
         return path
 
     def SaveDialog(self):
-        words = self.form_widget.config.configuration_file.split('/') # first thing is the current application directory. Second is common, configuration, default.ini
-        file = words[-1] # default.ini
+        if self.form_widget.config.configuration_file == 'default.ini':
+            file = 'calibration config.ini'
+        else:
+            file = self.form_widget.config.configuration_file
+
         directory = self.form_widget.config.PATH['Configuration'] # ~/common/configuration/
         default_file = directory + '/' + file
         widget = QWidget()
-        fname = QFileDialog().getSaveFileName(widget, caption='Save File', directory=default_file, filter="Configuration file (*.ini)")
+        fname = QFileDialog().getSaveFileName(widget, caption='Save As', directory=default_file, filter="Configuration file (*.ini)")
         return fname # return the path of saving directory
+
+    def WriteFile(self, file):
+        f = open(file, 'w', encoding=None)
+        f.write('[LIDAR]\n')
+        f.write('SingleSensor = {}\n'.format(self.form_widget.config.PARM_LIDAR['SingleSensor']))
+        f.write('PrincipalSensor = {}\n'.format(self.form_widget.config.PARM_LIDAR['PrincipalSensor']))
+        f.write('CheckedSensorList = {}\n'.format(self.form_widget.config.GetSensorList('CheckedSensorList')))
+        f.write('SensorList = {}\n'.format(self.form_widget.config.GetSensorList('SensorList')))
+        f.write('\n')
+        f.write('[PointCloud]\n')
+        f.write('MinThresholdDist_m = {}\n'.format(self.form_widget.config.PARM_PC['MinThresholdDist_m']))
+        f.write('MaxThresholdDist_m = {}\n'.format(self.form_widget.config.PARM_PC['MaxThresholdDist_m']))
+        f.write('MinThresholdX_m = {}\n'.format(self.form_widget.config.PARM_PC['MinThresholdX_m']))
+        f.write('MaxThresholdX_m = {}\n'.format(self.form_widget.config.PARM_PC['MaxThresholdX_m']))
+        f.write('MinThresholdY_m = {}\n'.format(self.form_widget.config.PARM_PC['MinThresholdY_m']))
+        f.write('MaxThresholdY_m = {}\n'.format(self.form_widget.config.PARM_PC['MaxThresholdY_m']))
+        f.write('MinThresholdZ_m = {}\n'.format(self.form_widget.config.PARM_PC['MinThresholdZ_m']))
+        f.write('MaxThresholdZ_m = {}\n'.format(self.form_widget.config.PARM_PC['MaxThresholdZ_m']))
+        f.write('\n')
+        f.write('[Import]\n')
+        f.write('SamplingInterval = {}\n'.format(self.form_widget.config.PARM_IM['SamplingInterval']))
+        f.write('VehicleSpeedThreshold = {}\n'.format(self.form_widget.config.PARM_IM['VehicleSpeedThreshold']))
+        f.write('\n')
+        f.write('[ZRPCalibration]\n')
+        f.write('MaxDistanceX_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MaxDistanceX_m']))
+        f.write('MinDistanceX_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MinDistanceX_m']))
+        f.write('MaxDistanceY_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MaxDistanceY_m']))
+        f.write('MinDistanceY_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MinDistanceY_m']))
+        f.write('MaxDistanceZ_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MaxDistanceZ_m']))
+        f.write('MinDistanceZ_m = {}\n'.format(self.form_widget.config.PARM_ZRP['MinDistanceZ_m']))
+        f.write('\n')
+        f.write('[Validation]{}\n')
+        f.write('MaximumIteration = {}\n'.format(self.form_widget.config.PARM_DV['MaximumIteration']))
+        f.write('Tolerance = {}\n'.format(self.form_widget.config.PARM_DV['Tolerance']))
+        f.write('OutlierDistance_m = {}\n'.format(self.form_widget.config.PARM_DV['OutlierDistance_m']))
+        f.write('FilterHeadingThreshold = {}\n'.format(self.form_widget.config.PARM_DV['FilterHeadingThreshold']))
+        f.write('FilterDistanceThreshold = {}\n'.format(self.form_widget.config.PARM_DV['FilterDistanceThreshold']))
+        f.write('\n')
+        f.write('[Handeye]\n')
+        f.write('MaximumIteration = {}\n'.format(self.form_widget.config.PARM_HE['MaximumIteration']))
+        f.write('Tolerance = {}\n'.format(self.form_widget.config.PARM_HE['Tolerance']))
+        f.write('OutlierDistance_m = {}\n'.format(self.form_widget.config.PARM_HE['OutlierDistance_m']))
+        f.write('FilterHeadingThreshold = {}\n'.format(self.form_widget.config.PARM_HE['FilterHeadingThreshold']))
+        f.write('FilterDistanceThreshold = {}\n'.format(self.form_widget.config.PARM_HE['FilterDistanceThreshold']))
+        f.write('\n')
+        f.write('[SingleOptimization]\n')
+        f.write('PointSamplingRatio = {}\n'.format(self.form_widget.config.PARM_SO['PointSamplingRatio']))
+        f.write('NumPointsPlaneModeling = {}\n'.format(self.form_widget.config.PARM_SO['NumPointsPlaneModeling']))
+        f.write('OutlierDistance_m = {}\n'.format(self.form_widget.config.PARM_SO['OutlierDistance_m']))
+        f.write('\n')
+        f.write('[MultiOptimization]\n')
+        f.write('PointSamplingRatio = {}\n'.format(self.form_widget.config.PARM_MO['PointSamplingRatio']))
+        f.write('NumPointsPlaneModeling = {}\n'.format(self.form_widget.config.PARM_MO['NumPointsPlaneModeling']))
+        f.write('OutlierDistance_m = {}\n'.format(self.form_widget.config.PARM_MO['OutlierDistance_m']))
+        f.write('\n')
+        f.write('[Evaluation]\n')
+        f.write('SamplingInterval = {}\n'.format(self.form_widget.config.PARM_EV['SamplingInterval']))
+        f.write('DistanceInterval = {}\n'.format(self.form_widget.config.PARM_EV['DistanceInterval']))
+        f.write('VehicleSpeedThreshold = {}\n'.format(self.form_widget.config.PARM_EV['VehicleSpeedThreshold']))
+        f.write('\n')
+        f.write('[Path]\n')
+        f.write('Configuration = ' + self.form_widget.config.path + '/' + self.form_widget.config.configuration_path + '\n')
+        f.write('LoggingFile = ' + self.form_widget.config.path + '/' + self.form_widget.config.logging_data_path + '\n')
+        f.write('Image = ' + self.form_widget.config.path + '/' + self.form_widget.config.image_path + '\n')
+        f.write('VehicleMesh = ' + self.form_widget.config.path + '/' + self.form_widget.config.vehicle_mesh_path + '\n')
+        f.write('LidarMesh = ' + self.form_widget.config.path + '/' + self.form_widget.config.lidar_mesh_path + '\n')
+        f.write('GridMesh = ' + self.form_widget.config.path + '/' + self.form_widget.config.grid_mesh_path + '\n')
+        f.close()
 
     def ClearForWidget(self):
         self.form_widget.deleteLater()
@@ -3018,7 +2986,7 @@ class FormWidget(QWidget):
 
         ### Set the configuration data
         self.SetConfiguration()
-        self.value_changed = False
+        self.config.value_changed = False
 
         self.color_list = ['r', 'b', 'c', 'm', 'g', 'y']
 
@@ -3095,6 +3063,9 @@ class FormWidget(QWidget):
         self.config_tab.minimum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MinThresholdZ_m'])
         self.config_tab.maximum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MaxThresholdZ_m'])
 
+        vehicle_actor_opacity = self.config_tab.vehicle_actor.GetProperty().GetOpacity()
+        self.config_tab.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
+
         ### Setting import tab
         PARM_IM = self.config.PARM_IM
         self.importing_tab.logging_file_path_layout.label_edit.setText(self.config.PATH['LoggingFile'])
@@ -3105,15 +3076,15 @@ class FormWidget(QWidget):
         ### Setting ZRP tab
         PARM_ZRP = self.config.PARM_ZRP
         for idxSensor in self.config.PARM_LIDAR['SensorList']:
-            if self.config.PARM_ZRP_DICT.get(idxSensor):
+            if self.config.PARM_ROI_DICT.get(idxSensor):
                 continue
-            self.config.PARM_ZRP_DICT[idxSensor] = {}
-            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceX_m'] = PARM_ZRP['MaxDistanceX_m']
-            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceX_m'] = PARM_ZRP['MinDistanceX_m']
-            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceY_m'] = PARM_ZRP['MaxDistanceY_m']
-            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceY_m'] = PARM_ZRP['MinDistanceY_m']
-            self.config.PARM_ZRP_DICT[idxSensor]['MaxDistanceZ_m'] = PARM_ZRP['MaxDistanceZ_m']
-            self.config.PARM_ZRP_DICT[idxSensor]['MinDistanceZ_m'] = PARM_ZRP['MinDistanceZ_m']
+            self.config.PARM_ROI_DICT[idxSensor] = {}
+            self.config.PARM_ROI_DICT[idxSensor]['MaxDistanceX_m'] = PARM_ZRP['MaxDistanceX_m']
+            self.config.PARM_ROI_DICT[idxSensor]['MinDistanceX_m'] = PARM_ZRP['MinDistanceX_m']
+            self.config.PARM_ROI_DICT[idxSensor]['MaxDistanceY_m'] = PARM_ZRP['MaxDistanceY_m']
+            self.config.PARM_ROI_DICT[idxSensor]['MinDistanceY_m'] = PARM_ZRP['MinDistanceY_m']
+            self.config.PARM_ROI_DICT[idxSensor]['MaxDistanceZ_m'] = PARM_ZRP['MaxDistanceZ_m']
+            self.config.PARM_ROI_DICT[idxSensor]['MinDistanceZ_m'] = PARM_ZRP['MinDistanceZ_m']
 
         self.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(PARM_ZRP['MaxDistanceX_m'])
         self.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(PARM_ZRP['MinDistanceX_m'])
@@ -3138,11 +3109,17 @@ class FormWidget(QWidget):
         self.handeye_tab.heading_threshold_layout.double_spin_box.setValue(PARM_HE['FilterHeadingThreshold'])
         self.handeye_tab.distance_threshold_layout.double_spin_box.setValue(PARM_HE['FilterDistanceThreshold'])
 
+        vehicle_actor_opacity = self.handeye_tab.vehicle_actor.GetProperty().GetOpacity()
+        self.handeye_tab.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
+
         ### Setting unsupervised tab
         PARM_MO = self.config.PARM_MO
         self.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
         self.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
         self.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
+
+        vehicle_actor_opacity = self.unsupervised_tab.vehicle_actor.GetProperty().GetOpacity()
+        self.unsupervised_tab.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
 
         ### Setting evaluation tab
         PARM_EV = self.config.PARM_EV
@@ -3150,6 +3127,9 @@ class FormWidget(QWidget):
         self.evaluation_tab.sampling_interval_layout.spin_box.setValue(PARM_EV['SamplingInterval'])
         self.evaluation_tab.distance_interval_layout.double_spin_box.setValue(PARM_EV['DistanceInterval'])
         self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['VehicleSpeedThreshold'])
+
+        vehicle_actor_opacity = self.evaluation_tab.vehicle_actor.GetProperty().GetOpacity()
+        self.evaluation_tab.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
 
         print('Set all tab\'s configuration')
 
@@ -3295,6 +3275,8 @@ class FormWidget(QWidget):
                 lidar_info_dict[idxSensors[i]] = lidar_info
 
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
+        vehicle_actor = vtk_lidar_calib.GetVehicleActor()
+        actors.append(vehicle_actor)
         vtk_lidar_calib.GetAxis(iren, widget)
 
         # Assign actor to the renderer
@@ -3308,6 +3290,8 @@ class FormWidget(QWidget):
         renWin.Render()
 
         iren.Start()
+
+        return vehicle_actor
 
     def ViewPointCloud(self, df_info, pointcloud, PARM_LIDAR, ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
@@ -3350,34 +3334,32 @@ class FormWidget(QWidget):
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             root.mainloop()
 
-    def ViewGruondPoint2D(self, pointcloud, filtered_pointcloud,  ax=None, canvas=None):
+    def ViewGruondPoint2D(self, pointcloud, filtered_pointcloud, ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
-                
-        if ax is not None:
-            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
-            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
 
-        if canvas is None:
+        if ax is None:
             ax = fig.add_subplot(1, 1, 1)
-            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
-            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
-            ax.axis('equal')
-            ax.grid()
-            ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Points')
-            ax.set_xlabel('X [m]')
-            ax.set_ylabel('Y [m]')
-            
+
+        ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
+        ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
+        ax.axis('equal')
+        ax.grid()
+        ax.legend(markerscale=2)
+        ax.set_title('Selected Ground Points')
+        ax.set_xlabel('X [m]')
+        ax.set_ylabel('Y [m]')
 
         if canvas is not None:
-            ax.axis('equal')
-            ax.grid()
-            ax.legend(markerscale=2)
-            ax.set_title('Selected Ground Points')
-            ax.set_xlabel('X [m]')
-            ax.set_ylabel('Y [m]')
+            # ax.axis('equal')
+            # ax.grid()
+            # ax.legend(markerscale=2)
+            # ax.set_title('Selected Ground Points')
+            # ax.set_xlabel('X [m]')
+            # ax.set_ylabel('Y [m]')
             canvas.draw()
+            print('canvas is not None')
         else:
+            print('else')
             root = Tk.Tk()
             canvas = FigureCanvasTkAgg(fig, master=root)
             nav = NavigationToolbar2Tk(canvas, root)
@@ -3411,7 +3393,7 @@ class FormWidget(QWidget):
             ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
-            ax.set_ylabel('Z [m]')
+            ax.set_zlabel('Z [m]')
             canvas.draw()
         else:
             root = Tk.Tk()
@@ -3732,6 +3714,28 @@ class FormWidget(QWidget):
 
         calib_result = [calib_z, calib_r, calib_p]
         return calib_result
+
+    def GetCurrentTab(self):
+        tab = self.tabs.currentIndex()
+
+        if tab == CONST_CONFIG_TAB:
+            current_tab = self.config_tab
+        elif tab == CONST_IMPORTDATA_TAB:
+            current_tab = self.importing_tab
+        elif tab == CONST_ZROLLPITCH_TAB:
+            current_tab = self.zrollpitch_tab
+        elif tab == CONST_VALIDATION_TAB:
+            current_tab = self.datavalidation_tab
+        elif tab == CONST_HANDEYE_TAB:
+            current_tab = self.handeye_tab
+        elif tab == CONST_UNSUPERVISED_TAB:
+            current_tab = self.unsupervised_tab
+        elif tab == CONST_EVALUATION_TAB:
+            current_tab = self.evaluation_tab
+        else:
+            print('current_tab: {}'.format(tab))
+            return -1
+        return current_tab
 
 ## Version
 def version():

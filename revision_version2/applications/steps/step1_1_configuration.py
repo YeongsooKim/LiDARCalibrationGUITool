@@ -8,6 +8,7 @@
 # Basic modules in Anaconda
 import os
 import configparser
+import copy
 
 class Configuration:
     path = os.getcwd().replace('\\', '/') # path is gui_tool.exe directory
@@ -25,7 +26,7 @@ class Configuration:
         self.PARM_PC = {}
         self.PARM_IM = {}
         self.PARM_ZRP = {}
-        self.PARM_ZRP_DICT = {}
+        self.PARM_ROI_DICT = {}
         self.PARM_DV = {}
         self.PARM_HE = {}
         self.PARM_SO = {}
@@ -34,6 +35,12 @@ class Configuration:
         self.PATH = {}
         self.VEHICLE_INFO = {}
         self.CalibrationParam = {}
+
+        self.value_changed = False
+        self.PARMS = [self.PARM_LIDAR, self.PARM_PC, self.PARM_IM, self.PARM_ZRP,
+                      self.PARM_DV, self.PARM_HE, self.PARM_SO,
+                      self.PARM_MO, self.PARM_EV, self.PATH]
+        self.PREV_PARMS = []
 
     ##############################################################################################################################
     # %% 1. Set configuration
@@ -107,6 +114,9 @@ class Configuration:
         self.PATH['LidarMesh'] = config_param['Path']['LidarMesh']
         self.PATH['GridMesh'] = config_param['Path']['GridMesh']
 
+        # copy parm to prev parm
+        self.PREV_PARMS = copy.deepcopy(self.PARMS)
+
         # Vehicle info
         config_param.read(self.vehicle_info_file)
         self.VEHICLE_INFO['Evoque'] = [float(config_param['Evoque']['Length']), float(config_param['Evoque']['Width']), float(config_param['Evoque']['Height']),
@@ -118,11 +128,9 @@ class Configuration:
 
     def WriteDefaultFile(self):
         config_file = self.path + '/' + self.configuration_path + 'default.ini'
-        self.WriteDefaultFileBase(config_file)
         self.configuration_file = config_file
 
-    def WriteDefaultFileBase(self, file):
-        f = open(file, 'w', encoding=None)
+        f = open(config_file, 'w', encoding=None)
         f.write('[LIDAR]\n')
         f.write('SingleSensor = 0\n')
         f.write('PrincipalSensor = 0\n')
@@ -132,12 +140,12 @@ class Configuration:
         f.write('[PointCloud]\n')
         f.write('MinThresholdDist_m = 1.0\n')
         f.write('MaxThresholdDist_m = 50.0\n')
-        f.write('MinThresholdX_m = -10000.0\n')
-        f.write('MaxThresholdX_m = 10000.0\n')
-        f.write('MinThresholdY_m = -10000.0\n')
-        f.write('MaxThresholdY_m = 10000.0\n')
-        f.write('MinThresholdZ_m = -10000.0\n')
-        f.write('MaxThresholdZ_m = 10000.0\n')
+        f.write('MinThresholdX_m = -1000.0\n')
+        f.write('MaxThresholdX_m = 1000.0\n')
+        f.write('MinThresholdY_m = -1000.0\n')
+        f.write('MaxThresholdY_m = 1000.0\n')
+        f.write('MinThresholdZ_m = -1000.0\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('\n')
         f.write('[Import]\n')
         f.write('SamplingInterval = 1\n')
@@ -188,7 +196,7 @@ class Configuration:
         f.write('GridMesh = ' + self.path + '/' + self.grid_mesh_path + '\n')
         f.close()
 
-        print('Write default configuration parameter in ' + file)
+        print('Write default configuration parameter in ' + config_file)
 
     def WriteVehicleInfoFile(self):
         vehicle_info_file = self.path + '/' + self.configuration_path + 'vehicle_info.ini'
@@ -210,3 +218,31 @@ class Configuration:
         f.write('Top = Z\n')
 
         f.close()
+
+    def GetSensorList(self, key):
+        lst = ''
+        for idxSensor in self.PARM_LIDAR[key]:
+            if lst == '':
+                lst = str(idxSensor)
+            else:
+                lst = lst + ' ' + str(idxSensor)
+
+        return lst
+
+    def HasSaveFile(self):
+        words = self.configuration_file.split('/')
+        if words[-1] == 'default.ini':
+            return False
+        else:
+            return True
+
+    def IsParmChanged(self):
+        self.value_changed = False
+        # for i, parm in enumerate(self.PARMS):
+        for i, parm in enumerate(self.PARMS):
+            # print('prev: {}\ncurr: {}'.format(self.PREV_PARMS[i], self.PARMS[i]))
+            for key in parm:
+                if self.PREV_PARMS[i][key] != parm[key]:
+                    self.value_changed = True
+                    return True
+        return False

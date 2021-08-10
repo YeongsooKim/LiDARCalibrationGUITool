@@ -162,9 +162,6 @@ def GetActors(lidar_info_dict):
     ground_actor = GetGridActor()
     actors.append(ground_actor)
 
-    vehicle_actor = GetVehicleActor()
-    actors.append(vehicle_actor)
-
     lidar_actors = GetLiDARActors(lidar_info_dict)
     for actor in lidar_actors:
         actors.append(actor)

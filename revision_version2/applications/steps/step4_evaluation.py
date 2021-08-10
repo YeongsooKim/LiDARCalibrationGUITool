@@ -37,6 +37,8 @@ class Evaluation:
         df_info = tmp_df_info.drop(
             tmp_df_info[(tmp_df_info.index < start_time) | (tmp_df_info.index > end_time)].index)
 
+        df_info['heading'] = df_info['heading'] + 90
+
         init_T = np.array([[np.cos(0 * np.pi / 180), -np.sin(0 * np.pi / 180), 0., 0.],
                            [np.sin(0 * np.pi / 180), np.cos(0 * np.pi / 180), 0., 0.],
                            [0., 0., 1., 0.],
@@ -252,7 +254,7 @@ class Evaluation:
                          [0., 0., 1., 0.],
                          [0., 0., 0., 1.]])
 
-                    pred_transformation = np.matmul(ref_transformation_world_to_veh, init_T)
+                    pred_transformation = np.matmul(ref_transformation_world_to_veh, tf_XYYaw)
 
                     # Update ICP Map Matching
                     # pred_east, pred_north기준으로 threshold만큼 ROI 설정
@@ -294,8 +296,6 @@ class Evaluation:
                     pred_transformation_world_to_veh = np.matmul(transformation_result,
                                                                  np.linalg.inv(tf_XYYaw))
 
-                    print("tf\n")
-                    print(tf_XYYaw)
                     print("ref\n")
                     print(ref_transformation_world_to_veh)
                     print("pred\n")
