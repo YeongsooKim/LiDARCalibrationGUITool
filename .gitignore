@@ -17,3 +17,7 @@ revision_version1/widget/__pycache__/
 .vscode/
 
 vtk_import.txt
+
+revision_version2/build/
+
+revision_version2/dist/
