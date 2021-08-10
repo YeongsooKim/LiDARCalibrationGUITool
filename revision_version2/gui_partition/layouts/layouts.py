@@ -401,12 +401,32 @@ class ComboBoxLabelLayout(QHBoxLayout):
         if self.id == CONST_ZRP_SELECT_LIDAR_TO_CALIB:
             if len(checked_sensor_list) == 0:
                 return
-            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceX_m'])
-            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceX_m'])
-            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceY_m'])
-            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceY_m'])
-            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MaxDistanceZ_m'])
-            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[checked_sensor_list[0]]['MinDistanceZ_m'])
+
+            is_default = False
+            if self.form_widget.config.PARM_ROI_DICT.get(checked_sensor_list[0]) is None:
+                keys = list(self.form_widget.config.PARM_ROI_DICT.keys())
+                if len(keys) == 0:
+                    is_default = True
+                else:
+                    idx = keys[0]
+            else:
+                idx = int(checked_sensor_list[0])
+
+            if is_default:
+                self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceX_m'])
+                self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceX_m'])
+                self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceY_m'])
+                self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceY_m'])
+                self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceZ_m'])
+                self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceZ_m'])
+            else:
+                self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceX_m'])
+                self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceX_m'])
+                self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceY_m'])
+                self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceY_m'])
+                self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceZ_m'])
+                self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceZ_m'])
+
         elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:
             if len(self.form_widget.config.PARM_LIDAR['CheckedSensorList']) < 2:
                 self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.button(1).setChecked(True)
@@ -490,12 +510,30 @@ class ComboBoxLabelLayout(QHBoxLayout):
                                                calib_result)
 
             # reset roi configuration
-            self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceX_m'])
-            self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceX_m'])
-            self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceY_m'])
-            self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceY_m'])
-            self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MaxDistanceZ_m'])
-            self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[int(words[-1])]['MinDistanceZ_m'])
+            is_default = False
+            if self.form_widget.config.PARM_ROI_DICT.get(int(words[-1])) is None:
+                keys = list(self.form_widget.config.PARM_ROI_DICT.keys())
+                if len(keys) == 0:
+                    is_default = True
+                else:
+                    idx = keys[0]
+            else:
+                idx = int(words[-1])
+
+            if is_default:
+                self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceX_m'])
+                self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceX_m'])
+                self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceY_m'])
+                self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceY_m'])
+                self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MaxDistanceZ_m'])
+                self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ZRP['MinDistanceZ_m'])
+            else:
+                self.form_widget.zrollpitch_tab.maximum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceX_m'])
+                self.form_widget.zrollpitch_tab.minimum_x_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceX_m'])
+                self.form_widget.zrollpitch_tab.maximum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceY_m'])
+                self.form_widget.zrollpitch_tab.minimum_y_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceY_m'])
+                self.form_widget.zrollpitch_tab.maximum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MaxDistanceZ_m'])
+                self.form_widget.zrollpitch_tab.minimum_z_layout.double_spin_box.setValue(self.form_widget.config.PARM_ROI_DICT[idx]['MinDistanceZ_m'])
 
         elif self.id == CONST_UNSUPERVISED_SELECT_LIDAR_TO_CALIB:  # instance name is 'select_lidar_combobox_layout'
             if text == '':

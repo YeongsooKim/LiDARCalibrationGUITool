@@ -65,7 +65,15 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         main_vbox.addWidget(self.next_btn)
 
+        btn = QPushButton('D')
+        btn.clicked.connect(self.D)
+        main_vbox.addWidget(btn)
+
         self.setLayout(main_vbox)
+
+    def D(self):
+        for key in self.form_widget.config.PARM_ROI_DICT:
+            print(key)
 
     def InitPath(self):
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
@@ -3733,7 +3741,6 @@ class FormWidget(QWidget):
         elif tab == CONST_EVALUATION_TAB:
             current_tab = self.evaluation_tab
         else:
-            print('current_tab: {}'.format(tab))
             return -1
         return current_tab
 
