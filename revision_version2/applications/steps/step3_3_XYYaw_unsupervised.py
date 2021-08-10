@@ -50,7 +50,7 @@ class Unsupervised:
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
         is_single_optimization = args[6]
-        print(zrp_calib)
+        # print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
         df_info = df_info.drop(
@@ -66,7 +66,6 @@ class Unsupervised:
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1.  Accumulation
         # -----------------------------------------------------------------------------------------------------------------------------
-
 
         ##################
         # Get calibration data
@@ -85,8 +84,7 @@ class Unsupervised:
         dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
         dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
         
-        print(dZ_m)
-        
+        # print(dZ_m)
         
         tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                               [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
@@ -113,9 +111,9 @@ class Unsupervised:
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
-        print("\n############\n")
-        print(len(pointcloud))
-        print(pointcloud)
+        # print("\n############\n")
+        # print(len(pointcloud))
+        # print(pointcloud)
         tmp_pc = []
         for key in pointcloud:
             pointcloud_lidar = pointcloud[key]
@@ -130,9 +128,8 @@ class Unsupervised:
             tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
 
         pointcloud = tmp_pc
-        print("\n############\n")
-
-        print(pointcloud)
+        # print("\n############\n")
+        # print(pointcloud)
 
         if is_single_optimization:
             thread.mutex.lock()
@@ -218,7 +215,7 @@ class Unsupervised:
                 dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
                 dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
                 
-                print(dZ_m)
+                # print(dZ_m)
                 
                 
                 tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
@@ -244,8 +241,8 @@ class Unsupervised:
                 # Get Point cloud list
                 pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
-                print("\n############\n")
-                print(pointcloud)
+                # print("\n############\n")
+                # print(pointcloud)
                 tmp_pc = []
                 for key in pointcloud:
                     pointcloud_lidar = pointcloud[key]

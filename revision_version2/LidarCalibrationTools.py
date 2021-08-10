@@ -66,15 +66,7 @@ class ConfigurationTab(QWidget):
         self.next_btn.clicked.connect(self.NextBtn)
         main_vbox.addWidget(self.next_btn)
 
-        btn = QPushButton('D')
-        btn.clicked.connect(self.D)
-        main_vbox.addWidget(btn)
-
         self.setLayout(main_vbox)
-
-    def D(self):
-        for key in self.form_widget.config.PARM_ROI_DICT:
-            print(key)
 
     def InitPath(self):
         qdir = QDir(self.form_widget.config.PATH['VehicleMesh'])
@@ -2782,7 +2774,7 @@ class MyApp(QMainWindow):
         save_as_action = QAction('Save as', self)
         save_as_action.setShortcut('Ctrl+Shift+S')
         save_as_action.setStatusTip('Save as different ini file')
-        save_as_action.triggered.connect(self.SaveAsInitFile)
+        save_as_action.triggered.connect(self.SaveAsIniFile)
         filemenu.addAction(save_as_action)
 
         self.statusBar()
@@ -2839,24 +2831,20 @@ class MyApp(QMainWindow):
         if self.form_widget.config.HasSaveFile():
             self.WriteFile(self.form_widget.config.configuration_file)
         else:
-            fname = self.SaveDialog()
-            if fname[0]:
-                self.form_widget.config.configuration_file = fname[0]
-                self.WriteFile(fname[0])
-            else:
-                self.form_widget.ErrorPopUp("Failed to save\n{} is return from SaveDialog".format(fname))
+            if self.Save() == False:
                 return
 
         self.form_widget.config.value_changed = False
+        self.form_widget.config.PREV_PARMS = copy.deepcopy(self.form_widget.config.PARMS)
 
         print('Save ' + str(self.form_widget.config.configuration_file))
 
-    def SaveAsInitFile(self):
-        fname = self.SaveDialog()
-        if fname[0]:
-            self.form_widget.config.configuration_file = fname[0]
-            self.WriteFile(fname[0])
+    def SaveAsIniFile(self):
+        if self.Save() == False:
+            return
+
         self.form_widget.config.value_changed = False
+        self.form_widget.config.PREV_PARMS = copy.deepcopy(self.form_widget.config.PARMS)
 
     def closeEvent(self, e):
         if self.form_widget.config.value_changed:
@@ -2866,15 +2854,7 @@ class MyApp(QMainWindow):
                 print('Window closed')
                 e.accept()
             elif reply == QMessageBox.Save:
-                fname = self.SaveDialog()
-
-                if fname[0]:
-                    self.form_widget.config.configuration_file = fname[0]
-                    self.form_widget.config.WriteDefaultFileBase(fname[0])
-                    self.SaveIniFile()
-                    e.accept()
-                else:
-                    e.ignore()
+                self.SaveIniFile()
             elif reply == QMessageBox.Cancel:
                 e.ignore()
 
@@ -2907,16 +2887,33 @@ class MyApp(QMainWindow):
         return path
 
     def SaveDialog(self):
-        if self.form_widget.config.configuration_file == 'default.ini':
+        words = self.form_widget.config.configuration_file.split('/')
+        if words[-1] == 'default.ini':
             file = 'calibration config.ini'
         else:
-            file = self.form_widget.config.configuration_file
+            file = words[-1]
 
         directory = self.form_widget.config.PATH['Configuration'] # ~/common/configuration/
         default_file = directory + '/' + file
         widget = QWidget()
         fname = QFileDialog().getSaveFileName(widget, caption='Save As', directory=default_file, filter="Configuration file (*.ini)")
+
         return fname # return the path of saving directory
+
+    def Save(self):
+        fname = self.SaveDialog()
+
+        if fname[0] == '':
+            return False
+
+        if fname[0]:
+            self.form_widget.config.configuration_file = fname[0]
+            self.WriteFile(fname[0])
+
+            return True
+        else:
+            self.form_widget.ErrorPopUp("Failed to save\n{} is return from SaveDialog".format(fname))
+            return False
 
     def WriteFile(self, file):
         f = open(file, 'w', encoding=None)

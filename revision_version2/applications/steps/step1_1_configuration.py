@@ -231,10 +231,10 @@ class Configuration:
 
     def HasSaveFile(self):
         words = self.configuration_file.split('/')
-        if words[-1] == 'default.ini':
-            return False
-        else:
+        if words[-1] != 'default.ini':
             return True
+        else:
+            return False
 
     def IsParmChanged(self):
         self.value_changed = False
