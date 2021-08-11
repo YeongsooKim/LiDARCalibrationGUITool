@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 # User defined modules
 from applications.utils import utils_icp
+from applications.utils import utils_pointcloud
 import copy
 
 class HandEye:
@@ -20,6 +21,7 @@ class HandEye:
         self.config = config
         self.importing = importing
         self.complete_calibration = False
+        self.final_calibrated_pc = None
 
         # Path and file
         self.export_path = ''
@@ -39,7 +41,9 @@ class HandEye:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        zrp_calib = args[5]
+        min_thresh_z_m = args[5]
+        print('handeye min_thresh_z_m {}'.format(min_thresh_z_m))
+        zrp_calib = args[6]
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 
@@ -59,11 +63,13 @@ class HandEye:
         # -----------------------------------------------------------------------------------------------------------------------------
         diff_point_xyzdh_dict = {}
         diff_gnss_xyzdh_dict = {}
+        calibrated_point_dict = {}
         lidar_len = len(PARM_LIDAR['CheckedSensorList'])
         p_index = 0.0
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             diff_point_xyzdh = []
             diff_gnss_xyzdh = []
+            calibrated_point = []
 
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)
@@ -122,16 +128,19 @@ class HandEye:
                 pbar.set_description("XYZRGB_" + str(idxSensor))
 
                 ## Get point clouds
-                '''
-                pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
-                '''
-
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
-                
-                pointcloud1_lidar_homogeneous = np.insert(pointcloud1_lidar, 3, 1, axis = 1)
-                pointcloud2_lidar_homogeneous = np.insert(pointcloud2_lidar, 3, 1, axis = 1)
+
+                remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
+                remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
+
+                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
+                filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
+                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
+                filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
+
+                pointcloud1_lidar_homogeneous = np.insert(filtered_pointcloud1_lidar, 3, 1, axis = 1)
+                pointcloud2_lidar_homogeneous = np.insert(filtered_pointcloud2_lidar, 3, 1, axis = 1)
 
                 # PointCloud Conversion: Roll, Pitch, Height
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud1_lidar_homogeneous))
@@ -145,7 +154,7 @@ class HandEye:
                 pointcloud1 = pointcloud1_in_lidar_frame_calibrated_rollpitch
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
 
-                
+                calibrated_point.append(pointcloud1)
 
                 if pointcloud1.shape[0] < 1:
                     index += 1
@@ -237,6 +246,7 @@ class HandEye:
 
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
+            calibrated_point_dict[idxSensor] = calibrated_point
             p_index = p_index + 1.0
 
             if not thread._status:
@@ -256,6 +266,7 @@ class HandEye:
             for idxSensor in not_evaluated_lidar['CheckedSensorList']:
                 thread.emit_string.emit('Never evaluating lidar {} calibration'.format(idxSensor))
 
+        self.final_calibrated_pc = calibrated_point_dict
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-2. Solve the A*X=X*B
         # -----------------------------------------------------------------------------------------------------------------------------
@@ -312,19 +323,58 @@ class HandEye:
             yaw = np.arctan2(Rot_sen2veh[1, 0], Rot_sen2veh[0, 0])
 
             calib = []
-            calib.append(0.)  # roll
-            calib.append(0.)  # pitch
+            calib.append(zrp_calib[idxSensor][1])  # roll
+            calib.append(zrp_calib[idxSensor][2])  # pitch
             calib.append(yaw)  # yaw
             calib.append(Trans_veh2sen[0])  # x
             calib.append(Trans_veh2sen[1])  # y
-            calib.append(0.)  # z
+            calib.append(zrp_calib[idxSensor][0])  # z
             self.CalibrationParam[idxSensor] = calib
             self.label.append(section_name)
             self.calib_yaw.append(yaw * 180 / 3.141592)
             self.calib_x.append(Trans_veh2sen[0])
             self.calib_y.append(Trans_veh2sen[1])
 
+        # -----------------------------------------------------------------------------------------------------------------------------
+        # 3-3. Accum Map
+        # -----------------------------------------------------------------------------------------------------------------------------
+        accum_pointcloud = {}
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:
+            calib_param = self.CalibrationParam[idxSensor]
+
+            ##################
+            # Remove rows by other sensors
+
+            ##################
+            ##### Arguments
+            pose = df_one_info['east_m'].values
+            pose = np.vstack([pose, df_one_info['north_m'].values])
+            pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
+
+            ##################
+            # Get Point cloud list
+            pointcloud = calibrated_point_dict[idxSensor]
+            index_pointcloud = list(range(len(pointcloud)))
+
+            ##################
+            # Accumulation of point cloud
+            num_pose = pose.shape[1]
+            accum_point_enup = np.empty((0, 4))
+            for idx_pose in list(range(0, num_pose, 20)):
+                # Convert raw to enu
+                point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
+                                                                            pose[0:3, idx_pose])
+                # Add index
+                point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
+
+                # Accumulate the point cloud
+                accum_point_enup = np.vstack([accum_point_enup, point_enup])
+            accum_pointcloud[idxSensor] = accum_point_enup
+
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+        self.df_info = df_info
+        self.accum_point = accum_pointcloud
         thread.mutex.unlock()
 
         print("Complete Handeye calibration")

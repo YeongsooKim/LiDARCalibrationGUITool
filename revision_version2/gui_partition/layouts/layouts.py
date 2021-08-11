@@ -721,14 +721,16 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
         elif self.id == CONST_ZRP_MINIMUM_Z_DISTANCE:  # Z, Roll, Pitch: Calibration tab Minimum Z Distance [m]
             self.form_widget.config.PARM_ROI_DICT[self.form_widget.zrollpitch_tab.idxSensor]['MinDistanceZ_m'] = self.double_spin_box.value()
 
-        elif self.id == CONST_DATAVALIDATION_TOLERANCE:  # Handeye tab Tolerance
+        elif self.id == CONST_DATAVALIDATION_TOLERANCE:  # Datavalidation tab Tolerance
             self.form_widget.config.PARM_DV['Tolerance'] = self.double_spin_box.value()
-        elif self.id == CONST_DATAVALIDATION_OUTLIER_DISTANCE:  # Handeye tab Outlier Distance [m]
+        elif self.id == CONST_DATAVALIDATION_OUTLIER_DISTANCE:  # Datavalidation tab Outlier Distance [m]
             self.form_widget.config.PARM_DV['OutlierDistance_m'] = self.double_spin_box.value()
-        elif self.id == CONST_DATAVALIDATION_HEADING_THRESHOLD:  # Handeye tab Heading Threshold (filter)
+        elif self.id == CONST_DATAVALIDATION_HEADING_THRESHOLD:  # Datavalidation tab Heading Threshold (filter)
             self.form_widget.config.PARM_DV['FilterHeadingThreshold'] = self.double_spin_box.value()
-        elif self.id == CONST_DATAVALIDATION_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
+        elif self.id == CONST_DATAVALIDATION_DISTANCE_THRESHOLD:  # Datavalidation tab Distance Threshold (filter)
             self.form_widget.config.PARM_DV['FilterDistanceThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_DATAVALIDATION_MINIMUM_Z_DISTANCE:  # Datavalidation tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_DV['MinThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_HANDEYE_TOLERANCE:  # Handeye tab Tolerance
             self.form_widget.config.PARM_HE['Tolerance'] = self.double_spin_box.value()
@@ -738,16 +740,22 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_HE['FilterHeadingThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
             self.form_widget.config.PARM_HE['FilterDistanceThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_HANDEYE_MINIMUM_Z_DISTANCE:  # Handeye tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_HE['MinThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_OPTI_POINT_SAMPLING_RATIO:  # unsupervised tab Point Sampling Ratio
             self.form_widget.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # unsupervised tab Outlier Distance [m]
             self.form_widget.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
+        elif self.id == CONST_OPTI_MINIMUM_Z_DISTANCE:  # unsupervised tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_MO['MinThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_EVAL_VEHICLE_MINIMUM_SPEED:  # Evaluation tab Eval Vehicle Minimum Speed [km/h]
             self.form_widget.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_EVAL_DISTANCE_INTERVAL:  # Evaluation tab Eval Distance Interval [m]
             self.form_widget.config.PARM_EV['DistanceInterval'] = self.double_spin_box.value()
+        elif self.id == CONST_EVAL_MINIMUM_Z_DISTANCE:  # Evaluation tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_EV['MinThresholdZ_m'] = self.double_spin_box.value()
 
         self.form_widget.config.IsParmChanged()
 
@@ -1086,7 +1094,6 @@ class LabelWithSliderLayout(QVBoxLayout):
         hbox = QHBoxLayout()
         self.slider = QSlider(Qt.Vertical)
         self.slider.valueChanged.connect(self.SliderValueChanged)
-        self.slider.setMinimum(5)
         hbox.addWidget(self.slider, 50)
         self.addLayout(hbox)
 
@@ -1099,8 +1106,7 @@ class LabelWithSliderLayout(QVBoxLayout):
             if current_tab == -1:
                 return
 
-            val = self.slider.value() + 1
-            current_tab.vehicle_actor.GetProperty().SetOpacity(val / 100.0)
+            current_tab.vehicle_actor.GetProperty().SetOpacity(self.ValueMapping(self.slider.value()))
             current_tab.renWin.Render()
         elif self.id == CONST_VIEW_TRANSPARENT:
             current_tab = self.form_widget.GetCurrentTab()
@@ -1108,8 +1114,7 @@ class LabelWithSliderLayout(QVBoxLayout):
                 return
 
             try:
-                val = self.slider.value() + 1
-                current_tab.dialog.vehicle_actor.GetProperty().SetOpacity(val / 100.0)
+                current_tab.dialog.vehicle_actor.GetProperty().SetOpacity(self.ValueMapping(self.slider.value()))
                 current_tab.dialog.renWin.Render()
             except:
                 pass
@@ -1121,6 +1126,28 @@ class LabelWithSliderLayout(QVBoxLayout):
             vehicle_actor_opacity = current_tab.vehicle_actor.GetProperty().GetOpacity()
             current_tab.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
 
+    def ValueMapping(self, val, reverse=False):
+        OLD_MIN = 0; OLD_MAX = 99
+        NEW_MIN = 0.05; NEW_MAX = 1
+
+        if not reverse:
+            old_range = OLD_MAX - OLD_MIN
+            new_range = NEW_MAX - NEW_MIN
+            new_value = (((val - OLD_MIN) * new_range) / old_range) + NEW_MIN
+            new_value = NEW_MAX - new_value + NEW_MIN
+        else:
+            old_range = OLD_MAX - OLD_MIN
+            new_range = NEW_MAX - NEW_MIN
+            new_value = (((val - NEW_MIN) * old_range) / new_range) + OLD_MIN
+            new_value = OLD_MAX - new_value + OLD_MIN
+
+        return new_value
+
+    def InitSlider(self, actor=None):
+        if self.id == CONST_CONFIG_TRANSPARENT or self.id == CONST_XYYAW_TRANSPARENT or self.id == CONST_EVAL_TRANSPARENT:
+            opacity = actor.GetProperty().GetOpacity()
+            print('value mapping: {}'.format(self.ValueMapping(opacity, reverse=True)))
+            self.slider.setValue(self.ValueMapping(opacity, reverse=True))
 
 class CalibrationResultEditLabel(QVBoxLayout):
     def __init__(self, intance_id, idxSensor, calibration_param, form_widget):

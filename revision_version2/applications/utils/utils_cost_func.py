@@ -192,7 +192,7 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
     for i in list(range(closest_indices.shape[0])):
         plane_point = []
         for j in list(range(closest_indices[i].shape[0])):
-            if closest_distances[i][j] <  PARM_MO['OutlierDistance_m']:
+            if closest_distances[i][j] < PARM_MO['OutlierDistance_m']:
                 plane_point.append(accum_point_ref[closest_indices[i][j]])
         plane_point = np.array(plane_point)
         if plane_point.shape[0] < 4:

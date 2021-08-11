@@ -48,8 +48,10 @@ class Unsupervised:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        zrp_calib = args[5]
-        is_single_optimization = args[6]
+        min_thresh_z_m = args[5]
+        print('unsupervised min_thresh_z_m {}'.format(min_thresh_z_m))
+        zrp_calib = args[6]
+        is_single_optimization = args[7]
         # print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
@@ -117,10 +119,22 @@ class Unsupervised:
         tmp_pc = []
         for key in pointcloud:
             pointcloud_lidar = pointcloud[key]
+            #
+            # pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+            #
+            # # PointCloud Conversion: Roll, Pitch, Height
+            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
+            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
+            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
 
-            pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+            remove_filter = pointcloud_lidar[:, 2] < float(min_thresh_z_m)
 
-            # PointCloud Conversion: Roll, Pitch, Height
+            filtered_pointcloud_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                        pointcloud_lidar[:, 0:3], axis=0)
+            filtered_pointcloud_lidar = np.array(filtered_pointcloud_lidar)
+
+            pointcloud_lidar_homogeneous = np.insert(filtered_pointcloud_lidar, 3, 1, axis = 1)
+
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
@@ -247,12 +261,27 @@ class Unsupervised:
                 for key in pointcloud:
                     pointcloud_lidar = pointcloud[key]
 
-                    pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+                    # pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
+                    #
+                    # # PointCloud Conversion: Roll, Pitch, Height
+                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
+                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
+                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
 
-                    # PointCloud Conversion: Roll, Pitch, Height
-                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
-                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
-                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
+                    remove_filter = pointcloud_lidar[:, 2] < float(min_thresh_z_m)
+
+                    filtered_pointcloud_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                               pointcloud_lidar[:, 0:3], axis=0)
+                    filtered_pointcloud_lidar = np.array(filtered_pointcloud_lidar)
+
+                    pointcloud_lidar_homogeneous = np.insert(filtered_pointcloud_lidar, 3, 1, axis=1)
+
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(
+                        pointcloud_lidar_homogeneous))
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(
+                        pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis=0)
+                    pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(
+                        pointcloud_in_lidar_frame_calibrated_rollpitch)
 
                     tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
                 pointcloud = tmp_pc

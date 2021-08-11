@@ -58,6 +58,8 @@ class DataValidation:
         using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
+        min_thresh_z_m = args[6]
+        print('data validation min_thresh_z_m {}'.format(min_thresh_z_m))
         df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
@@ -147,27 +149,32 @@ class DataValidation:
                 pbar.set_description("XYZRGB_" + str(idxSensor))
 
                 ## Get point clouds
-                '''
-                pointcloud1 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud2 = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
-                '''
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
-                
-                pointcloud1_lidar_homogeneous = np.insert(pointcloud1_lidar, 3, 1, axis = 1)
-                pointcloud2_lidar_homogeneous = np.insert(pointcloud2_lidar, 3, 1, axis = 1)
+
+                remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
+                remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
+
+                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
+                filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
+                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
+                filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
+
+                pointcloud1_lidar_homogeneous = np.insert(filtered_pointcloud1_lidar, 3, 1, axis = 1)
+                pointcloud2_lidar_homogeneous = np.insert(filtered_pointcloud2_lidar, 3, 1, axis = 1)
 
                 # PointCloud Conversion: Roll, Pitch, Height
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud1_lidar_homogeneous))
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud1_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud1_in_lidar_frame_calibrated_rollpitch)
-                
+
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud2_lidar_homogeneous))
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud2_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud2_in_lidar_frame_calibrated_rollpitch)
-                
+
                 pointcloud1 = pointcloud1_in_lidar_frame_calibrated_rollpitch
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
+
 				
                 if pointcloud1.shape[0] < 1:
                     index += 1
