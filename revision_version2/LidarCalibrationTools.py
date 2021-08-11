@@ -206,19 +206,12 @@ class ConfigurationTab(QWidget):
             words = text.split('.')
 
             if self.form_widget.config.VEHICLE_INFO.get(words[0]) is None:
-                # self.vehicle_info_layout.BtnEnable(True)
                 self.vehicle_info_layout.Clear()
                 self.form_widget.ErrorPopUp('Please input vehicle information and push the import button')
             else:
                 self.vehicle_info_layout.Clear(self.form_widget.config.VEHICLE_INFO[words[0]])
-                # if self.form_widget.config_tab.added_stl_dict.get(words[0]) is not None:
-                #     self.vehicle_info_layout.BtnEnable(True)
-                # else:
-                #     self.vehicle_info_layout.BtnEnable(False)
-
                 self.VTKInit(text)
         else:
-            # self.vehicle_info_layout.BtnEnable(True)
             self.vehicle_info_layout.Clear()
 
             widget = QWidget()
@@ -235,7 +228,6 @@ class ConfigurationTab(QWidget):
 
                 if adding_file_name in files:
                     self.form_widget.ErrorPopUp("Already selected, {}".format(adding_file_name))
-                    # self.vehicle_info_layout.BtnEnable(False)
                     return
 
                 self.cb.clear()
@@ -286,6 +278,12 @@ class ConfigurationTab(QWidget):
         self.ren.AddActor(vtk_lidar_calib.GetGridActor())
         self.widget = vtk.vtkOrientationMarkerWidget()
         vtk_lidar_calib.GetAxis(self.iren, self.widget)
+
+        try:
+            opacity = self.transparent_layout.slider.value()
+            self.vehicle_actor.GetProperty().SetOpacity(self.transparent_layout.ValueMapping(opacity))
+        except:
+            pass
 
         self.ren.SetBackground(colors.GetColor3d("white"))
 
@@ -1646,6 +1644,12 @@ class XYYaw_CalibrationTab(QWidget):
             self.ren.AddActor(self.vehicle_actor)
             self.ren.AddActor(vtk_lidar_calib.GetGridActor())
 
+            try:
+                opacity = self.transparent_layout.slider.value()
+                self.vehicle_actor.GetProperty().SetOpacity(self.transparent_layout.ValueMapping(opacity))
+            except:
+                pass
+
             colors = vtk.vtkNamedColors()
             self.ren.SetBackground(colors.GetColor3d('white'))
 
@@ -1820,12 +1824,6 @@ class HandEyeTab(XYYaw_CalibrationTab):
         if self.progress_status is not CONST_IDLE:
             return False
 
-        calib_result_dict = self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result)
-        for key in self.form_widget.handeye.CalibrationParam:
-            self.form_widget.handeye.CalibrationParam[key][0] = calib_result_dict[key][1]
-            self.form_widget.handeye.CalibrationParam[key][1] = calib_result_dict[key][2]
-            self.form_widget.handeye.CalibrationParam[key][5] = calib_result_dict[key][0]
-
         self.form_widget.ViewPointCloud(self.form_widget.handeye.df_info,
                                         self.form_widget.handeye.accum_point,
                                         self.form_widget.handeye.PARM_LIDAR)
@@ -1836,12 +1834,6 @@ class HandEyeTab(XYYaw_CalibrationTab):
                              zrp_result[0], zrp_result[1], zrp_result[2],
                              self.form_widget.handeye.calib_yaw]
         self.PARM_LIDAR = self.form_widget.handeye.PARM_LIDAR
-
-        calib_result_dict = self.form_widget.GetZRPCalibDict(self.zrp_result_labels, self.manual_zrp_calib_result)
-        for key in self.form_widget.handeye.CalibrationParam:
-            self.form_widget.handeye.CalibrationParam[key][0] = calib_result_dict[key][1]
-            self.form_widget.handeye.CalibrationParam[key][1] = calib_result_dict[key][2]
-            self.form_widget.handeye.CalibrationParam[key][5] = calib_result_dict[key][0]
 
         self.progress_status = CONST_IDLE
         self.ViewBtnEnable(True)
@@ -1861,9 +1853,7 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, self.form_widget.handeye.PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
-        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
-        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.handeye.PARM_LIDAR)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
@@ -2149,9 +2139,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget, self.is_single)
-        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
-        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, PARM_LIDAR, self.is_single)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2639,10 +2627,7 @@ class EvaluationTab(QWidget):
 
         ## Plot 'Result Data'
         self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self.calib_result, self.form_widget.config.PARM_LIDAR, self.ren, self.iren, self.renWin, self.widget)
-        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
-        self.transparent_layout.slider.setValue(vehicle_actor_opacity * 100)
-
+        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.config.PARM_LIDAR)
 
         ## Plot 'Result RMSE'
         self.eval_rmse_xy_ax.clear()
@@ -2689,6 +2674,12 @@ class EvaluationTab(QWidget):
             self.vehicle_actor = vtk_lidar_calib.GetVehicleActor()
             self.ren.AddActor(self.vehicle_actor)
             self.ren.AddActor(vtk_lidar_calib.GetGridActor())
+
+            try:
+                opacity = self.transparent_layout.slider.value()
+                self.vehicle_actor.GetProperty().SetOpacity(self.transparent_layout.ValueMapping(opacity))
+            except:
+                pass
 
             colors = vtk.vtkNamedColors()
             self.ren.SetBackground(colors.GetColor3d('white'))
@@ -3310,37 +3301,42 @@ class FormWidget(QWidget):
         layout = target.itemAt(0)
         target.removeItem(layout)
 
-    def DisplayLiDAR(self, calib_result, PARM_LIDAR, ren, iren, renWin, widget, is_single=False):
-
+    def DisplayLiDAR(self, tab, PARM_LIDAR, is_single=False):
         lidar_info_dict = {}
 
         if is_single:
-            lidar_info_dict[self.config.PARM_LIDAR['SingleSensor']] = [calib_result[0][0], calib_result[1][0], calib_result[2][0],
-                                                                       calib_result[3][0], calib_result[4][0], calib_result[5][0]]
+            lidar_info_dict[self.config.PARM_LIDAR['SingleSensor']] = [tab.calib_result[0][0], tab.calib_result[1][0], tab.calib_result[2][0],
+                                                                       tab.calib_result[3][0], tab.calib_result[4][0], tab.calib_result[5][0]]
         else:
             for i in range(len(PARM_LIDAR['CheckedSensorList'])):
                 idxSensors = list(PARM_LIDAR['CheckedSensorList'])
 
-                lidar_info = [calib_result[0][i], calib_result[1][i], calib_result[2][i],
-                           calib_result[3][i], calib_result[4][i], calib_result[5][i]]
+                lidar_info = [tab.calib_result[0][i], tab.calib_result[1][i], tab.calib_result[2][i],
+                           tab.calib_result[3][i], tab.calib_result[4][i], tab.calib_result[5][i]]
                 lidar_info_dict[idxSensors[i]] = lidar_info
 
         actors = vtk_lidar_calib.GetActors(lidar_info_dict)
         vehicle_actor = vtk_lidar_calib.GetVehicleActor()
         actors.append(vehicle_actor)
-        vtk_lidar_calib.GetAxis(iren, widget)
+        vtk_lidar_calib.GetAxis(tab.iren, tab.widget)
 
         # Assign actor to the renderer
         for actor in actors:
-            ren.AddActor(actor)
+            tab.ren.AddActor(actor)
+
+        try:
+            opacity = tab.transparent_layout.slider.value()
+            vehicle_actor.GetProperty().SetOpacity(tab.transparent_layout.ValueMapping(opacity))
+        except:
+            pass
 
         colors = vtk.vtkNamedColors()
-        ren.SetBackground(colors.GetColor3d('white'))
+        tab.ren.SetBackground(colors.GetColor3d('white'))
 
-        ren.ResetCamera()
-        renWin.Render()
+        tab.ren.ResetCamera()
+        tab.renWin.Render()
 
-        iren.Start()
+        tab.iren.Start()
 
         return vehicle_actor
 

@@ -1665,8 +1665,11 @@ class NewWindow(QMainWindow):
         self.VTKInit()
 
         self.transparent_layout = LabelWithSliderLayout(CONST_VIEW_TRANSPARENT, 'Transparent', self.form_widget)
-        vehicle_actor_opacity = self.vehicle_actor.GetProperty().GetOpacity()
-        self.transparent_layout.slider.setValue(vehicle_actor_opacity*100)
+        current_tab = self.form_widget.GetCurrentTab()
+        transparent = current_tab.transparent_layout.slider.value()
+        self.vehicle_actor.GetProperty().SetOpacity(self.transparent_layout.ValueMapping(transparent))
+        self.transparent_layout.slider.setValue(transparent)
+
         hbox_vtk.addLayout(self.transparent_layout)
         self.vbox.addLayout(hbox_vtk)
 
