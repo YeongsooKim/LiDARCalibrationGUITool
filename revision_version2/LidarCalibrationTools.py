@@ -3157,11 +3157,11 @@ class FormWidget(QWidget):
         self.handeye_tab.transparent_layout.InitSlider(self.handeye_tab.vehicle_actor)
 
         ### Setting unsupervised tab
-        PARM_MO = self.config.PARM_MO
-        self.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
-        self.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
-        self.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
-        self.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_MO['MinThresholdZ_m'])
+        PARM_SO = self.config.PARM_SO
+        self.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_SO['PointSamplingRatio'])
+        self.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_SO['NumPointsPlaneModeling'])
+        self.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_SO['OutlierDistance_m'])
+        self.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_SO['MinThresholdZ_m'])
         self.unsupervised_tab.transparent_layout.InitSlider(self.unsupervised_tab.vehicle_actor)
 
         ### Setting evaluation tab

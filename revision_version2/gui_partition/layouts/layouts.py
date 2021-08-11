@@ -573,6 +573,12 @@ class SpinBoxLabelLayout(QVBoxLayout):
         self.addLayout(hbox)
 
     def SpinBoxChanged(self):
+        status = self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.checkedId()
+        if status == CONST_SINGLE_LIDAR:
+            PARM_OPTI = self.form_widget.config.PARM_SO
+        elif status == CONST_MULTI_LIDAR:
+            PARM_OPTI = self.form_widget.config.PARM_MO
+
         if self.id == CONST_CONFIG_LIDAR_NUM:
             ## Check PARM_LIDAR is empty
             if self.form_widget.config.PARM_LIDAR.get('SensorList') == None:
@@ -650,7 +656,7 @@ class SpinBoxLabelLayout(QVBoxLayout):
         elif self.id == CONST_HANDEYE_MAXIMUM_ITERATION:
             self.form_widget.config.PARM_HE['MaximumIteration'] = self.spin_box.value()
         elif self.id == CONST_UNSUPERVISED_NUM_POINTS_PLANE_MODELING:
-            self.form_widget.config.PARM_MO['NumPointsPlaneModeling'] = self.spin_box.value()
+            PARM_OPTI['NumPointsPlaneModeling'] = self.spin_box.value()
         elif self.id == CONST_EVAL_SAMPLING_INTERVAL:
             self.form_widget.config.PARM_EV['SamplingInterval'] = self.spin_box.value()
 
@@ -680,6 +686,12 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
         self.addWidget(self.double_spin_box)
 
     def DoubleSpinBoxChanged(self):
+        status = self.form_widget.unsupervised_tab.select_lidar_num_layout.button_group.checkedId()
+        if status == CONST_SINGLE_LIDAR:
+            PARM_OPTI = self.form_widget.config.PARM_SO
+        elif status == CONST_MULTI_LIDAR:
+            PARM_OPTI = self.form_widget.config.PARM_MO
+
         if self.id == CONST_CONFIG_MINIMUM_THRESHOLD_DISTANCE: # Configuration tab Minimum Threshold Distance [m]
             self.form_widget.config.PARM_PC['MinThresholdDist_m'] = self.double_spin_box.value()
             self.form_widget.config_tab.is_config_parm_changed = True
@@ -744,11 +756,11 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_HE['MinThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_OPTI_POINT_SAMPLING_RATIO:  # unsupervised tab Point Sampling Ratio
-            self.form_widget.config.PARM_MO['PointSamplingRatio'] = self.double_spin_box.value()
+            PARM_OPTI['PointSamplingRatio'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # unsupervised tab Outlier Distance [m]
-            self.form_widget.config.PARM_MO['OutlierDistance_m'] = self.double_spin_box.value()
+            PARM_OPTI['OutlierDistance_m'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_MINIMUM_Z_DISTANCE:  # unsupervised tab Minimum Threshold Z (filter)
-            self.form_widget.config.PARM_MO['MinThresholdZ_m'] = self.double_spin_box.value()
+            PARM_OPTI['MinThresholdZ_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_EVAL_VEHICLE_MINIMUM_SPEED:  # Evaluation tab Eval Vehicle Minimum Speed [km/h]
             self.form_widget.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
@@ -961,6 +973,12 @@ class RadioLabelLayout(QHBoxLayout):
                 self.form_widget.unsupervised_tab.select_lidar_combobox_layout.label.setText("Select Single Lidar To Calibration")
                 self.form_widget.unsupervised_tab.is_single = True
 
+                PARM_SO = self.form_widget.config.PARM_SO
+                self.form_widget.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_SO['PointSamplingRatio'])
+                self.form_widget.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_SO['NumPointsPlaneModeling'])
+                self.form_widget.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_SO['OutlierDistance_m'])
+                self.form_widget.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_SO['MinThresholdZ_m'])
+
                 for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
                     if idxSensor == self.form_widget.config.PARM_LIDAR['SingleSensor']:
                         self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.setCurrentIndex(i)
@@ -974,6 +992,13 @@ class RadioLabelLayout(QHBoxLayout):
             elif status == CONST_MULTI_LIDAR:
                 self.form_widget.unsupervised_tab.select_lidar_combobox_layout.label.setText("Select Principal Lidar To Calibration")
                 self.form_widget.unsupervised_tab.is_single = False
+
+                PARM_MO = self.form_widget.config.PARM_MO
+                self.form_widget.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
+                self.form_widget.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
+                self.form_widget.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
+                self.form_widget.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_MO['MinThresholdZ_m'])
+
                 for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
                     if idxSensor == self.form_widget.config.PARM_LIDAR['PrincipalSensor']:
                         self.form_widget.unsupervised_tab.select_lidar_combobox_layout.cb.setCurrentIndex(i)
