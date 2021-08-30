@@ -248,6 +248,7 @@ class Import:
 
         print('GNSS df_gnss east{}'.format(df_gnss['east_m']))
 
+        # init_heading = df_gnss['heading'].values[0] + 90 - init[2]
         init_heading = df_gnss['heading'].values[0] + 90 - init[2]
 
         tf = np.array([[np.cos(-init_heading*np.pi/180.0), -np.sin(-init_heading*np.pi/180.0), init[0]],

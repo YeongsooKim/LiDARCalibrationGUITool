@@ -74,19 +74,19 @@ class HandEye:
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)
             
-            ## Calibration Initialization            
+            ## Calibration Initialization
             dZ_m = zrp_calib[idxSensor][0]
             dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
             dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
-            
+
             print(dZ_m)
-            
-            
+
+
             tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                                   [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
                                   [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
-                                  [0., 0., 0., 1.]])   
-            
+                                  [0., 0., 0., 1.]])
+
 
 
             if not using_motion_data:
@@ -130,29 +130,40 @@ class HandEye:
                 ## Get point clouds
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
+                #
+                # remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
+                # remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
+                #
+                # filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
+                # filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
+                # filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
+                # filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
 
-                remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
-                remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
-
-                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
-                filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
-                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
-                filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
-
-                pointcloud1_lidar_homogeneous = np.insert(filtered_pointcloud1_lidar, 3, 1, axis = 1)
-                pointcloud2_lidar_homogeneous = np.insert(filtered_pointcloud2_lidar, 3, 1, axis = 1)
+                pointcloud1_lidar_homogeneous = np.insert(pointcloud1_lidar, 3, 1, axis = 1)
+                pointcloud2_lidar_homogeneous = np.insert(pointcloud2_lidar, 3, 1, axis = 1)
 
                 # PointCloud Conversion: Roll, Pitch, Height
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud1_lidar_homogeneous))
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud1_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud1_in_lidar_frame_calibrated_rollpitch)
-                
+
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud2_lidar_homogeneous))
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud2_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
                 pointcloud2_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud2_in_lidar_frame_calibrated_rollpitch)
-                
+
                 pointcloud1 = pointcloud1_in_lidar_frame_calibrated_rollpitch
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
+
+                remove_filter1 = pointcloud1[:, 2] < float(min_thresh_z_m)
+                remove_filter2 = pointcloud2[:, 2] < float(min_thresh_z_m)
+
+                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)),
+                                                            pointcloud1[:, 0:3], axis=0)
+                pointcloud1 = np.array(filtered_pointcloud1_lidar)
+                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)),
+                                                            pointcloud2[:, 0:3], axis=0)
+                pointcloud2 = np.array(filtered_pointcloud2_lidar)
+
 
                 calibrated_point.append(pointcloud1)
 
@@ -341,7 +352,9 @@ class HandEye:
         accum_pointcloud = {}
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
             calib_param = self.CalibrationParam[idxSensor]
-
+            calib_param[0] = 0.0
+            calib_param[1] = 0.0
+            calib_param[5] = 0.0
             ##################
             # Remove rows by other sensors
 
@@ -350,6 +363,8 @@ class HandEye:
             pose = df_one_info['east_m'].values
             pose = np.vstack([pose, df_one_info['north_m'].values])
             pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
+            print("pose {}".format(pose))
+            print("calib_param {}".format(calib_param))
 
             ##################
             # Get Point cloud list
