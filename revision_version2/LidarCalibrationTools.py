@@ -172,7 +172,8 @@ class ConfigurationTab(QWidget):
         hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
         hbox_vtk.addWidget(self.vtkWidget)
-        self.VTKInit(self.cb.currentText())
+        if self.form_widget.using_vtk:
+            self.VTKInit(self.cb.currentText())
 
         self.transparent_layout = layouts.LabelWithSliderLayout(CONST_CONFIG_TRANSPARENT, 'Transparent', self.form_widget)
         hbox_vtk.addLayout(self.transparent_layout)
@@ -210,7 +211,8 @@ class ConfigurationTab(QWidget):
                 self.form_widget.ErrorPopUp('Please input vehicle information and push the import button')
             else:
                 self.vehicle_info_layout.Clear(self.form_widget.config.VEHICLE_INFO[words[0]])
-                self.VTKInit(text)
+                if self.form_widget.using_vtk:
+                    self.VTKInit(text)
         else:
             self.vehicle_info_layout.Clear()
 
@@ -1534,7 +1536,8 @@ class XYYaw_CalibrationTab(QWidget):
         hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
         hbox_vtk.addWidget(self.vtkWidget)
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
 
         self.transparent_layout = layouts.LabelWithSliderLayout(CONST_XYYAW_TRANSPARENT, 'Transparent', self.form_widget)
         hbox_vtk.addLayout(self.transparent_layout)
@@ -1758,7 +1761,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         self.progress_status = CONST_PLAY
 
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
         self.calibration_pbar.reset()
@@ -1852,8 +1856,9 @@ class HandEyeTab(XYYaw_CalibrationTab):
             self.xyyaw_result_labels[idxSensor].label_edit3.setText(format(self.form_widget.handeye.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
-        self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.handeye.PARM_LIDAR)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=False)
+            self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.handeye.PARM_LIDAR)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
@@ -1922,7 +1927,8 @@ class HandEyeTab(XYYaw_CalibrationTab):
 
         # Clear HMI
         self.ViewBtnEnable(False)
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
         self.calibration_pbar.reset()
@@ -2138,8 +2144,9 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
             self.xyyaw_result_labels[idxSensor].label_edit3.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
 
         ## Plot 'Result Data'
-        self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, PARM_LIDAR, self.is_single)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=False)
+            self.vehicle_actor = self.form_widget.DisplayLiDAR(self, PARM_LIDAR, self.is_single)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
@@ -2212,7 +2219,8 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         # Clear HMI
         self.ViewBtnEnable(False)
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
         self.PlotClear(self.result_graph_ax, self.result_graph_canvas)
         self.text_edit.clear()
 
@@ -2409,7 +2417,8 @@ class EvaluationTab(QWidget):
         hbox_vtk = QHBoxLayout()
         self.vtkWidget = QVTKRenderWindowInteractor()
         hbox_vtk.addWidget(self.vtkWidget)
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
 
         self.transparent_layout = layouts.LabelWithSliderLayout(CONST_XYYAW_TRANSPARENT, 'Transparent', self.form_widget)
         hbox_vtk.addLayout(self.transparent_layout)
@@ -2503,8 +2512,8 @@ class EvaluationTab(QWidget):
             return False
         self.evaluation_status = CONST_PLAY
 
-
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
         self.PlotClear(self.eval_graph_ax, self.eval_graph_canvas)
         self.PlotClear(self.eval_rmse_yaw_ax, self.eval_rmse_canvas)
         self.PlotClear(self.eval_rmse_xy_ax, self.eval_rmse_canvas)
@@ -2626,8 +2635,9 @@ class EvaluationTab(QWidget):
                              self.eval_calib_yaw]
 
         ## Plot 'Result Data'
-        self.VTKInit(is_default=False)
-        self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.config.PARM_LIDAR)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=False)
+            self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.config.PARM_LIDAR)
 
         ## Plot 'Result RMSE'
         self.eval_rmse_xy_ax.clear()
@@ -2732,7 +2742,8 @@ class EvaluationTab(QWidget):
 
         # Clear HMI
         self.ViewBtnEnable(False)
-        self.VTKInit(is_default=True)
+        if self.form_widget.using_vtk:
+            self.VTKInit(is_default=True)
         self.PlotClear(self.eval_graph_ax, self.eval_graph_canvas)
         self.PlotClear(self.eval_rmse_yaw_ax, self.eval_rmse_canvas)
         self.PlotClear(self.eval_rmse_xy_ax, self.eval_rmse_canvas)
@@ -3028,6 +3039,7 @@ class FormWidget(QWidget):
         self.InitMesh()
 
         ### Initialise configuration
+        self.using_vtk = False
         self.InitUi()
 
         ### Set the configuration data
@@ -3108,7 +3120,8 @@ class FormWidget(QWidget):
         self.config_tab.maximum_threshold_layout_y.double_spin_box.setValue(PARM_PC['MaxThresholdY_m'])
         self.config_tab.minimum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MinThresholdZ_m'])
         self.config_tab.maximum_threshold_layout_z.double_spin_box.setValue(PARM_PC['MaxThresholdZ_m'])
-        self.config_tab.transparent_layout.InitSlider(self.config_tab.vehicle_actor)
+        if self.using_vtk:
+            self.config_tab.transparent_layout.InitSlider(self.config_tab.vehicle_actor)
 
         ### Setting import tab
         PARM_IM = self.config.PARM_IM
@@ -3154,7 +3167,8 @@ class FormWidget(QWidget):
         self.handeye_tab.heading_threshold_layout.double_spin_box.setValue(PARM_HE['FilterHeadingThreshold'])
         self.handeye_tab.distance_threshold_layout.double_spin_box.setValue(PARM_HE['FilterDistanceThreshold'])
         self.handeye_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_HE['MinThresholdZ_m'])
-        self.handeye_tab.transparent_layout.InitSlider(self.handeye_tab.vehicle_actor)
+        if self.using_vtk:
+            self.handeye_tab.transparent_layout.InitSlider(self.handeye_tab.vehicle_actor)
 
         ### Setting unsupervised tab
         PARM_SO = self.config.PARM_SO
@@ -3162,7 +3176,8 @@ class FormWidget(QWidget):
         self.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_SO['NumPointsPlaneModeling'])
         self.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_SO['OutlierDistance_m'])
         self.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_SO['MinThresholdZ_m'])
-        self.unsupervised_tab.transparent_layout.InitSlider(self.unsupervised_tab.vehicle_actor)
+        if self.using_vtk:
+            self.unsupervised_tab.transparent_layout.InitSlider(self.unsupervised_tab.vehicle_actor)
 
         ### Setting evaluation tab
         PARM_EV = self.config.PARM_EV
@@ -3171,7 +3186,8 @@ class FormWidget(QWidget):
         self.evaluation_tab.distance_interval_layout.double_spin_box.setValue(PARM_EV['DistanceInterval'])
         self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['VehicleSpeedThreshold'])
         self.evaluation_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_EV['MinThresholdZ_m'])
-        self.evaluation_tab.transparent_layout.InitSlider(self.evaluation_tab.vehicle_actor)
+        if self.using_vtk:
+            self.evaluation_tab.transparent_layout.InitSlider(self.evaluation_tab.vehicle_actor)
 
         print('Set all tab\'s configuration')
 
