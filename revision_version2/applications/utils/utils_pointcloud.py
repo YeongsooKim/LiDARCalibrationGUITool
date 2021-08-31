@@ -132,7 +132,6 @@ def plane_fitting(pointcloud, debug = False):
     A = np.matrix(tmp_A)
     b = np.matrix(pointcloud[:,2]).T
     try:
-        print("Non Singular Matrix")
         fit = (A.T * A).I * A.T * b
         # Parameter
         A = float(fit[0])
@@ -140,7 +139,6 @@ def plane_fitting(pointcloud, debug = False):
         C = float(-1)
         D = float(fit[2])
     except:
-        print("Singular Matrix")
         A = 0
         B = 0
         C = 0

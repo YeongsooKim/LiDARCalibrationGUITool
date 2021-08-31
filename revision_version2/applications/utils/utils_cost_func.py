@@ -98,7 +98,6 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
              else:
                  # Get error
                  err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
-             print("err {}".format(err))
              point_err.append(abs(err))
 
          # Condition that the number of point err is low
@@ -107,6 +106,8 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
 
          mean_point_err = np.mean(np.array(point_err))
          pose_err.append(mean_point_err)
+
+         print("progress {} %".format(idx_pose/num_pose * 100))
 
     # Condition that the number of pose err is low
     if len(pose_err) < 1:

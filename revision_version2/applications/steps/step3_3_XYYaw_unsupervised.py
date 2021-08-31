@@ -112,6 +112,8 @@ class Unsupervised:
         pose = np.vstack([pose, df_one_info[strColIndex].values])
         index_pointcloud = pose[3]
 
+
+
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
@@ -131,7 +133,7 @@ class Unsupervised:
             pointcloud_tmp = pointcloud_in_lidar_frame_calibrated_rollpitch
 
             remove_filter = pointcloud_tmp[:, 2] < float(min_thresh_z_m)
-            remove_filter = np.logical_or(remove_filter, pointcloud[:, 2] > float(max_thresh_z_m))
+            remove_filter = np.logical_or(remove_filter, pointcloud_tmp[:, 2] > float(max_thresh_z_m))
 
             filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
                                                        pointcloud_tmp[:, 0:3], axis=0)
@@ -223,9 +225,18 @@ class Unsupervised:
                         point_sensor_calibrated_rollpitch)
 
                     point_sensor_calibrated_rollpitch = np.delete(
-                        point_sensor_calibrated_rollpitch, 3, axis=0)
+                        point_sensor_calibrated_rollpitch, 3, axis=1)
 
-                    pointcloud_sensor = point_sensor_calibrated_rollpitch
+                    point_sensor = point_sensor_calibrated_rollpitch
+
+                    point_sensor = point_sensor_calibrated_rollpitch
+
+                    remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
+                    remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
+
+                    filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                           point_sensor[:, 0:3], axis=0)
+                    point_sensor = np.array(filtered_point_sensor)
 
                     point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
                                                                                 pose[0:3, idx_pose])
@@ -430,9 +441,18 @@ class Unsupervised:
                         point_sensor_calibrated_rollpitch)
 
                     point_sensor_calibrated_rollpitch = np.delete(
-                        point_sensor_calibrated_rollpitch, 3, axis=0)
+                        point_sensor_calibrated_rollpitch, 3, axis=1)
 
-                    pointcloud_sensor = point_sensor_calibrated_rollpitch
+                    point_sensor = point_sensor_calibrated_rollpitch
+
+                    point_sensor = point_sensor_calibrated_rollpitch
+
+                    remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
+                    remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
+
+                    filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                           point_sensor[:, 0:3], axis=0)
+                    point_sensor = np.array(filtered_point_sensor)
 
                     point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
                                                                                 pose[0:3, idx_pose])
