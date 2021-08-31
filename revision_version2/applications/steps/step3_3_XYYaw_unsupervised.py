@@ -50,10 +50,8 @@ class Unsupervised:
         vehicle_speed_threshold = args[4] / 3.6
         max_thresh_z_m = args[5]
         min_thresh_z_m = args[6]
-        print('unsupervised max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
         zrp_calib = args[7]
         is_single_optimization = args[8]
-        # print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time
         df_info = df_info.drop(
@@ -87,8 +85,6 @@ class Unsupervised:
         dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
         dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
         
-        # print(dZ_m)
-        
         tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                               [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
                               [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
@@ -101,7 +97,6 @@ class Unsupervised:
             df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
                                inplace=True)
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
-        print("df_one_info {}".format(df_one_info))
 
         ##################
         ##### Arguments
@@ -119,11 +114,7 @@ class Unsupervised:
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
         tmp_pc = {}
         for key in pointcloud:
-            print("key {}".format(key))
             pointcloud_lidar = pointcloud[key]
-            print("pointcloud_lidar {}".format(pointcloud_lidar))
-            print('tq')
-
             pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
 
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
@@ -199,8 +190,6 @@ class Unsupervised:
                 pose = df_one_info['east_m'].values
                 pose = np.vstack([pose, df_one_info['north_m'].values])
                 pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
-                print("pose {}".format(pose))
-                print("calib_param {}".format(calib_param))
 
                 ##################
                 # Get Point cloud list
@@ -229,8 +218,6 @@ class Unsupervised:
 
                     point_sensor = point_sensor_calibrated_rollpitch
 
-                    point_sensor = point_sensor_calibrated_rollpitch
-
                     remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
                     remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
 
@@ -255,6 +242,7 @@ class Unsupervised:
             self.accum_point = accum_pointcloud
             thread.mutex.unlock()
             print("Complete single-optimization calibration")
+
         else:
             ##################
             # Sampling the pose bsaed on pose sampling interval
@@ -308,9 +296,6 @@ class Unsupervised:
                 dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
                 dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
                 
-                # print(dZ_m)
-                
-                
                 tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                                       [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
                                       [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
@@ -333,12 +318,14 @@ class Unsupervised:
 
                 # Get Point cloud list
                 pointcloud = self.importing.PointCloudSensorList[idxSensor]
-
-                # print("\n############\n")
-                # print(pointcloud)
                 tmp_pc = {}
                 for key in pointcloud:
+                    #pointcloud_lidar = pointcloud[key]
                     pointcloud_lidar = pointcloud[key]
+                    if type(pointcloud_lidar[0]) == type(np.float64()):
+                        pointcloud_lidar = [pointcloud_lidar]
+                    else:
+                        pass
                     pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis=1)
 
                     pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(
@@ -348,13 +335,13 @@ class Unsupervised:
                     pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(
                         pointcloud_in_lidar_frame_calibrated_rollpitch)
 
-                    pointcloud = pointcloud_in_lidar_frame_calibrated_rollpitch
+                    pointcloud_tmp = pointcloud_in_lidar_frame_calibrated_rollpitch
 
-                    remove_filter = pointcloud[:, 2] < float(min_thresh_z_m)
-                    remove_filter = np.logical_or(remove_filter, pointcloud[:, 2] > float(max_thresh_z_m))
+                    remove_filter = pointcloud_tmp[:, 2] < float(min_thresh_z_m)
+                    remove_filter = np.logical_or(remove_filter, pointcloud_tmp[:, 2] > float(max_thresh_z_m))
 
                     filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
-                                                         pointcloud[:, 0:3], axis=0)
+                                                         pointcloud_tmp[:, 0:3], axis=0)
                     filtered_pointcloud = np.array(filtered_pointcloud)
 
                     tmp_pc[key] = filtered_pointcloud
@@ -415,8 +402,6 @@ class Unsupervised:
                 pose = df_one_info['east_m'].values
                 pose = np.vstack([pose, df_one_info['north_m'].values])
                 pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
-                print("pose {}".format(pose))
-                print("calib_param {}".format(calib_param))
 
                 ##################
                 # Get Point cloud list

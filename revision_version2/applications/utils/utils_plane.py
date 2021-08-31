@@ -174,7 +174,6 @@ def find_plane(pcd):
     a, b = ransac.estimator_.coef_  # 係数
     d = ransac.estimator_.intercept_  # 切片
 
-    print(a, b, d)
     return a, b, d  # Z = aX + bY + d
 
 

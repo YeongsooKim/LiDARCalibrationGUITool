@@ -202,18 +202,8 @@ def test_ramdom_upsamling():
   dim = 3
   A = np.random.rand(N, dim)
   B = np.random.rand(int(N * 0.8), dim)
-  
-  print(A.shape)
-  print(B)
-    
-  
-  A, B = random_upsampling(A, B)
-  
-  print(A.shape)
-  print(B)
-  
-  
 
-    
+  A, B = random_upsampling(A, B)
+
 if __name__ == '__main__':
   test_ramdom_upsamling()

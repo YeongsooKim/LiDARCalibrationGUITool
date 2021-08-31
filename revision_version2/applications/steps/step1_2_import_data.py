@@ -78,7 +78,6 @@ class Import:
         try:
             self.init = [self.df_gnss['east_m'].values[0], self.df_gnss['north_m'].values[0],
                          self.df_gnss['heading'].values[0]]  # Dead Reckoning의 초기값 df_gnss의 초기값으로 설정
-            print('self.init: {}'.format(self.init))
             df_motion = copy.deepcopy(self.df_motion_input.dropna(how='any'))
             df_motion = utils_pose_dr.get_motion_enu(df_motion, self.init)  # 위에서 설정한 초기값을 기반으로 DeadReckoning 진행
             # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
@@ -239,14 +238,9 @@ class Import:
         thread.msleep(1)
         thread.mutex.unlock()
 
-        print('import {}\n'.format(self.df_info['east_m']))
-
     def ChangeInitGnss(self, init):
         self.init = init
-        print('GNSS Init{}'.format(self.init))
         df_gnss = self.default_df_info.dropna(how='any')
-
-        print('GNSS df_gnss east{}'.format(df_gnss['east_m']))
 
         # init_heading = df_gnss['heading'].values[0] + 90 - init[2]
         init_heading = df_gnss['heading'].values[0] + 90 - init[2]
@@ -258,22 +252,15 @@ class Import:
 
         for i in list(range(len(df_gnss['east_m']))):
             tf_state = np.matmul(tf,np.transpose([df_gnss['east_m'].values[i], df_gnss['north_m'].values[i], 1]))
-            # print('GNSS transformed state{}'.format(tf_state))
 
             self.df_info['east_m'].values[i] = tf_state[0]
             self.df_info['north_m'].values[i] = tf_state[1]
             self.df_info['heading'].values[i] = df_gnss['heading'].values[i] - init_heading
-            print('df_info heading{}'.format(self.df_info['heading']))
-
-        print('INIT GNSS Heading{}'.format(self.df_info['heading']))
-
-        print('Change Init Gnss')
 
     def ChangeInitMotion(self, init):
         self.init = init
         init_value = copy.deepcopy(self.init)
         init_value[2] = init_value[2] - 90
-        print('MOTION INIT{}'.format(self.init))
         df_motion = copy.deepcopy(self.df_motion_input.dropna(how='any'))
         df_motion = utils_pose_dr.get_motion_enu(df_motion, init_value)
         # df_motion : ['timestamp', 'speed_x', 'yaw_rate', 'dr_east_m', 'dr_north_m', 'dr_heading']
@@ -281,10 +268,6 @@ class Import:
         self.df_info['dr_east_m'] = df_motion['dr_east_m']
         self.df_info['dr_north_m'] = df_motion['dr_north_m']
         self.df_info['dr_heading'] = df_motion['dr_heading']
-
-        print('INIT MOTION Heading{}'.format(self.df_info['heading']))
-
-        print('Change Init Motion')
 
     def InitValue(self):
         # for idxSensor in self.config.PARM_LIDAR['CheckedSensorList']:

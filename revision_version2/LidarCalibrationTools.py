@@ -1225,10 +1225,10 @@ class DataValidationTab(QWidget):
         self.distance_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_DISTANCE_THRESHOLD, 'Distance Threshold (filter)', self.form_widget)
         vbox.addLayout(self.distance_threshold_layout)
 
-        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_MAXIMUM_Z_DISTANCE, 'Maximum Threshold Z [m]', self.form_widget)
+        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_MAXIMUM_Z_DISTANCE, 'Maximum Height [m]', self.form_widget)
         vbox.addLayout(self.maximum_threshold_z_layout)
 
-        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_MINIMUM_Z_DISTANCE, 'Minimum Threshold Z [m]', self.form_widget)
+        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_DATAVALIDATION_MINIMUM_Z_DISTANCE, 'Minimum Height [m]', self.form_widget)
         vbox.addLayout(self.minimum_threshold_z_layout)
 
         groupbox.setLayout(vbox)
@@ -1723,10 +1723,10 @@ class HandEyeTab(XYYaw_CalibrationTab):
         self.distance_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_DISTANCE_THRESHOLD, 'Distance Threshold (filter)', self.form_widget)
         vbox.addLayout(self.distance_threshold_layout)
 
-        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_MAXIMUM_Z_DISTANCE, 'Maximum Threshold Z [m]', self.form_widget)
+        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_MAXIMUM_Z_DISTANCE, 'Maximum Height [m]', self.form_widget)
         vbox.addLayout(self.maximum_threshold_z_layout)
 
-        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_MINIMUM_Z_DISTANCE, 'Minimum Threshold Z [m]', self.form_widget)
+        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_HANDEYE_MINIMUM_Z_DISTANCE, 'Minimum Height [m]', self.form_widget)
         vbox.addLayout(self.minimum_threshold_z_layout)
 
         groupbox.setLayout(vbox)
@@ -2011,10 +2011,10 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.outlier_distance_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_OUTLIER_DISTANCE, 'Outlier Distance [m]', self.form_widget)
         vbox.addLayout(self.outlier_distance_layout)
 
-        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_MAXIMUM_Z_DISTANCE, 'Maximum Threshold Z [m]', self.form_widget)
+        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_MAXIMUM_Z_DISTANCE, 'Maximum Height [m]', self.form_widget)
         vbox.addLayout(self.maximum_threshold_z_layout)
 
-        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_MINIMUM_Z_DISTANCE, 'Minimum Threshold Z [m]', self.form_widget)
+        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_OPTI_MINIMUM_Z_DISTANCE, 'Minimum Height [m]', self.form_widget)
         vbox.addLayout(self.minimum_threshold_z_layout)
 
         optimization_initial_value_label = QLabel('[ Unsupervised Initial Value ]', self)
@@ -2403,11 +2403,14 @@ class EvaluationTab(QWidget):
         self.time_speed_threshold_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_VEHICLE_MINIMUM_SPEED, 'Eval Vehicle Minimum Speed [km/h]', self.form_widget)
         vbox.addLayout(self.time_speed_threshold_layout)
 
-        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_MAXIMUM_Z_DISTANCE, 'Maximum Threshold Z [m]', self.form_widget)
+        self.maximum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_MAXIMUM_Z_DISTANCE, 'Maximum Height [m]', self.form_widget)
         vbox.addLayout(self.maximum_threshold_z_layout)
 
-        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_MINIMUM_Z_DISTANCE, 'Minimum Threshold Z [m]', self.form_widget)
+        self.minimum_threshold_z_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_MINIMUM_Z_DISTANCE, 'Minimum Height [m]', self.form_widget)
         vbox.addLayout(self.minimum_threshold_z_layout)
+
+        self.voxel_grid_size_layout = layouts.DoubleSpinBoxLabelLayout(CONST_EVAL_VOXEL_GRID_SIZE, 'Voxel Grid Size [m]', self.form_widget)
+        vbox.addLayout(self.voxel_grid_size_layout)
 
         groupbox.setLayout(vbox)
         return groupbox
@@ -2632,7 +2635,8 @@ class EvaluationTab(QWidget):
                                          zrp_calib,
                                          dist_interval,
                                          self.form_widget.config.PARM_EV['MaxThresholdZ_m'],
-                                         self.form_widget.config.PARM_EV['MinThresholdZ_m']])
+                                         self.form_widget.config.PARM_EV['MinThresholdZ_m'],
+                                         self.form_widget.config.PARM_EV['VoxelGridSize_m']])
         try:
             self.form_widget.thread.change_value.disconnect()
         except:
@@ -3044,6 +3048,7 @@ class MyApp(QMainWindow):
         f.write('VehicleSpeedThreshold = {}\n'.format(self.form_widget.config.PARM_EV['VehicleSpeedThreshold']))
         f.write('MaxThresholdZ_m = {}\n'.format(self.form_widget.config.PARM_EV['MaxThresholdZ_m']))
         f.write('MinThresholdZ_m = {}\n'.format(self.form_widget.config.PARM_EV['MinThresholdZ_m']))
+        f.write('VoxelGridSize_m = {}\n'.format(self.form_widget.config.PARM_EV['VoxelGridSize_m']))
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.form_widget.config.path + '/' + self.form_widget.config.configuration_path + '\n')
@@ -3237,6 +3242,7 @@ class FormWidget(QWidget):
         self.evaluation_tab.time_speed_threshold_layout.double_spin_box.setValue(PARM_EV['VehicleSpeedThreshold'])
         self.evaluation_tab.maximum_threshold_z_layout.double_spin_box.setValue(PARM_EV['MaxThresholdZ_m'])
         self.evaluation_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_EV['MinThresholdZ_m'])
+        self.evaluation_tab.voxel_grid_size_layout.double_spin_box.setValue(PARM_EV['VoxelGridSize_m'])
         if self.using_vtk:
             self.evaluation_tab.transparent_layout.InitSlider(self.evaluation_tab.vehicle_actor)
 
@@ -3476,9 +3482,7 @@ class FormWidget(QWidget):
             # ax.set_xlabel('X [m]')
             # ax.set_ylabel('Y [m]')
             canvas.draw()
-            print('canvas is not None')
         else:
-            print('else')
             root = Tk.Tk()
             canvas = FigureCanvasTkAgg(fig, master=root)
             nav = NavigationToolbar2Tk(canvas, root)

@@ -92,29 +92,30 @@ class Configuration:
         self.PARM_HE['OutlierDistance_m'] = float(config_param['Handeye']['OutlierDistance_m'])
         self.PARM_HE['FilterHeadingThreshold'] = float(config_param['Handeye']['FilterHeadingThreshold'])
         self.PARM_HE['FilterDistanceThreshold'] = float(config_param['Handeye']['FilterDistanceThreshold'])
-        self.PARM_HE['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
+        self.PARM_HE['MaxThresholdZ_m'] = float(config_param['Handeye']['MaxThresholdZ_m'])
         self.PARM_HE['MinThresholdZ_m'] = float(config_param['Handeye']['MinThresholdZ_m'])
 
         # Single Optimization
         self.PARM_SO['PointSamplingRatio'] = float(config_param['SingleOptimization']['PointSamplingRatio'])
         self.PARM_SO['NumPointsPlaneModeling'] = int(config_param['SingleOptimization']['NumPointsPlaneModeling'])
         self.PARM_SO['OutlierDistance_m'] = float(config_param['SingleOptimization']['OutlierDistance_m'])
-        self.PARM_SO['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
+        self.PARM_SO['MaxThresholdZ_m'] = float(config_param['SingleOptimization']['MaxThresholdZ_m'])
         self.PARM_SO['MinThresholdZ_m'] = float(config_param['SingleOptimization']['MinThresholdZ_m'])
 
         # Multi Optimization
         self.PARM_MO['PointSamplingRatio'] = float(config_param['MultiOptimization']['PointSamplingRatio'])
         self.PARM_MO['NumPointsPlaneModeling'] = int(config_param['MultiOptimization']['NumPointsPlaneModeling'])
         self.PARM_MO['OutlierDistance_m'] = float(config_param['MultiOptimization']['OutlierDistance_m'])
-        self.PARM_MO['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
+        self.PARM_MO['MaxThresholdZ_m'] = float(config_param['MultiOptimization']['MaxThresholdZ_m'])
         self.PARM_MO['MinThresholdZ_m'] = float(config_param['MultiOptimization']['MinThresholdZ_m'])
 
         # Evaluation
         self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
         self.PARM_EV['DistanceInterval'] = float(config_param['Evaluation']['DistanceInterval'])
         self.PARM_EV['VehicleSpeedThreshold'] = float(config_param['Evaluation']['VehicleSpeedThreshold'])
-        self.PARM_EV['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
+        self.PARM_EV['MaxThresholdZ_m'] = float(config_param['Evaluation']['MaxThresholdZ_m'])
         self.PARM_EV['MinThresholdZ_m'] = float(config_param['Evaluation']['MinThresholdZ_m'])
+        self.PARM_EV['VoxelGridSize_m'] = float(config_param['Evaluation']['VoxelGridSize_m'])
 
         # Path
         self.PATH['Configuration'] = config_param['Path']['Configuration']
@@ -206,6 +207,7 @@ class Configuration:
         f.write('VehicleSpeedThreshold = 1.0\n')
         f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
+        f.write('VoxelGridSize_m = 0.1\n')
         f.write('\n')
         f.write('[Path]\n')
         f.write('Configuration = ' + self.path + '/' + self.configuration_path + '\n')
@@ -260,7 +262,6 @@ class Configuration:
         self.value_changed = False
         # for i, parm in enumerate(self.PARMS):
         for i, parm in enumerate(self.PARMS):
-            # print('prev: {}\ncurr: {}'.format(self.PREV_PARMS[i], self.PARMS[i]))
             for key in parm:
                 if self.PREV_PARMS[i][key] != parm[key]:
                     self.value_changed = True

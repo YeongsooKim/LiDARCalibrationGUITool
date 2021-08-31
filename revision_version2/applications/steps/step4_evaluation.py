@@ -31,8 +31,7 @@ class Evaluation:
         dist_interval = args[6]
         max_thresh_z_m = args[7]
         min_thresh_z_m = args[8]
-        print('eval max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
-
+        voxel_grid_size = args[9]
 
         # Get calibration data
         tmp_df_info = copy.deepcopy(self.importing.df_info)
@@ -62,33 +61,11 @@ class Evaluation:
         p_index = 0.0
         for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
             calib = CalibrationParam[idxSensor]
-            '''
-            print(calib)
-            e00 = np.cos(calib[2])*np.cos(calib[1]);        e01 = np.cos(calib[2])*np.sin(calib[1])*np.sin(calib[0])-np.sin(calib[2])*np.cos(calib[0]);
-            e02 = np.cos(calib[2])*np.sin(calib[1])*np.cos(calib[0])+np.sin(calib[2])*np.sin(calib[0]);        e03 = calib[3];
-
-            e10 = np.sin(calib[2])*np.cos(calib[1]);        e11 = np.sin(calib[2])*np.sin(calib[1])*np.sin(calib[0])+np.cos(calib[2])*np.cos(calib[0]);
-            e12 = np.sin(calib[2])*np.sin(calib[1])*np.cos(calib[0])-np.cos(calib[2])*np.sin(calib[0]);        e13 = calib[4];
-
-            e20 = -np.sin(calib[1]);        e21 = np.cos(calib[1])*np.sin(calib[0]);
-            e22 = np.cos(calib[1])*np.cos(calib[0]);        e23 = calib[5];
-
-            e30 = 0.;        e31 = 0.;        e32 = 0.;        e33 = 1.;
-
-            T_calib = np.array([[e00, e01, e02, e03],
-                               [e10, e11, e12, e13],
-                               [e20, e21, e22, e23],
-                               [e30, e31, e32, e33]])
-            '''
 
             # Remove rows by other sensors
             dZ_m = zrp_calib[idxSensor][0]
             dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
             dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
-
-            print("dRoll_deg {}".format(dRoll_rad*180.0/np.pi))
-            print("dPitch_deg {}".format(dPitch_rad * 180.0 / np.pi))
-            print("dZ_m {}".format(dZ_m))
 
             tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                                   [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
@@ -134,7 +111,6 @@ class Evaluation:
             calib_param[0] = 0.0
             calib_param[1] = 0.0
             calib_param[5] = 0.0
-            print("dYaw_deg {}".format(calib_param[2]*180/np.pi))
 
             ##################
             ##### Arguments
@@ -186,9 +162,6 @@ class Evaluation:
 
                 point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
                                                                             pose[0:3, idx_pose])
-                print("pose[0:3, idx_pose] {}". format(pose[0:3, idx_pose]))
-                print("calib_param {}".format(calib_param))
-
                 # Accumulate the point cloud
                 HD_map = np.vstack([HD_map, point_enu])
 
@@ -200,11 +173,11 @@ class Evaluation:
             HD_map_pcd = o3d.geometry.PointCloud()
             HD_map_pcd.points = o3d.utility.Vector3dVector(HD_map)
 
-            downsampled_HD_map_pcd = o3d.geometry.voxel_down_sample(HD_map_pcd, voxel_size=0.1)  # using voxel grid filter
+            downsampled_HD_map_pcd = o3d.geometry.voxel_down_sample(HD_map_pcd, voxel_grid_size)  # using voxel grid filter
 
             # pcd to array
-            #Map[idxSensor] = np.asarray(downsampled_HD_map_pcd.points)
-            Map[idxSensor] = HD_map
+            Map[idxSensor] = np.asarray(downsampled_HD_map_pcd.points)
+            #Map[idxSensor] = HD_map
 
 
         ##-----------------------------------------------------------------------------------------------------------------------------
@@ -277,7 +250,6 @@ class Evaluation:
                 distance = distance + tmp_distance
 
                 if distance > dist_interval:
-                    print("index {}".format(int(df_sampled_info[strColIndex].values[i])))
                     pointcloud = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                     pointcloud_homogeneous = np.insert(pointcloud, 3, 1, axis=1)
 
@@ -330,7 +302,6 @@ class Evaluation:
                                                                                          tolerance=0.0001,
                                                                                          max_iterations=100,
                                                                                          rm_outlier_dist=30)
-                    print(transform_point)
 
                     print('\n----------- Finish ICP -----------')
 
@@ -346,11 +317,6 @@ class Evaluation:
                     pred_transformation_world_to_veh = np.matmul(transformation_result,
                                                                  np.linalg.inv(tf_XYYaw))
 
-                    print("ref\n")
-                    print(ref_transformation_world_to_veh)
-                    print("pred\n")
-                    print(pred_transformation_world_to_veh)
-
                     pred_east = pred_transformation_world_to_veh[0][3]
                     pred_north = pred_transformation_world_to_veh[1][3]
                     pred_yaw = np.arctan2(pred_transformation_world_to_veh[1, 0], pred_transformation_world_to_veh[0, 0])
@@ -364,8 +330,6 @@ class Evaluation:
                     x_each_localization.append(ref_east - pred_east)
                     y_each_localization.append(ref_north - pred_north)
                     yaw_each_localization.append((ref_yaw - pred_yaw_deg))
-                    print(ref_yaw)
-                    print(pred_yaw_deg)
 
                     distance = 0
 
@@ -406,7 +370,6 @@ class Evaluation:
                 thread.emit_string.emit('Interrupted evaluating lidar {} calibration'.format(idxSensor))
                 break
             thread.emit_string.emit('Complete evaluating lidar {} calibration'.format(idxSensor))
-        # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
         if not thread._status:
             for idxSensor in not_evaluated_lidar['CheckedSensorList']:

@@ -61,7 +61,6 @@ class DataValidation:
         zrp_calib = args[5]
         max_thresh_z_m = args[6]
         min_thresh_z_m = args[7]
-        print('data validation max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
         df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
@@ -275,7 +274,6 @@ class DataValidation:
 
                     PARM_LIDAR = copy.deepcopy(evaluated_lidar)
                     break
-            # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
             rmse_translation_error = np.sqrt(np.sum(np.power(translation_error,2))/len(translation_error))
             rmse_rotation_error = np.sqrt(np.sum(np.power(rotation_error,2))/len(rotation_error))

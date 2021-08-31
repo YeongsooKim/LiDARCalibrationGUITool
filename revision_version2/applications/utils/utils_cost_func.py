@@ -107,8 +107,6 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
          mean_point_err = np.mean(np.array(point_err))
          pose_err.append(mean_point_err)
 
-         print("progress {} %".format(idx_pose/num_pose * 100))
-
     # Condition that the number of pose err is low
     if len(pose_err) < 1:
         err = compute_single_err(CalibH_rad[0], CalibX_m, CalibY_m, pose, pointcloud, PARM_IM, PARM_SO, thread)
@@ -120,8 +118,6 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
     # if not thread._status:
     #     is_break = True
     # #     thread.cond.wait(thread.mutex)
-
-    print('{0:}   {1:4d}   {2:3.6f}  {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
 
     # return error
     return err
@@ -202,23 +198,24 @@ def compute_multi_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, accum_po
         if plane_point.shape[0] < 4:
             continue
         plane_param = utils_pointcloud.plane_fitting(plane_point)
-
-        # Get error
-        err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
+        if (plane_param[0] == 0) & (plane_param[1] == 0) & (plane_param[2] == 0) & (plane_param[3] == 0):
+            continue
+        else:
+            # Get error
+            err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
+        # # Get error
+        # err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
         point_err.append(abs(err))
 
     # Compute mean
     err = np.mean(np.array(point_err))
     # result_str = '{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err)
-    # print
 
     thread.emit_string.emit('{0:>10}    {1:4d} {2:>15}   {3:>15}'.format(strFile, nFeval, str(round(CalibH_d,8)), str(round(err,8))))
 
     # if not thread._status:
     #     is_break = True
     # #     thread.cond.wait(thread.mutex)
-
-    print('{0:}   {1:4d}   {2:3.6f}   {3:3.6f}'.format(strFile, nFeval, CalibH_d, err))
 
     return err
     

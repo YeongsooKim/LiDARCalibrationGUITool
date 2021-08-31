@@ -43,9 +43,7 @@ class HandEye:
         vehicle_speed_threshold = args[4] / 3.6
         max_thresh_z_m = args[5]
         min_thresh_z_m = args[6]
-        print('handeye max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
         zrp_calib = args[7]
-        print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
@@ -54,8 +52,6 @@ class HandEye:
 
         if using_motion_data:
             df_info = df_info.drop(df_info[df_info['speed_x'] < vehicle_speed_threshold].index)
-        print("df_info heading {}".format(df_info['heading']))
-        print("df_dr_info heading {}".format(df_info['dr_heading']))
 
         # -----------------------------------------------------------------------------------------------------------------------------
         # 3-1. Match the point cloud based on ICP
@@ -242,7 +238,6 @@ class HandEye:
 
                     PARM_LIDAR = copy.deepcopy(evaluated_lidar)
                     break
-            # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
             diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
             diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
@@ -360,8 +355,6 @@ class HandEye:
             pose = df_one_info['east_m'].values
             pose = np.vstack([pose, df_one_info['north_m'].values])
             pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
-            print("pose {}".format(pose))
-            print("calib_param {}".format(calib_param))
 
             ##################
             # Get Point cloud list

@@ -776,6 +776,8 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_EV['MaxThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_EVAL_MINIMUM_Z_DISTANCE:  # Evaluation tab Minimum Threshold Z (filter)
             self.form_widget.config.PARM_EV['MinThresholdZ_m'] = self.double_spin_box.value()
+        elif self.id == CONST_EVAL_VOXEL_GRID_SIZE:  # Evaluation tab Voxel Grid Size [m]
+            self.form_widget.config.PARM_EV['VoxelGridSize_m'] = self.double_spin_box.value()
 
         elif self.id == CONST_CONFIG_REF_X:  # Configuration tab Reference Origin X [m]
             vtk_lidar_calib.reference_origin_[0] = self.double_spin_box.value()
@@ -1215,7 +1217,6 @@ class LabelWithSliderLayout(QVBoxLayout):
     def InitSlider(self, actor=None):
         if self.id == CONST_CONFIG_TRANSPARENT or self.id == CONST_XYYAW_TRANSPARENT or self.id == CONST_EVAL_TRANSPARENT:
             opacity = actor.GetProperty().GetOpacity()
-            print('value mapping: {}'.format(self.ValueMapping(opacity, reverse=True)))
             self.slider.setValue(self.ValueMapping(opacity, reverse=True))
 
 class CalibrationResultEditLabel(QVBoxLayout):

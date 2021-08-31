@@ -88,7 +88,6 @@ class ZRollPitch:
             filtered_pointcloud_in_lidar_frame = pointcloud_in_lidar_frame[cond]
 
             self.timestamp = df_info[strColIndex].index
-            print(df_info[strColIndex])
             self.pointcloud = pointcloud_in_lidar_frame
             self.filtered_pointcloud = filtered_pointcloud_in_lidar_frame
 
@@ -178,7 +177,6 @@ class ZRollPitch:
             self.timestamp = df_info[strColIndex].index
 
             if len(filtered_pointcloud_in_lidar_frame_homogeneous) < 3:
-                print('There are empty points in ROI')
                 thread.emit_string.emit(str('There are empty points in ROI'))
                 has_error = True
                 break
@@ -323,7 +321,6 @@ class ZRollPitch:
             pitch_deg = calib_pitch_result * 180/np.pi
             z_m = calib_height_result
 
-            print("Complete lidar {} Z, Roll, Pitch Calibrations".format(selected_sensor))
             self.calib_result = [z_m, roll_deg, pitch_deg]
             self.mean_distance = measured_distance_m
             #self.ground_slope = min_theta
