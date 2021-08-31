@@ -6,6 +6,7 @@
 @author email: kimkys768@gmail.com
 """
 import vtk
+import numpy as np
 
 '''
 #TODO 
@@ -118,9 +119,11 @@ def LidarSizeScaling():
 
 
 def LidarTranslatePixel2Meter(x, y, z):
-    translate_x = x * X_PIX2METER
-    translate_y = y * Y_PIX2METER
-    translate_z = z * Z_PIX2METER
+    global reference_origin_
+    print('ref {}, {}, {}'.format(reference_origin_[0], reference_origin_[1], reference_origin_[2]))
+    translate_x = (x + reference_origin_[0]) * X_PIX2METER
+    translate_y = (y + reference_origin_[1]) * Y_PIX2METER
+    translate_z = (z + reference_origin_[2]) * Z_PIX2METER
 
     pos = [translate_x, translate_y, translate_z]
 
@@ -128,9 +131,13 @@ def LidarTranslatePixel2Meter(x, y, z):
 
 
 def RPY2Rotation(r, p, y):
-    r_rotation = [r, 1, 0, 0]
-    p_rotation = [p, 0, 1, 0]
-    y_rotation = [y, 0, 0, 1]
+    global reference_origin_
+    print('r p y {}, {}, {}'.format(r, p, y))
+    print('ref {}, {}, {}'.format(reference_origin_[3], reference_origin_[4], reference_origin_[5]))
+
+    r_rotation = [r + reference_origin_[3], 1, 0, 0]
+    p_rotation = [p + reference_origin_[4], 0, 1, 0]
+    y_rotation = [y + reference_origin_[5], 0, 0, 1]
 
     return r_rotation, p_rotation, y_rotation
 
