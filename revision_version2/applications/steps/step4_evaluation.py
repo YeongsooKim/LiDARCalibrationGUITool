@@ -42,8 +42,8 @@ class Evaluation:
 
         df_info['heading'] = df_info['heading'] + 90
 
-        init_T = np.array([[np.cos(0 * np.pi / 180), -np.sin(0 * np.pi / 180), 0., 0.],
-                           [np.sin(0 * np.pi / 180), np.cos(0 * np.pi / 180), 0., 0.],
+        init_T = np.array([[np.cos(5 * np.pi / 180), -np.sin(5 * np.pi / 180), 0., 0.5],
+                           [np.sin(5 * np.pi / 180), np.cos(5 * np.pi / 180), 0., 0.5],
                            [0., 0., 1., 0.],
                            [0., 0., 0., 1.]])
 
@@ -60,19 +60,65 @@ class Evaluation:
         pred_sensor_localization = {}
         error_sensor_localization = {}
 
+        tf_PointCloudSensorList = {}
+        tf_PointCloudList = {}
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
+            calib = CalibrationParam[idxSensor]
+            dZ_m = calib[5]
+            dRoll_rad = calib[0]
+            dPitch_rad = calib[1]
+
+            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
+                                           np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
+                                          [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
+                                          [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
+                                           np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
+                                          [0., 0., 0., 1.]])
+
+            PointCloudList = self.importing.PointCloudSensorList[idxSensor]
+            for key in PointCloudList:
+                tmp_point = PointCloudList[key]
+                if tmp_point == []:
+                    tf_PointCloudList[key] = []
+                    continue
+                tmp_point[~np.isnan(tmp_point[:, 0])]
+                tmp_point_hom = np.insert(tmp_point, 3, 1, axis=1)
+
+                tmp_tf_point = np.transpose(np.matmul(tf_RollPitchCalib, np.transpose(tmp_point_hom)))
+                tmp_tf_point = tmp_tf_point[:, 0:3]
+                tf_PointCloudList[key] = tmp_tf_point
+            tf_PointCloudSensorList[idxSensor] = tf_PointCloudList
+
+        filtered_PointCloudList = {}
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
+            PointCloudList = tf_PointCloudSensorList[idxSensor]
+
+            for key in PointCloudList:
+                arrPoint = PointCloudList[key]
+                if arrPoint == []:
+                    filtered_PointCloudList[key] = []
+                    continue
+                # Check parameter
+                remove_filter = arrPoint[:, 2] < float(min_thresh_z_m)
+                remove_filter = np.logical_or(remove_filter, arrPoint[:, 2] > float(max_thresh_z_m))
+
+                # filtering
+                FilteredPointCloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)), arrPoint[:, 0:3], axis=0)
+
+                # Save point cloud
+                filtered_PointCloudList[key] = np.array(FilteredPointCloud)
+
+            # Add point cloud of one LIDAR to PointCloudSensorList
+            tf_PointCloudSensorList[idxSensor] = filtered_PointCloudList
+
+
+
         LiDAR_list = {}
         lidar_len = len(PARM_LIDAR['CheckedSensorList'])
         p_index = 0.0
         for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
-            ref_each_localization = []
-            pred_each_localization = []
-            error_each_localization = []
-            x_each_localization = []
-            y_each_localization = []
-            yaw_each_localization = []
-            threshold = 30
-
             calib = CalibrationParam[idxSensor]
+            '''
             print(calib)
             e00 = np.cos(calib[2])*np.cos(calib[1]);        e01 = np.cos(calib[2])*np.sin(calib[1])*np.sin(calib[0])-np.sin(calib[2])*np.cos(calib[0]);
             e02 = np.cos(calib[2])*np.sin(calib[1])*np.cos(calib[0])+np.sin(calib[2])*np.sin(calib[0]);        e03 = calib[3];
@@ -89,17 +135,7 @@ class Evaluation:
                                [e10, e11, e12, e13],
                                [e20, e21, e22, e23],
                                [e30, e31, e32, e33]])
-
-            dZ_m = calib[5]
-            dRoll_rad = calib[0]
-            dPitch_rad = calib[1]
-
-            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
-                                           np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
-                                          [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
-                                          [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
-                                           np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
-                                          [0., 0., 0., 1.]])
+            '''
             tf_XYYaw = np.array([[np.cos(calib[2]), -np.sin(calib[2]), 0., calib[3]],
                                  [np.sin(calib[2]), np.cos(calib[2]), 0., calib[4]],
                                  [0., 0., 1., 0.],
@@ -128,8 +164,6 @@ class Evaluation:
             HD_map = np.empty((0, 3))
             ### Make HD Map
 
-            # pbar2 = tqdm(l)
-
             print('\n----------- Start Mapping -----------')
             # HD Map 생성
             pbar = tqdm(l)  # idx_pair progress bar 생성
@@ -152,7 +186,7 @@ class Evaluation:
                 # Get point clouds
                 map_pointcloud = {}
 
-                map_pointcloud = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]  # df_sampled_info의 i번째 값(PointCloud index)에 맞는 pointcloud 데이터 PointCloudSensorList에서 불러옴
+                map_pointcloud = tf_PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]  # df_sampled_info의 i번째 값(PointCloud index)에 맞는 pointcloud 데이터 PointCloudSensorList에서 불러옴
                 map_pointcloud_homogeneous = np.insert(map_pointcloud, 3, 1, axis=1)
 
                 # Get GNSS
@@ -175,7 +209,7 @@ class Evaluation:
                                                         [0., 0., 0., 1.]])
 
                 # Get transformation world to lidar
-                transformation_world_to_lidar = np.matmul(transformation_world_to_veh, T_calib)
+                transformation_world_to_lidar = np.matmul(transformation_world_to_veh, tf_XYYaw)
 
                 point_homogeneous = np.matmul(transformation_world_to_lidar, np.transpose(map_pointcloud_homogeneous))
                 point = np.delete(point_homogeneous, (3), axis=0)
@@ -185,12 +219,39 @@ class Evaluation:
 
             p_index = p_index + 1.0
 
-            Map[idxSensor] = HD_map
+            HD_map_pcd = o3d.geometry.PointCloud()
+            HD_map_pcd.points = o3d.utility.Vector3dVector(HD_map)
+
+            downsampled_HD_map_pcd = o3d.geometry.voxel_down_sample(HD_map_pcd, voxel_size=0.1)  # using voxel grid filter
+
+            # pcd to array
+            Map[idxSensor] = np.asarray(downsampled_HD_map_pcd.points)
 
 
-            ##-----------------------------------------------------------------------------------------------------------------------------
-            # 6-2. Localization
-            ##-----------------------------------------------------------------------------------------------------------------------------
+        ##-----------------------------------------------------------------------------------------------------------------------------
+        # 6-2. Localization
+        ##-----------------------------------------------------------------------------------------------------------------------------
+        for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
+            ref_each_localization = []
+            pred_each_localization = []
+            error_each_localization = []
+            x_each_localization = []
+            y_each_localization = []
+            yaw_each_localization = []
+            threshold = 30
+
+            HD_map = Map[idxSensor]
+
+
+            df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading',
+                                   strColIndex]]  # df_info의 'east','north','heading',...,XYZRGB 하나씩 분리해서 저장
+            df_one_info = df_one_info.drop(df_info[(df_one_info[
+                                                        strColIndex].values == 0)].index)  # df_one_info에서 strColIndex(PointCloud_n)의 value가 0인 값들 다 제외 --> 값이 있는 애들만 남겨놓음
+
+            # Sampling based on interval
+            df_sampled_info = df_one_info.iloc[::self.config.PARM_EV['SamplingInterval'],
+                              :]  # Sampling 간격만큼 분할(추출)함 ex) samplinginterval = 2이면 2행마다 하나 추출
+            df_sampled_info.heading = df_sampled_info.heading + 90
 
             pbar = tqdm(l)  # idx_pair progress bar 생성
 
@@ -209,20 +270,6 @@ class Evaluation:
                 thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("Evaluation" + str(idxSensor))  # 상태바 naming
-
-                pointcloud_in_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
-                pointcloud_in_lidar_homogeneous = np.insert(pointcloud_in_lidar, 3, 1, axis=1)
-
-                # PointCloud Conversion: Roll, Pitch, Height
-                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
-                                                                            np.transpose(pointcloud_in_lidar_homogeneous))
-                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.delete(
-                    pointcloud1_in_lidar_frame_calibrated_rollpitch, 3, axis=0)
-                pointcloud1_in_lidar_frame_calibrated_rollpitch = np.transpose(
-                    pointcloud1_in_lidar_frame_calibrated_rollpitch)
-
-                pointcloud = pointcloud1_in_lidar_frame_calibrated_rollpitch
-
                 if using_gnss_motion == False:
                     ref_east = df_sampled_info['east_m'].values[i]
                     ref_north = df_sampled_info['north_m'].values[i]
@@ -251,13 +298,18 @@ class Evaluation:
                 distance = distance + tmp_distance
 
                 if distance > dist_interval:
+                    print("index {}".format(int(df_sampled_info[strColIndex].values[i])))
+                    pointcloud = tf_PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                    if pointcloud.shape[0] < 1:
+                        continue
+
                     ref_transformation_world_to_veh = np.array(
                         [[np.cos(ref_yaw_rad), -np.sin(ref_yaw_rad), 0., ref_east],
                          [np.sin(ref_yaw_rad), np.cos(ref_yaw_rad), 0., ref_north],
                          [0., 0., 1., 0.],
                          [0., 0., 0., 1.]])
 
-                    pred_transformation = np.matmul(ref_transformation_world_to_veh, tf_XYYaw)
+                    pred_transformation = np.matmul(ref_transformation_world_to_veh, tf_XYYaw * init_T)
 
                     # Update ICP Map Matching
                     # pred_east, pred_north기준으로 threshold만큼 ROI 설정
@@ -265,12 +317,6 @@ class Evaluation:
                         np.power((HD_map[:, 0] - ref_east), 2) + np.power((HD_map[:, 1] - ref_north), 2)) < threshold
                     map_in_ROI = HD_map[cond]
 
-                    # Downsampling HDMap_veh
-                    HDMap_pcd = o3d.geometry.PointCloud()
-                    HDMap_pcd.points = o3d.utility.Vector3dVector(map_in_ROI)
-
-                    HDMap_pcd = o3d.geometry.voxel_down_sample(HDMap_pcd, voxel_size=0.3) # using voxel grid filter
-                    HDMap_ROI = np.asarray(HDMap_pcd.points)
 
                     # Get Transformation between HD Map in Vehicle Frame and Pointcloud in LiDAR Frame
                     # Map Matching
@@ -278,7 +324,7 @@ class Evaluation:
 
                     # ICP Registration: world to lidar
                     transform_point, distances, iterations, converged = utils_icp.icp_NM(pointcloud[:, 0:3],
-                                                                                         HDMap_ROI[:, 0:3],
+                                                                                         map_in_ROI[:, 0:3],
                                                                                          init_pose=pred_transformation,
                                                                                          tolerance=0.0001,
                                                                                          max_iterations=100,

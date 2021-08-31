@@ -115,7 +115,7 @@ class Unsupervised:
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
-        tmp_pc = []
+        tmp_pc = {}
         for key in pointcloud:
             print("key {}".format(key))
             pointcloud_lidar = pointcloud[key]
@@ -131,13 +131,14 @@ class Unsupervised:
             pointcloud_tmp = pointcloud_in_lidar_frame_calibrated_rollpitch
 
             remove_filter = pointcloud_tmp[:, 2] < float(min_thresh_z_m)
+            remove_filter = np.logical_or(remove_filter, pointcloud[:, 2] > float(max_thresh_z_m))
 
             filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
                                                        pointcloud_tmp[:, 0:3], axis=0)
             filtered_pointcloud = np.array(filtered_pointcloud)
 
-
-        tmp_pc.append(filtered_pointcloud)
+            #tmp_pc.append(filtered_pointcloud)
+            tmp_pc[key] = filtered_pointcloud
 
         pointcloud = tmp_pc
 
@@ -169,7 +170,78 @@ class Unsupervised:
             self.calib_x.append(self.CalibrationParam[idxSensor][3])
             self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
+            # -----------------------------------------------------------------------------------------------------------------------------
+            # 3-3. Accum Map
+            # -----------------------------------------------------------------------------------------------------------------------------
+            accum_pointcloud = {}
+            for idxSensor in PARM_LIDAR['CheckedSensorList']:
+                calib_param = self.CalibrationParam[idxSensor]
+                calib_param[0] = 0.0
+                calib_param[1] = 0.0
+                calib_param[5] = 0.0
+                ##################
+                # Remove rows by other sensors
+                dZ_m = zrp_calib[idxSensor][0]
+                dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+                dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+
+                tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
+                                               np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
+                                              [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
+                                              [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
+                                               np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
+                                              [0., 0., 0., 1.]])
+
+                ##################
+                ##### Arguments
+                pose = df_one_info['east_m'].values
+                pose = np.vstack([pose, df_one_info['north_m'].values])
+                pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
+                print("pose {}".format(pose))
+                print("calib_param {}".format(calib_param))
+
+                ##################
+                # Get Point cloud list
+                # pointcloud = calibrated_point_dict[idxSensor]
+                pointcloud = self.importing.PointCloudSensorList[idxSensor]
+                index_pointcloud = list(range(len(pointcloud)))
+
+                ##################
+                # Accumulation of point cloud
+                num_pose = pose.shape[1]
+                accum_point_enup = np.empty((0, 4))
+                for idx_pose in list(range(0, num_pose, 20)):
+                    # Convert raw to enu
+                    # point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                    point_sensor = pointcloud[int(df_one_info[strColIndex].values[idx_pose])]
+                    point_sensor_homogeneous = np.insert(point_sensor, 3, 1, axis=1)
+
+                    # PointCloud Conversion: Roll, Pitch, Height
+                    point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                                  np.transpose(point_sensor_homogeneous))
+                    point_sensor_calibrated_rollpitch = np.transpose(
+                        point_sensor_calibrated_rollpitch)
+
+                    point_sensor_calibrated_rollpitch = np.delete(
+                        point_sensor_calibrated_rollpitch, 3, axis=0)
+
+                    pointcloud_sensor = point_sensor_calibrated_rollpitch
+
+                    point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
+                                                                                pose[0:3, idx_pose])
+                    # Add index
+                    point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
+
+                    # Accumulate the point cloud
+                    accum_point_enup = np.vstack([accum_point_enup, point_enup])
+
+                accum_pointcloud[idxSensor] = accum_point_enup
+
             self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+
+            self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+            self.df_info = df_info
+            self.accum_point = accum_pointcloud
             thread.mutex.unlock()
             print("Complete single-optimization calibration")
         else:
@@ -253,7 +325,7 @@ class Unsupervised:
 
                 # print("\n############\n")
                 # print(pointcloud)
-                tmp_pc = []
+                tmp_pc = {}
                 for key in pointcloud:
                     pointcloud_lidar = pointcloud[key]
                     pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis=1)
@@ -268,13 +340,14 @@ class Unsupervised:
                     pointcloud = pointcloud_in_lidar_frame_calibrated_rollpitch
 
                     remove_filter = pointcloud[:, 2] < float(min_thresh_z_m)
+                    remove_filter = np.logical_or(remove_filter, pointcloud[:, 2] > float(max_thresh_z_m))
 
                     filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
                                                          pointcloud[:, 0:3], axis=0)
                     filtered_pointcloud = np.array(filtered_pointcloud)
 
-                tmp_pc.append(filtered_pointcloud)
-
+                    tmp_pc[key] = filtered_pointcloud
+                pointcloud = tmp_pc
                 ##### cost function for optimization
                 utils_cost_func.strFile = 'XYZRGB_' + str(idxSensor)
                 utils_cost_func.nFeval = 0
@@ -304,7 +377,78 @@ class Unsupervised:
                 self.calib_x.append(self.CalibrationParam[idxSensor][3])
                 self.calib_y.append(self.CalibrationParam[idxSensor][4])
 
+            # -----------------------------------------------------------------------------------------------------------------------------
+            # 3-3. Accum Map
+            # -----------------------------------------------------------------------------------------------------------------------------
+            accum_pointcloud = {}
+            for idxSensor in PARM_LIDAR['CheckedSensorList']:
+                calib_param = self.CalibrationParam[idxSensor]
+                calib_param[0] = 0.0
+                calib_param[1] = 0.0
+                calib_param[5] = 0.0
+                ##################
+                # Remove rows by other sensors
+                dZ_m = zrp_calib[idxSensor][0]
+                dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+                dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+
+                tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
+                                               np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
+                                              [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
+                                              [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
+                                               np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
+                                              [0., 0., 0., 1.]])
+
+                ##################
+                ##### Arguments
+                pose = df_one_info['east_m'].values
+                pose = np.vstack([pose, df_one_info['north_m'].values])
+                pose = np.vstack([pose, df_one_info['heading'].values * np.pi / 180.])
+                print("pose {}".format(pose))
+                print("calib_param {}".format(calib_param))
+
+                ##################
+                # Get Point cloud list
+                # pointcloud = calibrated_point_dict[idxSensor]
+                pointcloud = self.importing.PointCloudSensorList[idxSensor]
+                index_pointcloud = list(range(len(pointcloud)))
+
+                ##################
+                # Accumulation of point cloud
+                num_pose = pose.shape[1]
+                accum_point_enup = np.empty((0, 4))
+                for idx_pose in list(range(0, num_pose, 20)):
+                    # Convert raw to enu
+                    # point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                    point_sensor = pointcloud[int(df_one_info[strColIndex].values[idx_pose])]
+                    point_sensor_homogeneous = np.insert(point_sensor, 3, 1, axis=1)
+
+                    # PointCloud Conversion: Roll, Pitch, Height
+                    point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                                  np.transpose(point_sensor_homogeneous))
+                    point_sensor_calibrated_rollpitch = np.transpose(
+                        point_sensor_calibrated_rollpitch)
+
+                    point_sensor_calibrated_rollpitch = np.delete(
+                        point_sensor_calibrated_rollpitch, 3, axis=0)
+
+                    pointcloud_sensor = point_sensor_calibrated_rollpitch
+
+                    point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
+                                                                                pose[0:3, idx_pose])
+                    # Add index
+                    point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
+
+                    # Accumulate the point cloud
+                    accum_point_enup = np.vstack([accum_point_enup, point_enup])
+
+                accum_pointcloud[idxSensor] = accum_point_enup
+
+
             self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
+            self.df_info = df_info
+            self.accum_point = accum_pointcloud
+
             if not mutex_unlock:
                 thread.mutex.unlock()
                 mutex_unlock = True
