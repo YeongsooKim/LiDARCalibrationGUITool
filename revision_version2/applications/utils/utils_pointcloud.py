@@ -131,14 +131,21 @@ def plane_fitting(pointcloud, debug = False):
     tmp_A = np.concatenate((pointcloud[:,0:2],np.full((pointcloud.shape[0], 1), 1)), axis=1)
     A = np.matrix(tmp_A)
     b = np.matrix(pointcloud[:,2]).T
-    fit = (A.T * A).I * A.T * b
-    
-    # Parameter
-    A = float(fit[0])
-    B = float(fit[1])
-    C = float(-1)
-    D = float(fit[2])
-    
+    try:
+        print("Non Singular Matrix")
+        fit = (A.T * A).I * A.T * b
+        # Parameter
+        A = float(fit[0])
+        B = float(fit[1])
+        C = float(-1)
+        D = float(fit[2])
+    except:
+        print("Singular Matrix")
+        A = 0
+        B = 0
+        C = 0
+        D = 0
+
     # When debug is True, plot plane and pointcloud s
     if debug == True:
         plt.figure()

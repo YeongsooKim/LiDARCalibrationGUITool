@@ -93,9 +93,12 @@ def compute_single_err(CalibH_rad, CalibX_m, CalibY_m, pose, pointcloud, PARM_IM
              if plane_point.shape[0] < 4:
                  continue
              plane_param = utils_pointcloud.plane_fitting(plane_point)
-
-             # Get error
-             err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
+             if (plane_param[0] == 0) & (plane_param[1] == 0) & (plane_param[2] == 0) & (plane_param[3] == 0):
+                 continue
+             else:
+                 # Get error
+                 err = utils_pointcloud.get_distance_from_plane(project_points[i], plane_param)
+             print("err {}".format(err))
              point_err.append(abs(err))
 
          # Condition that the number of point err is low

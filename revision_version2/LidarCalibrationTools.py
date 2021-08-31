@@ -1400,26 +1400,30 @@ class DataValidationTab(QWidget):
 
         ## Plot 'Result Data'
         self.result_data_pose_ax.clear()
-        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
+        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.timestamp,
+                                              self.form_widget.datavalidation.TranslationError,
                                               self.form_widget.datavalidation.PARM_LIDAR, self.result_data_pose_ax,
                                               self.result_data_pose_canvas)
 
         ## Plot 'Result Graph'
         self.result_graph_ax.clear()
-        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
+        self.form_widget.ViewRotationError(self.form_widget.datavalidation.timestamp,
+                                           self.form_widget.datavalidation.RotationError,
                                            self.form_widget.datavalidation.PARM_LIDAR, self.result_graph_ax,
                                            self.result_graph_canvas)
 
     def ViewTranslationError(self):
         if self.progress_status is not CONST_IDLE:
             return False
-        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.TranslationError,
+        self.form_widget.ViewTranslationError(self.form_widget.datavalidation.timestamp,
+                                              self.form_widget.datavalidation.TranslationError,
                                               self.form_widget.datavalidation.PARM_LIDAR)
 
     def ViewRotationError(self):
         if self.progress_status is not CONST_IDLE:
             return False
-        self.form_widget.ViewRotationError(self.form_widget.datavalidation.RotationError,
+        self.form_widget.ViewRotationError(self.form_widget.datavalidation.timestamp,
+                                           self.form_widget.datavalidation.RotationError,
                                            self.form_widget.datavalidation.PARM_LIDAR)
 
     def Skip(self):
@@ -2112,6 +2116,7 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         self.form_widget.ErrorPopUp('Please wait for stop the calibration')
 
+    '''
     def ViewPointCloud(self):
         if self.progress_status is not CONST_IDLE:
             return False
@@ -2122,14 +2127,23 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
             self.form_widget.unsupervised.CalibrationParam[key][1] = calib_result_dict[key][2]
             self.form_widget.unsupervised.CalibrationParam[key][5] = calib_result_dict[key][0]
 
+        
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
                                                                                            self.radio_label_layout.using_gnss_motion,
                                                                                            self.form_widget.unsupervised.PARM_LIDAR,
                                                                                            self.form_widget.unsupervised.CalibrationParam,
                                                                                            self.form_widget.importing_tab.limit_time_layout.start_time,
                                                                                            self.form_widget.importing_tab.limit_time_layout.end_time)
-
+        
         self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR)
+    '''
+    def ViewPointCloud(self):
+        if self.progress_status is not CONST_IDLE:
+            return False
+
+        self.form_widget.ViewPointCloud(self.form_widget.unsupervised.df_info,
+                                        self.form_widget.unsupervised.accum_point,
+                                        self.form_widget.unsupervised.PARM_LIDAR)
 
     def EndCalibration(self):
         zrp_result = self.form_widget.GetZRPCalibList(self.zrp_result_labels, self.manual_zrp_calib_result)
@@ -2148,17 +2162,18 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         self.ViewBtnEnable(True)
         self.form_widget.unsupervised.complete_calibration = True
 
+        '''
         df_info, PARM_LIDAR, accum_pointcloud, accum_pointcloud_ = get_result.GetPlotParam(self.form_widget.importing,
                                                                                            self.radio_label_layout.using_gnss_motion,
                                                                                            self.form_widget.unsupervised.PARM_LIDAR,
                                                                                            self.form_widget.unsupervised.CalibrationParam,
                                                                                            self.form_widget.importing_tab.limit_time_layout.start_time,
                                                                                            self.form_widget.importing_tab.limit_time_layout.end_time)
-
+        '''
         # Unsupervised tab
 
         ## Set 'Result Calibration Data'
-        for idxSensor in PARM_LIDAR['CheckedSensorList']:
+        for idxSensor in self.form_widget.unsupervised.PARM_LIDAR['CheckedSensorList']:
             self.xyyaw_result_labels[idxSensor].label_edit1.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][3], ".4f"))
             self.xyyaw_result_labels[idxSensor].label_edit2.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][4], ".4f"))
             self.xyyaw_result_labels[idxSensor].label_edit3.setText(format(self.form_widget.unsupervised.CalibrationParam[idxSensor][2] * 180 / math.pi, ".4f"))
@@ -2166,14 +2181,17 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
         ## Plot 'Result Data'
         if self.form_widget.using_vtk:
             self.VTKInit(is_default=False)
-            self.vehicle_actor = self.form_widget.DisplayLiDAR(self, PARM_LIDAR, self.is_single)
+            self.vehicle_actor = self.form_widget.DisplayLiDAR(self, self.form_widget.unsupervised.PARM_LIDAR, self.is_single)
 
         ## Plot 'Result Graph''
         self.result_graph_ax.clear()
-        self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
+        #self.form_widget.ViewPointCloud(df_info, accum_pointcloud, PARM_LIDAR, self.result_graph_ax, self.result_graph_canvas)
+        self.form_widget.ViewPointCloud(self.form_widget.unsupervised.df_info,
+                                        self.form_widget.unsupervised.accum_point,
+                                        self.form_widget.unsupervised.PARM_LIDAR, self.result_graph_ax,
+                                        self.result_graph_canvas)
 
         # Evaluation tab
-
         for idxSensor in self.PARM_LIDAR['CheckedSensorList']:
             if (self.is_single == False) or ((self.is_single == True) and idxSensor == self.form_widget.config.PARM_LIDAR['SingleSensor']) :
                 self.form_widget.evaluation_tab.xyyaw_result_labels[idxSensor].button_group.button(CONST_UNSUPERVISED).setChecked(True)
@@ -3415,12 +3433,17 @@ class FormWidget(QWidget):
                 ax.grid()
                 ax.legend(markerscale=2)
                 ax.set_title('Result of calibration - LiDAR' + str(idxSensor[i]))
+                ax.set_xlabel('X [m]')
+                ax.set_ylabel('Y [m]')
+
 
         if canvas is not None:
             ax.axis('equal')
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Result of calibration')
+            ax.set_xlabel('X [m]')
+            ax.set_ylabel('Y [m]')
             canvas.draw()
         else:
             root = Tk.Tk()
@@ -3580,7 +3603,7 @@ class FormWidget(QWidget):
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             root.mainloop()    
 
-    def ViewTranslationError(self, error, PARM_LIDAR,  ax=None, canvas=None):
+    def ViewTranslationError(self, timestamp,  error, PARM_LIDAR,  ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
@@ -3596,13 +3619,13 @@ class FormWidget(QWidget):
                 ax = fig.add_subplot(int(plot_num_str))
 
             strColIndex = 'XYZRGB_' + str(i)
-            ax.plot(error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
+            ax.plot(timestamp, error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
 
             if canvas is None:
                 ax.grid()
                 ax.legend(markerscale=2)
                 ax.set_title('Translation RMSE between Vehicle and LiDAR' + str(idxSensor[i]))
-                ax.set_xlabel('Step [cnt]')
+                ax.set_xlabel('Time [s]')
                 ax.set_ylabel('RMSE [m]')
                 ax.set_xlim([-10,len(error[idxSensor[i]])+10])               
                 val = np.max(error[idxSensor[i]]) * 1.4
@@ -3619,7 +3642,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Translation RMSE')
-            ax.set_xlabel('Step [cnt]')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('RMSE [m]')           
             val = np.max(max_err) * 1.4
             ax.set_ylim([0 -val/2, np.max(max_err) + val/2]) 
@@ -3632,7 +3655,7 @@ class FormWidget(QWidget):
             canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
             root.mainloop()
 
-    def ViewRotationError(self, error, PARM_LIDAR,  ax=None, canvas=None):
+    def ViewRotationError(self, timestamp, error, PARM_LIDAR,  ax=None, canvas=None):
         lidar_num = len(PARM_LIDAR['CheckedSensorList'])
         column = '2'
         row = str(math.ceil(lidar_num / 2))
@@ -3649,13 +3672,13 @@ class FormWidget(QWidget):
                 ax = fig.add_subplot(int(plot_num_str))
 
             strColIndex = 'XYZRGB_' + str(idxSensor[i])
-            ax.plot(error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
+            ax.plot(timestamp, error[idxSensor[i]], color=self.color_list[(idxSensor[i]) % len(self.color_list)], label='LiDAR' + str(idxSensor[i]))
 
             if canvas is None:
                 ax.grid()
                 ax.legend(markerscale=2)
                 ax.set_title('Rotation RMSE between Vehicle and LiDAR' + str(idxSensor[i]))
-                ax.set_xlabel('Step [cnt]')
+                ax.set_xlabel('Time [s]')
                 ax.set_ylabel('RMSE [deg]')
                 ax.set_xlim([-10,len(error[idxSensor[i]])+10])            
                 val = np.max(error[idxSensor[i]]) * 1.4
@@ -3670,7 +3693,7 @@ class FormWidget(QWidget):
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Rotation RMSE')
-            ax.set_xlabel('Step [cnt]')
+            ax.set_xlabel('Time [s]')
             ax.set_ylabel('RMSE [deg]')
             val = np.max(max_err) * 1.4
             ax.set_ylim([0 -val/2, np.max(max_err) + val/2])

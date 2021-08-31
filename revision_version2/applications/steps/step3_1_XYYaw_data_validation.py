@@ -36,7 +36,8 @@ class DataValidation:
         self.LiDARRotation = {}
         self.RMSERotationErrorDict= {}
         self.RMSETranslationErrorDict = {}
-            
+        self.timestamp = 0
+
         
 
     def NormAngle_deg(self,dAngle_deg):
@@ -124,7 +125,7 @@ class DataValidation:
             pbar = tqdm(idx_pair)
             iteration_size = len(idx_pair)
             index = 0
-
+            time = []
             for i, j in pbar:
                 ## Set Progress bar
                 while thread.pause:
@@ -162,7 +163,10 @@ class DataValidation:
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
 
                 remove_filter1 = pointcloud1[:, 2] < float(min_thresh_z_m)
+                remove_filter1 = np.logical_or(remove_filter1, pointcloud1[:, 2] > float(max_thresh_z_m))
+
                 remove_filter2 = pointcloud2[:, 2] < float(min_thresh_z_m)
+                remove_filter2 = np.logical_or(remove_filter2, pointcloud2[:, 2] > float(max_thresh_z_m))
 
                 filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)),
                                                             pointcloud1[:, 0:3], axis=0)
@@ -251,6 +255,7 @@ class DataValidation:
 
                     translation_error.append(err_translation)
                     rotation_error.append(err_rotation)
+                    time.append(df_sampled_info.index[i])
                 index = index + 1
 
                 if not thread._status:
@@ -285,6 +290,7 @@ class DataValidation:
             self.RMSERotationErrorDict[idxSensor] = rmse_rotation_error
             self.RMSETranslationError.append(rmse_translation_error)
             self.RMSERotationError.append(rmse_rotation_error)
+            self.timestamp = time
 
             p_index = p_index + 1.0
 

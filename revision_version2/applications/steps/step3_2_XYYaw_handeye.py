@@ -152,7 +152,10 @@ class HandEye:
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
 
                 remove_filter1 = pointcloud1[:, 2] < float(min_thresh_z_m)
+                remove_filter1 = np.logical_or(remove_filter1, pointcloud1[:, 2] > float(max_thresh_z_m))
+
                 remove_filter2 = pointcloud2[:, 2] < float(min_thresh_z_m)
+                remove_filter2 = np.logical_or(remove_filter2, pointcloud2[:, 2] > float(max_thresh_z_m))
 
                 filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)),
                                                             pointcloud1[:, 0:3], axis=0)
@@ -354,6 +357,14 @@ class HandEye:
             calib_param[5] = 0.0
             ##################
             # Remove rows by other sensors
+            dZ_m = zrp_calib[idxSensor][0]
+            dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+            dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+
+            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
+                                  [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
+                                  [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
+                                  [0., 0., 0., 1.]])
 
             ##################
             ##### Arguments
@@ -365,7 +376,8 @@ class HandEye:
 
             ##################
             # Get Point cloud list
-            pointcloud = calibrated_point_dict[idxSensor]
+            #pointcloud = calibrated_point_dict[idxSensor]
+            pointcloud = self.importing.PointCloudSensorList[idxSensor]
             index_pointcloud = list(range(len(pointcloud)))
 
             ##################
@@ -374,7 +386,21 @@ class HandEye:
             accum_point_enup = np.empty((0, 4))
             for idx_pose in list(range(0, num_pose, 20)):
                 # Convert raw to enu
-                point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                #point_sensor = pointcloud[int(index_pointcloud[idx_pose])][:, 0:3]
+                point_sensor = pointcloud[int(df_one_info[strColIndex].values[idx_pose])]
+                point_sensor_homogeneous = np.insert(point_sensor, 3, 1, axis=1)
+
+                # PointCloud Conversion: Roll, Pitch, Height
+                point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                                            np.transpose(point_sensor_homogeneous))
+                point_sensor_calibrated_rollpitch = np.transpose(
+                    point_sensor_calibrated_rollpitch)
+
+                point_sensor_calibrated_rollpitch = np.delete(
+                    point_sensor_calibrated_rollpitch, 3, axis=0)
+
+                pointcloud_sensor = point_sensor_calibrated_rollpitch
+
                 point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
                                                                             pose[0:3, idx_pose])
                 # Add index
@@ -382,6 +408,7 @@ class HandEye:
 
                 # Accumulate the point cloud
                 accum_point_enup = np.vstack([accum_point_enup, point_enup])
+
             accum_pointcloud[idxSensor] = accum_point_enup
 
         self.PARM_LIDAR = copy.deepcopy(PARM_LIDAR)
