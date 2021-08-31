@@ -2070,10 +2070,10 @@ class UnsupervisedTab(XYYaw_CalibrationTab):
 
         status = self.select_lidar_num_layout.button_group.checkedId()
         if status == CONST_SINGLE_LIDAR:
-            max_thresh_z_m = self.form_widget.config.PARM_SO['MaxThresholdZ_m'],
+            max_thresh_z_m = self.form_widget.config.PARM_SO['MaxThresholdZ_m']
             min_thresh_z_m = self.form_widget.config.PARM_SO['MinThresholdZ_m']
         elif status == CONST_MULTI_LIDAR:
-            max_thresh_z_m = self.form_widget.config.PARM_MO['MaxThresholdZ_m'],
+            max_thresh_z_m = self.form_widget.config.PARM_MO['MaxThresholdZ_m']
             min_thresh_z_m = self.form_widget.config.PARM_MO['MinThresholdZ_m']
 
         self.form_widget.opti_thread._status = True

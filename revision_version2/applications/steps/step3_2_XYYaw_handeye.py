@@ -125,17 +125,6 @@ class HandEye:
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
-                print("pointcloud2_lidar {}".format(pointcloud2_lidar))
-
-                #
-                # remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
-                # remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
-                #
-                # filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
-                # filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
-                # filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
-                # filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
-
                 pointcloud1_lidar_homogeneous = np.insert(pointcloud1_lidar, 3, 1, axis = 1)
                 pointcloud2_lidar_homogeneous = np.insert(pointcloud2_lidar, 3, 1, axis = 1)
 
@@ -378,7 +367,7 @@ class HandEye:
             # Get Point cloud list
             #pointcloud = calibrated_point_dict[idxSensor]
             pointcloud = self.importing.PointCloudSensorList[idxSensor]
-            index_pointcloud = list(range(len(pointcloud)))
+            #index_pointcloud = list(range(len(pointcloud)))
 
             ##################
             # Accumulation of point cloud
@@ -397,9 +386,16 @@ class HandEye:
                     point_sensor_calibrated_rollpitch)
 
                 point_sensor_calibrated_rollpitch = np.delete(
-                    point_sensor_calibrated_rollpitch, 3, axis=0)
+                    point_sensor_calibrated_rollpitch, 3, axis=1)
 
-                pointcloud_sensor = point_sensor_calibrated_rollpitch
+                point_sensor = point_sensor_calibrated_rollpitch
+
+                remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
+                remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
+
+                filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                            point_sensor[:, 0:3], axis=0)
+                point_sensor = np.array(filtered_point_sensor)
 
                 point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
                                                                             pose[0:3, idx_pose])

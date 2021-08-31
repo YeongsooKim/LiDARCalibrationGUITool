@@ -9,9 +9,10 @@ import numpy as np
 import copy
 import open3d as o3d
 
+# User defined modules
 from tqdm import tqdm
 from applications.utils import utils_icp, utils_file
-
+from applications.utils import utils_pointcloud
 
 class Evaluation:
     def __init__(self, config, importing):
@@ -40,18 +41,12 @@ class Evaluation:
         df_info = tmp_df_info.drop(
             tmp_df_info[(tmp_df_info.index < start_time) | (tmp_df_info.index > end_time)].index)
 
-        df_info['heading'] = df_info['heading'] + 90
-
         init_T = np.array([[np.cos(5 * np.pi / 180), -np.sin(5 * np.pi / 180), 0., 0.5],
                            [np.sin(5 * np.pi / 180), np.cos(5 * np.pi / 180), 0., 0.5],
                            [0., 0., 1., 0.],
                            [0., 0., 0., 1.]])
 
         Map = {}
-        pred_arr = {}  # optimization의 prediction로 사용할 list 생성
-        ref_arr = {}  # optimization의 reference로 사용할 list 생성
-        opt_arr = {}  # optimization list 생성
-
         x_sensor_localization = {}
         y_sensor_localization = {}
         yaw_sensor_localization = {}
@@ -59,57 +54,6 @@ class Evaluation:
         ref_sensor_localization = {}
         pred_sensor_localization = {}
         error_sensor_localization = {}
-
-        tf_PointCloudSensorList = {}
-        tf_PointCloudList = {}
-        for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
-            calib = CalibrationParam[idxSensor]
-            dZ_m = calib[5]
-            dRoll_rad = calib[0]
-            dPitch_rad = calib[1]
-
-            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad) * np.sin(dRoll_rad),
-                                           np.sin(dPitch_rad) * np.cos(dRoll_rad), 0.],
-                                          [0., np.cos(dRoll_rad), -1 * np.sin(dRoll_rad), 0.],
-                                          [-1 * np.sin(dPitch_rad), np.cos(dPitch_rad) * np.sin(dRoll_rad),
-                                           np.cos(dPitch_rad) * np.cos(dRoll_rad), dZ_m],
-                                          [0., 0., 0., 1.]])
-
-            PointCloudList = self.importing.PointCloudSensorList[idxSensor]
-            for key in PointCloudList:
-                tmp_point = PointCloudList[key]
-                if tmp_point == []:
-                    tf_PointCloudList[key] = []
-                    continue
-                tmp_point[~np.isnan(tmp_point[:, 0])]
-                tmp_point_hom = np.insert(tmp_point, 3, 1, axis=1)
-
-                tmp_tf_point = np.transpose(np.matmul(tf_RollPitchCalib, np.transpose(tmp_point_hom)))
-                tmp_tf_point = tmp_tf_point[:, 0:3]
-                tf_PointCloudList[key] = tmp_tf_point
-            tf_PointCloudSensorList[idxSensor] = tf_PointCloudList
-
-        filtered_PointCloudList = {}
-        for idxSensor in PARM_LIDAR['CheckedSensorList']:  # lidar 개수만큼 for문 반복
-            PointCloudList = tf_PointCloudSensorList[idxSensor]
-
-            for key in PointCloudList:
-                arrPoint = PointCloudList[key]
-                if arrPoint == []:
-                    filtered_PointCloudList[key] = []
-                    continue
-                # Check parameter
-                remove_filter = arrPoint[:, 2] < float(min_thresh_z_m)
-                remove_filter = np.logical_or(remove_filter, arrPoint[:, 2] > float(max_thresh_z_m))
-
-                # filtering
-                FilteredPointCloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)), arrPoint[:, 0:3], axis=0)
-
-                # Save point cloud
-                filtered_PointCloudList[key] = np.array(FilteredPointCloud)
-
-            # Add point cloud of one LIDAR to PointCloudSensorList
-            tf_PointCloudSensorList[idxSensor] = filtered_PointCloudList
 
 
 
@@ -136,6 +80,21 @@ class Evaluation:
                                [e20, e21, e22, e23],
                                [e30, e31, e32, e33]])
             '''
+
+            # Remove rows by other sensors
+            dZ_m = zrp_calib[idxSensor][0]
+            dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
+            dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
+
+            print("dRoll_deg {}".format(dRoll_rad*180.0/np.pi))
+            print("dPitch_deg {}".format(dPitch_rad * 180.0 / np.pi))
+            print("dZ_m {}".format(dZ_m))
+
+            tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
+                                  [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
+                                  [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
+                                  [0., 0., 0., 1.]])
+
             tf_XYYaw = np.array([[np.cos(calib[2]), -np.sin(calib[2]), 0., calib[3]],
                                  [np.sin(calib[2]), np.cos(calib[2]), 0., calib[4]],
                                  [0., 0., 1., 0.],
@@ -146,14 +105,22 @@ class Evaluation:
             strColIndex = 'XYZRGB_' + str(idxSensor)  # PointCloud_n 이름 생성
             LiDAR_list[idxSensor] = strColIndex
 
-            df_one_info = df_info[['east_m', 'north_m', 'heading', 'dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]  # df_info의 'east','north','heading',...,XYZRGB 하나씩 분리해서 저장
+            if using_gnss_motion == 0:
+                df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+            else:
+                df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+                df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
+                                   inplace=True)
+
+
+
             df_one_info = df_one_info.drop(df_info[(df_one_info[
                                                         strColIndex].values == 0)].index)  # df_one_info에서 strColIndex(PointCloud_n)의 value가 0인 값들 다 제외 --> 값이 있는 애들만 남겨놓음
 
             # Sampling based on interval
             df_sampled_info = df_one_info.iloc[::self.config.PARM_EV['SamplingInterval'],
                               :]  # Sampling 간격만큼 분할(추출)함 ex) samplinginterval = 2이면 2행마다 하나 추출
-            df_sampled_info.heading = df_sampled_info.heading + 90
+            #df_sampled_info.heading = df_sampled_info.heading + 90
 
             l = range(len(df_sampled_info)-1)  # df_sampled_info의 길이만큼 range생성 후 list로 변환
             # l = [0,1,2,3,...,len(df_sampled_info)-1]
@@ -163,6 +130,19 @@ class Evaluation:
             ##-----------------------------------------------------------------------------------------------------------------------------
             HD_map = np.empty((0, 3))
             ### Make HD Map
+            calib_param = CalibrationParam[idxSensor]
+            calib_param[0] = 0.0
+            calib_param[1] = 0.0
+            calib_param[5] = 0.0
+            print("dYaw_deg {}".format(calib_param[2]*180/np.pi))
+
+            ##################
+            ##### Arguments
+            pose = df_sampled_info['east_m'].values
+            pose = np.vstack([pose, df_sampled_info['north_m'].values])
+            pose = np.vstack([pose, df_sampled_info['heading'].values * np.pi / 180.])
+
+            pointcloud = self.importing.PointCloudSensorList[idxSensor]
 
             print('\n----------- Start Mapping -----------')
             # HD Map 생성
@@ -170,7 +150,7 @@ class Evaluation:
             iteration_size = len(l)
             thread.emit_string.emit('Map generating LiDAR {}'.format(idxSensor))
             index = 0
-            for j in pbar:  # make hd map
+            for idx_pose in pbar:  # make hd map
 
                 iteration_ratio = float(index + 1) / float(iteration_size)
                 iteration_percentage = iteration_ratio * 100
@@ -181,39 +161,37 @@ class Evaluation:
                 thread.change_value.emit(int(epoch_percentage))
 
                 pbar.set_description("Progress of Mapping")  # 상태바 naming
-                # pbar2.set_description("Progress of HD Map")   # 상태바 naming
 
-                # Get point clouds
-                map_pointcloud = {}
 
-                map_pointcloud = tf_PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]  # df_sampled_info의 i번째 값(PointCloud index)에 맞는 pointcloud 데이터 PointCloudSensorList에서 불러옴
-                map_pointcloud_homogeneous = np.insert(map_pointcloud, 3, 1, axis=1)
+                point_sensor = pointcloud[int(df_one_info[strColIndex].values[idx_pose])]
+                point_sensor_homogeneous = np.insert(point_sensor, 3, 1, axis=1)
 
-                # Get GNSS
-                if using_gnss_motion == False:
-                    map_east = df_sampled_info['east_m'].values[j]  # df_sampled_info의 i번째 'east_m'값 저장
-                    map_north = df_sampled_info['north_m'].values[j]  # df_sampled_info의 i번째 'north_m'값 저장
-                    map_yaw = df_sampled_info['heading'].values[j]  # df_sampled_info의 i번째 'heading'값 저장 [deg]
-                if using_gnss_motion == True:
-                    map_east = df_sampled_info['dr_east_m'].values[j]  # df_sampled_info의 i번째 'east_m'값 저장
-                    map_north = df_sampled_info['dr_north_m'].values[j]  # df_sampled_info의 i번째 'north_m'값 저장
-                    map_yaw = df_sampled_info['dr_heading'].values[j]  # df_sampled_info의 i번째 'heading'값 저장 [deg]
+                # PointCloud Conversion: Roll, Pitch, Height
+                point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                              np.transpose(point_sensor_homogeneous))
+                point_sensor_calibrated_rollpitch = np.transpose(
+                    point_sensor_calibrated_rollpitch)
 
-                map_yaw = utils_file.normalized_angle_deg(map_yaw)
-                map_yaw_rad = map_yaw * np.pi / 180
+                point_sensor_calibrated_rollpitch = np.delete(
+                    point_sensor_calibrated_rollpitch, 3, axis=1)
 
-                # Get Transformation world to vehicle
-                transformation_world_to_veh = np.array([[np.cos(map_yaw_rad), -np.sin(map_yaw_rad), 0., map_east],
-                                                        [np.sin(map_yaw_rad), np.cos(map_yaw_rad), 0., map_north],
-                                                        [0., 0., 1., 0.],
-                                                        [0., 0., 0., 1.]])
+                point_sensor = point_sensor_calibrated_rollpitch
 
-                # Get transformation world to lidar
-                transformation_world_to_lidar = np.matmul(transformation_world_to_veh, tf_XYYaw)
+                remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
+                remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
 
-                point_homogeneous = np.matmul(transformation_world_to_lidar, np.transpose(map_pointcloud_homogeneous))
-                point = np.delete(point_homogeneous, (3), axis=0)
-                HD_map = np.vstack([HD_map, np.transpose(point)])
+                filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                       point_sensor[:, 0:3], axis=0)
+                point_sensor = np.array(filtered_point_sensor)
+
+                point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
+                                                                            pose[0:3, idx_pose])
+                print("pose[0:3, idx_pose] {}". format(pose[0:3, idx_pose]))
+                print("calib_param {}".format(calib_param))
+
+                # Accumulate the point cloud
+                HD_map = np.vstack([HD_map, point_enu])
+
 
                 index = index + 1
 
@@ -225,7 +203,8 @@ class Evaluation:
             downsampled_HD_map_pcd = o3d.geometry.voxel_down_sample(HD_map_pcd, voxel_size=0.1)  # using voxel grid filter
 
             # pcd to array
-            Map[idxSensor] = np.asarray(downsampled_HD_map_pcd.points)
+            #Map[idxSensor] = np.asarray(downsampled_HD_map_pcd.points)
+            Map[idxSensor] = HD_map
 
 
         ##-----------------------------------------------------------------------------------------------------------------------------
@@ -299,7 +278,27 @@ class Evaluation:
 
                 if distance > dist_interval:
                     print("index {}".format(int(df_sampled_info[strColIndex].values[i])))
-                    pointcloud = tf_PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                    pointcloud = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
+                    pointcloud_homogeneous = np.insert(pointcloud, 3, 1, axis=1)
+
+                    # PointCloud Conversion: Roll, Pitch, Height
+                    pointcloud_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
+                                                                  np.transpose(pointcloud_homogeneous))
+                    pointcloud_calibrated_rollpitch = np.transpose(
+                        pointcloud_calibrated_rollpitch)
+
+                    pointcloud_calibrated_rollpitch = np.delete(
+                        pointcloud_calibrated_rollpitch, 3, axis=1)
+
+                    pointcloud = pointcloud_calibrated_rollpitch
+
+                    remove_filter = pointcloud[:, 2] < float(min_thresh_z_m)
+                    remove_filter = np.logical_or(remove_filter, pointcloud[:, 2] > float(max_thresh_z_m))
+
+                    filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                           pointcloud[:, 0:3], axis=0)
+                    pointcloud = np.array(filtered_pointcloud)
+
                     if pointcloud.shape[0] < 1:
                         continue
 
@@ -317,6 +316,8 @@ class Evaluation:
                         np.power((HD_map[:, 0] - ref_east), 2) + np.power((HD_map[:, 1] - ref_north), 2)) < threshold
                     map_in_ROI = HD_map[cond]
 
+                    if map_in_ROI.shape[0] <1 :
+                        continue
 
                     # Get Transformation between HD Map in Vehicle Frame and Pointcloud in LiDAR Frame
                     # Map Matching
