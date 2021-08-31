@@ -741,6 +741,8 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_DV['FilterHeadingThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_DATAVALIDATION_DISTANCE_THRESHOLD:  # Datavalidation tab Distance Threshold (filter)
             self.form_widget.config.PARM_DV['FilterDistanceThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_DATAVALIDATION_MAXIMUM_Z_DISTANCE:  # Datavalidation tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_DV['MaxThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_DATAVALIDATION_MINIMUM_Z_DISTANCE:  # Datavalidation tab Minimum Threshold Z (filter)
             self.form_widget.config.PARM_DV['MinThresholdZ_m'] = self.double_spin_box.value()
 
@@ -752,6 +754,8 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_HE['FilterHeadingThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_DISTANCE_THRESHOLD:  # Handeye tab Distance Threshold (filter)
             self.form_widget.config.PARM_HE['FilterDistanceThreshold'] = self.double_spin_box.value()
+        elif self.id == CONST_HANDEYE_MAXIMUM_Z_DISTANCE:  # Handeye tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_HE['MaxThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_HANDEYE_MINIMUM_Z_DISTANCE:  # Handeye tab Minimum Threshold Z (filter)
             self.form_widget.config.PARM_HE['MinThresholdZ_m'] = self.double_spin_box.value()
 
@@ -759,6 +763,8 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             PARM_OPTI['PointSamplingRatio'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_OUTLIER_DISTANCE:  # unsupervised tab Outlier Distance [m]
             PARM_OPTI['OutlierDistance_m'] = self.double_spin_box.value()
+        elif self.id == CONST_OPTI_MAXIMUM_Z_DISTANCE:  # unsupervised tab Minimum Threshold Z (filter)
+            PARM_OPTI['MaxThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_OPTI_MINIMUM_Z_DISTANCE:  # unsupervised tab Minimum Threshold Z (filter)
             PARM_OPTI['MinThresholdZ_m'] = self.double_spin_box.value()
 
@@ -766,8 +772,23 @@ class DoubleSpinBoxLabelLayout(QHBoxLayout):
             self.form_widget.config.PARM_EV['VehicleSpeedThreshold'] = self.double_spin_box.value()
         elif self.id == CONST_EVAL_DISTANCE_INTERVAL:  # Evaluation tab Eval Distance Interval [m]
             self.form_widget.config.PARM_EV['DistanceInterval'] = self.double_spin_box.value()
+        elif self.id == CONST_EVAL_MAXIMUM_Z_DISTANCE:  # Evaluation tab Minimum Threshold Z (filter)
+            self.form_widget.config.PARM_EV['MaxThresholdZ_m'] = self.double_spin_box.value()
         elif self.id == CONST_EVAL_MINIMUM_Z_DISTANCE:  # Evaluation tab Minimum Threshold Z (filter)
             self.form_widget.config.PARM_EV['MinThresholdZ_m'] = self.double_spin_box.value()
+
+        elif self.id == CONST_CONFIG_REF_X:  # Configuration tab Reference Origin X [m]
+            vtk_lidar_calib.reference_origin_[0] = self.double_spin_box.value()
+        elif self.id == CONST_CONFIG_REF_Y:  # Configuration tab Reference Origin Y [m]
+            vtk_lidar_calib.reference_origin_[1] = self.double_spin_box.value()
+        elif self.id == CONST_CONFIG_REF_Z:  # Configuration tab Reference Origin Z [m]
+            vtk_lidar_calib.reference_origin_[2] = self.double_spin_box.value()
+        elif self.id == CONST_CONFIG_REF_ROLL:  # Configuration tab Reference Origin Roll [deg]
+            vtk_lidar_calib.reference_origin_[3] = self.double_spin_box.value()
+        elif self.id == CONST_CONFIG_REF_PITCH:  # Configuration tab Reference Origin Pitch [deg]
+            vtk_lidar_calib.reference_origin_[4] = self.double_spin_box.value()
+        elif self.id == CONST_CONFIG_REF_YAW:  # Configuration tab Reference Origin Yaw [deg]
+            vtk_lidar_calib.reference_origin_[5] = self.double_spin_box.value()
 
         self.form_widget.config.IsParmChanged()
 
@@ -977,6 +998,7 @@ class RadioLabelLayout(QHBoxLayout):
                 self.form_widget.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_SO['PointSamplingRatio'])
                 self.form_widget.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_SO['NumPointsPlaneModeling'])
                 self.form_widget.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_SO['OutlierDistance_m'])
+                self.form_widget.unsupervised_tab.maximum_threshold_z_layout.double_spin_box.setValue(PARM_SO['MaxThresholdZ_m'])
                 self.form_widget.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_SO['MinThresholdZ_m'])
 
                 for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
@@ -997,6 +1019,7 @@ class RadioLabelLayout(QHBoxLayout):
                 self.form_widget.unsupervised_tab.point_sampling_ratio_layout.double_spin_box.setValue(PARM_MO['PointSamplingRatio'])
                 self.form_widget.unsupervised_tab.num_points_plane_modeling_layout.spin_box.setValue(PARM_MO['NumPointsPlaneModeling'])
                 self.form_widget.unsupervised_tab.outlier_distance_layout.double_spin_box.setValue(PARM_MO['OutlierDistance_m'])
+                self.form_widget.unsupervised_tab.maximum_threshold_z_layout.double_spin_box.setValue(PARM_MO['MaxThresholdZ_m'])
                 self.form_widget.unsupervised_tab.minimum_threshold_z_layout.double_spin_box.setValue(PARM_MO['MinThresholdZ_m'])
 
                 for i, idxSensor in enumerate(self.form_widget.config.PARM_LIDAR['CheckedSensorList']):
@@ -1101,10 +1124,31 @@ class LabelWithDoubleSpinBoxsLayout(QHBoxLayout):
             self.addWidget(uniq_double_spin_box)
             self.spinbox_dict[spin_box_id] = uniq_double_spin_box
 
-    def SetEnable(self, enable):
+    def SetEnable(self, enable=True):
         self.lb.setEnabled(enable)
         for key in self.spinbox_dict:
             self.spinbox_dict[key].setEnabled(enable)
+
+class LabelWithLabelDoubleSpinBoxsLayout(QHBoxLayout):
+    def __init__(self, id_to_strs, label_str, form_widget):
+        super().__init__()
+        self.id_to_strs = id_to_strs
+        self.label_str = label_str
+        self.form_widget = form_widget
+
+        self.InitUi()
+
+    def InitUi(self):
+        self.lb = QLabel(self.label_str)
+        self.addWidget(self.lb)
+
+        self.addStretch(round(0.5))
+
+        self.double_spin_list = []
+        for i, key in enumerate(self.id_to_strs):
+            self.double_spin_list.append(DoubleSpinBoxLabelLayout(key, self.id_to_strs[key], self.form_widget))
+            self.addLayout(self.double_spin_list[-1])
+            self.addStretch(round(0.5))
 
 class LabelWithSliderLayout(QVBoxLayout):
     def __init__(self, instance_id, label_str, form_widget):

@@ -41,9 +41,10 @@ class HandEye:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        min_thresh_z_m = args[5]
-        print('handeye min_thresh_z_m {}'.format(min_thresh_z_m))
-        zrp_calib = args[6]
+        max_thresh_z_m = args[5]
+        min_thresh_z_m = args[6]
+        print('handeye max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
+        zrp_calib = args[7]
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 

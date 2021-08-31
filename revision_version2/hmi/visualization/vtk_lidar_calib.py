@@ -18,6 +18,7 @@ import vtk
 '''
 
 # Length, Width, Height, STL front axis, STL Top axis
+reference_origin_ = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 vehicle_info_ = [0.0, 0.0, 0.0, '', '']
 vehicle_stl_path_ = ''
 lidar_stl_path_ = ''
@@ -26,27 +27,6 @@ ground_stl_path_ = ''
 X_PIX2METER = 1.0 / 0.0006887739372658
 Y_PIX2METER = 1.0 / 0.0006887739372658
 Z_PIX2METER = 100.0 / 0.07200000000000001
-
-
-### Set global variable
-def SetVehicleStlPath(path):
-    global vehicle_stl_path_
-    vehicle_stl_path_ = path
-
-
-def SetLidarStlPath(path):
-    global lidar_stl_path_
-    lidar_stl_path_ = path
-
-
-def SetGridStlPath(path):
-    global ground_stl_path_
-    ground_stl_path_ = path
-
-
-def SetVehicleInfo(vehicle_info):
-    global vehicle_info_
-    vehicle_info_ = vehicle_info
 
 ### Transformation
 # Rotate vehicle according to the value of vehicle_info_[3,4,5]

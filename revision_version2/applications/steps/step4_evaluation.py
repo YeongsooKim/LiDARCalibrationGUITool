@@ -28,8 +28,9 @@ class Evaluation:
         using_gnss_motion = args[4]
         zrp_calib = args[5]
         dist_interval = args[6]
-        min_thresh_z_m = args[7]
-        print('eval min_thresh_z_m {}'.format(min_thresh_z_m))
+        max_thresh_z_m = args[7]
+        min_thresh_z_m = args[8]
+        print('eval max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
 
 
         # Get calibration data

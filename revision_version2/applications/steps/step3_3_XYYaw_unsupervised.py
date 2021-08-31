@@ -48,10 +48,11 @@ class Unsupervised:
         PARM_LIDAR = copy.deepcopy(args[2])
         using_gnss_motion = args[3]
         vehicle_speed_threshold = args[4] / 3.6
-        min_thresh_z_m = args[5]
-        print('unsupervised min_thresh_z_m {}'.format(min_thresh_z_m))
-        zrp_calib = args[6]
-        is_single_optimization = args[7]
+        max_thresh_z_m = args[5]
+        min_thresh_z_m = args[6]
+        print('unsupervised max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
+        zrp_calib = args[7]
+        is_single_optimization = args[8]
         # print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
         # Limit time

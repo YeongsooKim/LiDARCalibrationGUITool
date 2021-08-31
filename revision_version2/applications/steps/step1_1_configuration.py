@@ -83,6 +83,7 @@ class Configuration:
         self.PARM_DV['OutlierDistance_m'] = float(config_param['Validation']['OutlierDistance_m'])
         self.PARM_DV['FilterHeadingThreshold'] = float(config_param['Validation']['FilterHeadingThreshold'])
         self.PARM_DV['FilterDistanceThreshold'] = float(config_param['Validation']['FilterDistanceThreshold'])
+        self.PARM_DV['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
         self.PARM_DV['MinThresholdZ_m'] = float(config_param['Validation']['MinThresholdZ_m'])
 
         # Handeye
@@ -91,24 +92,28 @@ class Configuration:
         self.PARM_HE['OutlierDistance_m'] = float(config_param['Handeye']['OutlierDistance_m'])
         self.PARM_HE['FilterHeadingThreshold'] = float(config_param['Handeye']['FilterHeadingThreshold'])
         self.PARM_HE['FilterDistanceThreshold'] = float(config_param['Handeye']['FilterDistanceThreshold'])
+        self.PARM_HE['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
         self.PARM_HE['MinThresholdZ_m'] = float(config_param['Handeye']['MinThresholdZ_m'])
 
         # Single Optimization
         self.PARM_SO['PointSamplingRatio'] = float(config_param['SingleOptimization']['PointSamplingRatio'])
         self.PARM_SO['NumPointsPlaneModeling'] = int(config_param['SingleOptimization']['NumPointsPlaneModeling'])
         self.PARM_SO['OutlierDistance_m'] = float(config_param['SingleOptimization']['OutlierDistance_m'])
+        self.PARM_SO['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
         self.PARM_SO['MinThresholdZ_m'] = float(config_param['SingleOptimization']['MinThresholdZ_m'])
 
         # Multi Optimization
         self.PARM_MO['PointSamplingRatio'] = float(config_param['MultiOptimization']['PointSamplingRatio'])
         self.PARM_MO['NumPointsPlaneModeling'] = int(config_param['MultiOptimization']['NumPointsPlaneModeling'])
         self.PARM_MO['OutlierDistance_m'] = float(config_param['MultiOptimization']['OutlierDistance_m'])
+        self.PARM_MO['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
         self.PARM_MO['MinThresholdZ_m'] = float(config_param['MultiOptimization']['MinThresholdZ_m'])
 
         # Evaluation
         self.PARM_EV['SamplingInterval'] = int(config_param['Evaluation']['SamplingInterval'])
         self.PARM_EV['DistanceInterval'] = float(config_param['Evaluation']['DistanceInterval'])
         self.PARM_EV['VehicleSpeedThreshold'] = float(config_param['Evaluation']['VehicleSpeedThreshold'])
+        self.PARM_EV['MaxThresholdZ_m'] = float(config_param['Validation']['MaxThresholdZ_m'])
         self.PARM_EV['MinThresholdZ_m'] = float(config_param['Evaluation']['MinThresholdZ_m'])
 
         # Path
@@ -169,6 +174,7 @@ class Configuration:
         f.write('OutlierDistance_m = 0.5\n')
         f.write('FilterHeadingThreshold = 100.0\n')
         f.write('FilterDistanceThreshold = 100.0\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
         f.write('\n')
         f.write('[Handeye]\n')
@@ -177,24 +183,28 @@ class Configuration:
         f.write('OutlierDistance_m = 0.5\n')
         f.write('FilterHeadingThreshold = 0.05\n')
         f.write('FilterDistanceThreshold = 0.05\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
         f.write('\n')
         f.write('[SingleOptimization]\n')
         f.write('PointSamplingRatio = 0.2\n')
         f.write('NumPointsPlaneModeling = 10\n')
         f.write('OutlierDistance_m = 5.\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
         f.write('\n')
         f.write('[MultiOptimization]\n')
         f.write('PointSamplingRatio = 0.2\n')
         f.write('NumPointsPlaneModeling = 10\n')
         f.write('OutlierDistance_m = 5.\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
         f.write('\n')
         f.write('[Evaluation]\n')
         f.write('SamplingInterval = 1\n')
         f.write('DistanceInterval = 0\n')
         f.write('VehicleSpeedThreshold = 1.0\n')
+        f.write('MaxThresholdZ_m = 1000.0\n')
         f.write('MinThresholdZ_m = -1000.0\n')
         f.write('\n')
         f.write('[Path]\n')

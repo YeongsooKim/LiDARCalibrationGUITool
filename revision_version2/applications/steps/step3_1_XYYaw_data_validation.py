@@ -58,8 +58,9 @@ class DataValidation:
         using_motion_data = args[3]
         vehicle_speed_threshold = args[4] / 3.6
         zrp_calib = args[5]
-        min_thresh_z_m = args[6]
-        print('data validation min_thresh_z_m {}'.format(min_thresh_z_m))
+        max_thresh_z_m = args[6]
+        min_thresh_z_m = args[7]
+        print('data validation max {}, min {}'.format(max_thresh_z_m, min_thresh_z_m))
         df_info = copy.deepcopy(self.importing.df_info)
 
         # Limit time
