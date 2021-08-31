@@ -48,8 +48,6 @@ class HandEye:
         print(zrp_calib)
         df_info = copy.deepcopy(self.importing.df_info)
 
-
-
         # Limit time
         df_info = df_info.drop(
             df_info[(df_info.index < start_time) | (df_info.index > end_time)].index)
@@ -80,15 +78,10 @@ class HandEye:
             dRoll_rad = zrp_calib[idxSensor][1] * np.pi / 180.0
             dPitch_rad = zrp_calib[idxSensor][2] * np.pi / 180.0
 
-            print(dZ_m)
-
-
             tf_RollPitchCalib = np.array([[np.cos(dPitch_rad), np.sin(dPitch_rad)*np.sin(dRoll_rad), np.sin(dPitch_rad)*np.cos(dRoll_rad), 0.],
                                   [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
                                   [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
                                   [0., 0., 0., 1.]])
-
-
 
             if not using_motion_data:
                 df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
@@ -131,6 +124,9 @@ class HandEye:
                 ## Get point clouds
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
+
+                print("pointcloud2_lidar {}".format(pointcloud2_lidar))
+
                 #
                 # remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
                 # remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)

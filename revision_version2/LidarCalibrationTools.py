@@ -3468,13 +3468,13 @@ class FormWidget(QWidget):
                 
         if ax is not None:
             ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
-            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Points')
+            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=5, c=None, depthshade=True, label = 'Selected Ground Points')
        
 
         if canvas is None:
             ax = fig.add_subplot(111, projection='3d')
             ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
-            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'Selected Ground Points')
+            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=5, c=None, depthshade=True, label = 'Selected Ground Points')
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Selected Ground Points')

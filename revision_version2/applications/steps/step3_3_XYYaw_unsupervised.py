@@ -101,6 +101,7 @@ class Unsupervised:
             df_one_info.rename(columns={"dr_east_m": "east_m", "dr_north_m": "north_m", "dr_heading": "heading"},
                                inplace=True)
         df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+        print("df_one_info {}".format(df_one_info))
 
         ##################
         ##### Arguments
@@ -114,37 +115,31 @@ class Unsupervised:
         ##################
         # Get Point cloud list
         pointcloud = self.importing.PointCloudSensorList[idxSensor]
-        # print("\n############\n")
-        # print(len(pointcloud))
-        # print(pointcloud)
         tmp_pc = []
         for key in pointcloud:
+            print("key {}".format(key))
             pointcloud_lidar = pointcloud[key]
-            #
-            # pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
-            #
-            # # PointCloud Conversion: Roll, Pitch, Height
-            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
-            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
-            # pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
+            print("pointcloud_lidar {}".format(pointcloud_lidar))
+            print('tq')
 
-            remove_filter = pointcloud_lidar[:, 2] < float(min_thresh_z_m)
-
-            filtered_pointcloud_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
-                                                        pointcloud_lidar[:, 0:3], axis=0)
-            filtered_pointcloud_lidar = np.array(filtered_pointcloud_lidar)
-
-            pointcloud_lidar_homogeneous = np.insert(filtered_pointcloud_lidar, 3, 1, axis = 1)
+            pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
 
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
             pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
 
-            tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
+            pointcloud_tmp = pointcloud_in_lidar_frame_calibrated_rollpitch
+
+            remove_filter = pointcloud_tmp[:, 2] < float(min_thresh_z_m)
+
+            filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                       pointcloud_tmp[:, 0:3], axis=0)
+            filtered_pointcloud = np.array(filtered_pointcloud)
+
+
+        tmp_pc.append(filtered_pointcloud)
 
         pointcloud = tmp_pc
-        # print("\n############\n")
-        # print(pointcloud)
 
         if is_single_optimization:
             thread.mutex.lock()
@@ -261,21 +256,7 @@ class Unsupervised:
                 tmp_pc = []
                 for key in pointcloud:
                     pointcloud_lidar = pointcloud[key]
-
-                    # pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis = 1)
-                    #
-                    # # PointCloud Conversion: Roll, Pitch, Height
-                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud_lidar_homogeneous))
-                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.delete(pointcloud_in_lidar_frame_calibrated_rollpitch, 3, axis = 0)
-                    # pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(pointcloud_in_lidar_frame_calibrated_rollpitch)
-
-                    remove_filter = pointcloud_lidar[:, 2] < float(min_thresh_z_m)
-
-                    filtered_pointcloud_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
-                                                               pointcloud_lidar[:, 0:3], axis=0)
-                    filtered_pointcloud_lidar = np.array(filtered_pointcloud_lidar)
-
-                    pointcloud_lidar_homogeneous = np.insert(filtered_pointcloud_lidar, 3, 1, axis=1)
+                    pointcloud_lidar_homogeneous = np.insert(pointcloud_lidar, 3, 1, axis=1)
 
                     pointcloud_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(
                         pointcloud_lidar_homogeneous))
@@ -284,8 +265,15 @@ class Unsupervised:
                     pointcloud_in_lidar_frame_calibrated_rollpitch = np.transpose(
                         pointcloud_in_lidar_frame_calibrated_rollpitch)
 
-                    tmp_pc.append(pointcloud_in_lidar_frame_calibrated_rollpitch)
-                pointcloud = tmp_pc
+                    pointcloud = pointcloud_in_lidar_frame_calibrated_rollpitch
+
+                    remove_filter = pointcloud[:, 2] < float(min_thresh_z_m)
+
+                    filtered_pointcloud = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
+                                                         pointcloud[:, 0:3], axis=0)
+                    filtered_pointcloud = np.array(filtered_pointcloud)
+
+                tmp_pc.append(filtered_pointcloud)
 
                 ##### cost function for optimization
                 utils_cost_func.strFile = 'XYZRGB_' + str(idxSensor)

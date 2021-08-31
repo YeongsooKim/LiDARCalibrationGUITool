@@ -87,10 +87,8 @@ class DataValidation:
             rotation_error = []
             self.RMSETranslationError = []
             self.RMSERotationError = []
- 
-            
-            diff_point_xyzdh = []
-            diff_gnss_xyzdh = []
+
+            calibrated_point = []
 
             # Remove rows by other sensors
             strColIndex = 'XYZRGB_' + str(idxSensor)
@@ -114,11 +112,6 @@ class DataValidation:
 
             # Sampling based on interval
             df_sampled_info = df_one_info.iloc[::self.config.PARM_IM['SamplingInterval'], :]
-
-
-            "df_sampled_info를 띄워야함"
-
-
 
             # Generate Index Pairs
             idx_pair = []
@@ -153,16 +146,8 @@ class DataValidation:
                 pointcloud1_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[i])]
                 pointcloud2_lidar = self.importing.PointCloudSensorList[idxSensor][int(df_sampled_info[strColIndex].values[j])]
 
-                remove_filter1 = pointcloud1_lidar[:,2] < float(min_thresh_z_m)
-                remove_filter2 = pointcloud2_lidar[:,2] < float(min_thresh_z_m)
-
-                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)), pointcloud1_lidar[:, 0:3], axis=0)
-                filtered_pointcloud1_lidar = np.array(filtered_pointcloud1_lidar)
-                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)), pointcloud2_lidar[:, 0:3], axis=0)
-                filtered_pointcloud2_lidar = np.array(filtered_pointcloud2_lidar)
-
-                pointcloud1_lidar_homogeneous = np.insert(filtered_pointcloud1_lidar, 3, 1, axis = 1)
-                pointcloud2_lidar_homogeneous = np.insert(filtered_pointcloud2_lidar, 3, 1, axis = 1)
+                pointcloud1_lidar_homogeneous = np.insert(pointcloud1_lidar, 3, 1, axis = 1)
+                pointcloud2_lidar_homogeneous = np.insert(pointcloud2_lidar, 3, 1, axis = 1)
 
                 # PointCloud Conversion: Roll, Pitch, Height
                 pointcloud1_in_lidar_frame_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(pointcloud1_lidar_homogeneous))
@@ -176,6 +161,18 @@ class DataValidation:
                 pointcloud1 = pointcloud1_in_lidar_frame_calibrated_rollpitch
                 pointcloud2 = pointcloud2_in_lidar_frame_calibrated_rollpitch
 
+                remove_filter1 = pointcloud1[:, 2] < float(min_thresh_z_m)
+                remove_filter2 = pointcloud2[:, 2] < float(min_thresh_z_m)
+
+                filtered_pointcloud1_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter1)),
+                                                            pointcloud1[:, 0:3], axis=0)
+                pointcloud1 = np.array(filtered_pointcloud1_lidar)
+                filtered_pointcloud2_lidar = np.ma.compress(np.bitwise_not(np.ravel(remove_filter2)),
+                                                            pointcloud2[:, 0:3], axis=0)
+                pointcloud2 = np.array(filtered_pointcloud2_lidar)
+
+
+                calibrated_point.append(pointcloud1)
 				
                 if pointcloud1.shape[0] < 1:
                     index += 1
@@ -229,44 +226,31 @@ class DataValidation:
 
                 veh_east = transform_gnss[0,3]
                 veh_north = transform_gnss[1,3]
-                veh_up = transform_gnss[2,3]
                 veh_yaw = np.arctan2(transform_gnss[1,0],transform_gnss[0,0]) * 180/np.pi
                 veh_yaw = self.NormAngle_deg(veh_yaw)
-                v_translation = np.square(veh_east*veh_east + veh_north*veh_north + veh_up*veh_up)
+                v_translation = np.square(veh_east*veh_east + veh_north*veh_north)
                 v_rotation = np.square(veh_yaw*veh_yaw)
         
                 lidar_east = transform_point[0,3]
                 lidar_north = transform_point[1,3]
-                lidar_up = transform_point[2,3]
-                lidar_roll = np.arctan2(transform_point[2,1], transform_point[2,2]) *180/np.pi
-                lidar_roll = self.NormAngle_deg(lidar_roll)
-                lidar_pitch = -np.arcsin(transform_point[2,0]) * 180/np.pi
-                lidar_pitch = self.NormAngle_deg(lidar_pitch)
                 lidar_yaw = np.arctan2(transform_point[1,0],transform_point[0,0])*180/np.pi # deg
                 lidar_yaw = self.NormAngle_deg(lidar_yaw)
-                l_translation = np.square(lidar_east*lidar_east + lidar_north*lidar_north + lidar_up*lidar_up)
-                #l_rotation = np.square(lidar_roll*lidar_roll + lidar_pitch*lidar_pitch + lidar_yaw*lidar_yaw)
+                l_translation = np.square(lidar_east*lidar_east + lidar_north*lidar_north)
                 l_rotation = np.square(lidar_yaw*lidar_yaw)
                 
                 err_translation = np.abs(v_translation - l_translation)
                 err_rotation = np.abs(v_rotation - l_rotation)
-                
+
                 # Check validation using parameter
                 if (float(err_rotation) < self.config.PARM_DV['FilterHeadingThreshold']) & (
                         float(err_translation) < self.config.PARM_DV['FilterDistanceThreshold']):
-                    #diff_point_xyzdh.append(np.transpose(diff_point).tolist())
-                    #diff_gnss_xyzdh.append(np.transpose(diff_gnss).tolist())
-                
-                
                     veh_translation.append(v_translation)
                     veh_rotation.append(v_rotation)
                     lidar_translation.append(l_translation)
                     lidar_rotation.append(l_rotation)
-                    
+
                     translation_error.append(err_translation)
                     rotation_error.append(err_rotation)
-                
-
                 index = index + 1
 
                 if not thread._status:
@@ -288,11 +272,6 @@ class DataValidation:
                     break
             # print("time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
-            diff_point_xyzdh_dict[idxSensor] = diff_point_xyzdh
-            diff_gnss_xyzdh_dict[idxSensor] = diff_gnss_xyzdh
-            
-            mean_translation_error = np.mean(translation_error)
-            mean_rotation_error = np.mean(rotation_error)
             rmse_translation_error = np.sqrt(np.sum(np.power(translation_error,2))/len(translation_error))
             rmse_rotation_error = np.sqrt(np.sum(np.power(rotation_error,2))/len(rotation_error))
                 
@@ -306,8 +285,6 @@ class DataValidation:
             self.RMSERotationErrorDict[idxSensor] = rmse_rotation_error
             self.RMSETranslationError.append(rmse_translation_error)
             self.RMSERotationError.append(rmse_rotation_error)
-
-       
 
             p_index = p_index + 1.0
 
