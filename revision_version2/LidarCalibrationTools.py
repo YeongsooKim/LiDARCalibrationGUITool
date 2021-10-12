@@ -15,6 +15,8 @@ import numpy as np
 import tkinter as Tk
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from mpl_toolkits.mplot3d import Axes3D
+
 import vtk
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtGui import *
@@ -3462,55 +3464,70 @@ class FormWidget(QWidget):
     def ViewGruondPoint2D(self, pointcloud, filtered_pointcloud, ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
 
-        if ax is None:
-            ax = fig.add_subplot(1, 1, 1)
-
-        ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
-        ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
-        ax.axis('equal')
-        ax.grid()
-        ax.legend(markerscale=2)
-        ax.set_title('Selected Ground Points')
-        ax.set_xlabel('X [m]')
-        ax.set_ylabel('Y [m]')
-
-        if canvas is not None:
-            # ax.axis('equal')
-            # ax.grid()
-            # ax.legend(markerscale=2)
-            # ax.set_title('Selected Ground Points')
-            # ax.set_xlabel('X [m]')
-            # ax.set_ylabel('Y [m]')
-            canvas.draw()
-        else:
+        if canvas is None:
             root = Tk.Tk()
             canvas = FigureCanvasTkAgg(fig, master=root)
+            canvas.draw()
+
+            ax = fig.add_subplot(111)
+            ax.plot(pointcloud[:, 0], pointcloud[:, 1], ',', label='PointCloud')
+            ax.plot(filtered_pointcloud[:, 0], filtered_pointcloud[:, 1], ',', label='Selected Ground Points')
+
+            ax.axis('equal')
+            ax.grid()
+            ax.legend(markerscale=2)
+            ax.set_title('Selected Ground Points')
+            ax.set_xlabel('X [m]')
+            ax.set_ylabel('Y [m]')
+
             nav = NavigationToolbar2Tk(canvas, root)
             canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-            canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-            root.mainloop()
+            Tk.mainloop()
+
+        else:
+            ax.plot(pointcloud[:,0], pointcloud[:,1], ',', label='PointCloud')
+            ax.plot(filtered_pointcloud[:,0], filtered_pointcloud[:,1], ',', label='Selected Ground Points')
+
+            ax.axis('equal')
+            ax.grid()
+            ax.legend(markerscale=2)
+            ax.set_title('Selected Ground Points')
+            ax.set_xlabel('X [m]')
+            ax.set_ylabel('Y [m]')
+            canvas.draw()
 
     def ViewGroundPoint3D(self, pointcloud, filtered_pointcloud,  ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
-                
-        if ax is not None:
-            ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
-            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=5, c=None, depthshade=True, label = 'Selected Ground Points')
-       
 
         if canvas is None:
-            ax = fig.add_subplot(111, projection='3d')
+            root = Tk.Tk()
+            canvas = FigureCanvasTkAgg(fig, master=root)
+
+            # Create label
+            l = Tk.Label(root, text="Left-Click: Rotate, Right-Click: Zoom IN/OUT")
+            l.config(font=("Courier", 14))
+            l.pack(side=Tk.BOTTOM)
+
+            canvas.draw()
+
+            ax = fig.add_subplot(111, projection = '3d')
             ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
             ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=5, c=None, depthshade=True, label = 'Selected Ground Points')
+
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Selected Ground Points')
             ax.set_xlabel('X [m]')
             ax.set_ylabel('Y [m]')
             ax.set_zlabel('Z [m]')
-            
 
-        if canvas is not None:
+            canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+            Tk.mainloop()
+
+        else:
+            ax.scatter(pointcloud[:,0], pointcloud[:,1], pointcloud[:,2], zdir='z', s=0.2, c=None, depthshade=True, label = 'PointCloud')
+            ax.scatter(filtered_pointcloud[:,0], filtered_pointcloud[:,1], filtered_pointcloud[:,2], zdir='z', s=5, c=None, depthshade=True, label = 'Selected Ground Points')
+
             ax.grid()
             ax.legend(markerscale=2)
             ax.set_title('Selected Ground Points')
@@ -3518,14 +3535,7 @@ class FormWidget(QWidget):
             ax.set_ylabel('Y [m]')
             ax.set_zlabel('Z [m]')
             canvas.draw()
-        else:
-            root = Tk.Tk()
-            canvas = FigureCanvasTkAgg(fig, master=root)
-            nav = NavigationToolbar2Tk(canvas, root)
-            canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-            canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-            root.mainloop()
-            
+
     def ViewDistanceGraph(self, timestamp, measured_distance,  ax=None, canvas=None):
         fig = plt.figure(figsize=(16, 12), dpi=70)
 

@@ -335,6 +335,9 @@ class HandEye:
         # -----------------------------------------------------------------------------------------------------------------------------
         accum_pointcloud = {}
         for idxSensor in PARM_LIDAR['CheckedSensorList']:
+
+            strColIndex = 'XYZRGB_' + str(idxSensor)
+
             calib_param = self.CalibrationParam[idxSensor]
             calib_param[0] = 0.0
             calib_param[1] = 0.0
@@ -349,6 +352,15 @@ class HandEye:
                                   [0., np.cos(dRoll_rad), -1*np.sin(dRoll_rad), 0.],
                                   [-1*np.sin(dPitch_rad), np.cos(dPitch_rad)*np.sin(dRoll_rad), np.cos(dPitch_rad)*np.cos(dRoll_rad), dZ_m],
                                   [0., 0., 0., 1.]])
+
+            if not using_motion_data:
+                df_one_info = df_info[['east_m', 'north_m', 'heading', strColIndex]]
+            elif using_motion_data:
+                df_one_info = df_info[['dr_east_m', 'dr_north_m', 'dr_heading', strColIndex]]
+                df_one_info.rename(columns={"dr_east_m" : "east_m", "dr_north_m" : "north_m", "dr_heading" : "heading"}, inplace=True)
+
+            df_one_info = df_one_info.drop(df_info[(df_one_info[strColIndex].values == 0)].index)
+
 
             ##################
             ##### Arguments
@@ -373,25 +385,19 @@ class HandEye:
                 point_sensor_homogeneous = np.insert(point_sensor, 3, 1, axis=1)
 
                 # PointCloud Conversion: Roll, Pitch, Height
-                point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib,
-                                                                            np.transpose(point_sensor_homogeneous))
-                point_sensor_calibrated_rollpitch = np.transpose(
-                    point_sensor_calibrated_rollpitch)
-
-                point_sensor_calibrated_rollpitch = np.delete(
-                    point_sensor_calibrated_rollpitch, 3, axis=1)
+                point_sensor_calibrated_rollpitch = np.matmul(tf_RollPitchCalib, np.transpose(point_sensor_homogeneous))
+                point_sensor_calibrated_rollpitch = np.transpose(point_sensor_calibrated_rollpitch)
+                point_sensor_calibrated_rollpitch = np.delete(point_sensor_calibrated_rollpitch, 3, axis=1)
 
                 point_sensor = point_sensor_calibrated_rollpitch
 
                 remove_filter = point_sensor[:, 2] < float(min_thresh_z_m)
                 remove_filter = np.logical_or(remove_filter, point_sensor[:, 2] > float(max_thresh_z_m))
 
-                filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)),
-                                                            point_sensor[:, 0:3], axis=0)
+                filtered_point_sensor = np.ma.compress(np.bitwise_not(np.ravel(remove_filter)), point_sensor[:, 0:3], axis=0)
                 point_sensor = np.array(filtered_point_sensor)
 
-                point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param,
-                                                                            pose[0:3, idx_pose])
+                point_enu = utils_pointcloud.cvt_pointcloud_6dof_sensor_enu(point_sensor, calib_param, pose[0:3, idx_pose])
                 # Add index
                 point_enup = np.concatenate((point_enu, np.full((point_enu.shape[0], 1), idx_pose)), axis=1)
 
